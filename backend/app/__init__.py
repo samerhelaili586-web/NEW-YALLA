@@ -29,6 +29,15 @@ def create_app(config_object="config.DevConfig"):
     from app.routes.task_types import task_types_bp
     app.register_blueprint(task_types_bp, url_prefix="/api/task-types")
 
+    from app.routes.equipment import equipment_bp
+    app.register_blueprint(equipment_bp, url_prefix="/api/equipment")
+
+    from app.routes.projects import projects_bp
+    app.register_blueprint(projects_bp, url_prefix="/api/projects")
+
+    from app.routes.tasks import tasks_bp
+    app.register_blueprint(tasks_bp, url_prefix="/api/tasks")
+
     @app.get("/api/health")
     def health():
         return {"status": "ok"}

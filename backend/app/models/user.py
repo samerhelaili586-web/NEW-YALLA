@@ -1,139 +1,69 @@
 from datetime import datetime
-from flask import Blueprint, request, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
-from app.models.user import User, ROLES
-from app.permissions import require_menu, require_role, login_required
 
-users_bp = Blueprint("users", __name__)
+ROLES = ("admin_sys", "manager", "cm", "prod")
 
 
-# ---------- Company directory (all active users, all roles can view) ----------
-@users_bp.get("/directory")
-@login_required
-def directory():
-    users = User.query.filter_by(is_archived=False, is_active=True).all()
-    return jsonify([u.to_dict(minimal=True) for u in users])
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(80), nullable=False)
+    last_name = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    phone = db.Column(db.String(30))
+    photo_url = db.Column(db.String(255))
+    password_hash = db.Column(db.String(255), nullable=False)
+
+    role = db.Column(db.String(20), nullable=False)  # one of ROLES
+    is_chef_prod = db.Column(db.Boolean, default=False, nullable=False)
+
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_archived = db.Column(db.Boolean, default=False, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, raw):
+        self.password_hash = generate_password_hash(raw)
+
+    def check_password(self, raw):
+        return check_password_hash(self.password_hash, raw)
+
+    @property
+    def effective_role(self):
+        """Role string used for permission checks — 'chef_prod' if the flag is set."""
+        if self.role == "prod" and self.is_chef_prod:
+            return "chef_prod"
+        return self.role
+
+    def to_dict(self, minimal=False):
+        base = {
+            "id": self.id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "phone": self.phone,
+            "photo_url": self.photo_url,
+            "role": self.role,
+            "is_chef_prod": self.is_chef_prod,
+            "effective_role": self.effective_role,
+        }
+        if not minimal:
+            base.update({
+                "is_active": self.is_active,
+                "is_archived": self.is_archived,
+                "created_at": self.created_at.isoformat(),
+            })
+        return base
 
 
-# ---------- Admin Sys: full user management ----------
-@users_bp.get("")
-@require_menu("gestion_utilisateurs")
-def list_users():
-    users = User.query.order_by(User.last_name).all()
-    return jsonify([u.to_dict() for u in users])
+class LoginHistory(db.Model):
+    __tablename__ = "login_history"
 
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    event = db.Column(db.String(10), nullable=False)  # 'login' | 'logout'
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-@users_bp.post("")
-@require_menu("gestion_utilisateurs")
-def create_user():
-    data = request.get_json(force=True) or {}
-    required = ["first_name", "last_name", "email", "role", "password"]
-    missing = [f for f in required if not data.get(f)]
-    if missing:
-        return jsonify({"error": "missing_fields", "fields": missing}), 400
-
-    if data["role"] not in ROLES:
-        return jsonify({"error": "invalid_role"}), 400
-
-    if User.query.filter_by(email=data["email"].strip().lower()).first():
-        return jsonify({"error": "email_taken"}), 409
-
-    user = User(
-        first_name=data["first_name"],
-        last_name=data["last_name"],
-        email=data["email"].strip().lower(),
-        phone=data.get("phone"),
-        photo_url=data.get("photo_url"),
-        role=data["role"],
-    )
-    user.set_password(data["password"])
-    db.session.add(user)
-    db.session.commit()
-
-    if data.get("is_chef_prod") and user.role == "prod":
-        _set_chef_prod(user.id)
-
-    return jsonify({"user": user.to_dict()}), 201
-
-
-@users_bp.patch("/<int:user_id>")
-@require_menu("gestion_utilisateurs")
-def update_user(user_id):
-    user = User.query.get_or_404(user_id)
-    data = request.get_json(force=True) or {}
-
-    for field in ("first_name", "last_name", "phone", "photo_url"):
-        if field in data:
-            setattr(user, field, data[field])
-
-    if "email" in data:
-        new_email = data["email"].strip().lower()
-        existing = User.query.filter_by(email=new_email).first()
-        if existing and existing.id != user.id:
-            return jsonify({"error": "email_taken"}), 409
-        user.email = new_email
-
-    if "role" in data:
-        if data["role"] not in ROLES:
-            return jsonify({"error": "invalid_role"}), 400
-        user.role = data["role"]
-        if user.role != "prod":
-            user.is_chef_prod = False  # can't hold the flag if no longer Prod
-
-    if "password" in data and data["password"]:
-        user.set_password(data["password"])
-
-    db.session.commit()
-
-    if "is_chef_prod" in data:
-        if data["is_chef_prod"]:
-            if user.role != "prod":
-                return jsonify({"error": "chef_prod_requires_prod_role"}), 400
-            _set_chef_prod(user.id)
-        else:
-            user.is_chef_prod = False
-            db.session.commit()
-
-    return jsonify({"user": user.to_dict()})
-
-
-@users_bp.post("/<int:user_id>/archive")
-@require_menu("gestion_utilisateurs")
-def archive_user(user_id):
-    user = User.query.get_or_404(user_id)
-    user.is_archived = True
-    user.is_active = False
-    db.session.commit()
-    return jsonify({"user": user.to_dict()})
-
-
-@users_bp.post("/<int:user_id>/deactivate")
-@require_menu("gestion_utilisateurs")
-def deactivate_user(user_id):
-    user = User.query.get_or_404(user_id)
-    user.is_active = False
-    db.session.commit()
-    return jsonify({"user": user.to_dict()})
-
-
-@users_bp.post("/<int:user_id>/activate")
-@require_menu("gestion_utilisateurs")
-def activate_user(user_id):
-    user = User.query.get_or_404(user_id)
-    user.is_active = True
-    db.session.commit()
-    return jsonify({"user": user.to_dict()})
-
-
-# NOTE: no delete endpoint — spec §2.4 forbids hard-deleting user accounts, ever.
-
-
-def _set_chef_prod(user_id):
-    """Enforce: exactly one Prod user can hold the Chef Prod flag at a time.
-    Setting it on user_id automatically unsets it from any previous holder."""
-    User.query.filter(User.id != user_id, User.is_chef_prod.is_(True)).update(
-        {"is_chef_prod": False}
-    )
-    target = User.query.get(user_id)
-    target.is_chef_prod = True
-    db.session.commit()
+    user = db.relationship("User")
