@@ -38,6 +38,12 @@ def create_app(config_object="config.DevConfig"):
     from app.routes.tasks import tasks_bp
     app.register_blueprint(tasks_bp, url_prefix="/api/tasks")
 
+    from app.routes.attendance import attendance_bp
+    app.register_blueprint(attendance_bp, url_prefix="/api/attendance")
+
+    from app.routes.leave import leave_bp
+    app.register_blueprint(leave_bp, url_prefix="/api/leave")
+
     @app.get("/api/health")
     def health():
         return {"status": "ok"}
