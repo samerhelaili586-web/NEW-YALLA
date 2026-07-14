@@ -1,8 +1,11 @@
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RoleRoute from "./components/RoleRoute";
+import AdminLayout from "./components/AdminLayout";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
+import AdminUsers from "./pages/admin/Users";
 
 export default function App() {
   return (
@@ -17,6 +20,17 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin"
+          element={
+            <RoleRoute roles={["admin_sys"]}>
+              <AdminLayout />
+            </RoleRoute>
+          }
+        >
+          <Route index element={<AdminUsers />} />
+          <Route path="users" element={<AdminUsers />} />
+        </Route>
       </Routes>
     </AuthProvider>
   );

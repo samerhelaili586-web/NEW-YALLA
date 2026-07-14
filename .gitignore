@@ -1,4 +1,4 @@
-# Python
+git rm --cached # Python
 __pycache__/
 *.py[cod]
 *.pyo
