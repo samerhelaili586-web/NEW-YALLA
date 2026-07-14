@@ -6,6 +6,8 @@ import AdminLayout from "./components/AdminLayout";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import AdminUsers from "./pages/admin/Users";
+import AdminTaskTypes from "./pages/admin/TaskTypes";
+import AdminEquipment from "./pages/admin/Equipment";
 
 export default function App() {
   return (
@@ -21,11 +23,15 @@ export default function App() {
           }
         />
         <Route
+        
           path="/admin"
           element={
             <RoleRoute roles={["admin_sys"]}>
+              <Route path="task-types" element={<AdminTaskTypes />} />
+              <Route path="equipment" element={<AdminEquipment />} />
               <AdminLayout />
             </RoleRoute>
+            
           }
         >
           <Route index element={<AdminUsers />} />

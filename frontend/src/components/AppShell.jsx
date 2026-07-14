@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { api } from "../api/client";
 import { ROLE_LABELS } from "../constants";
 import Avatar from "./Avatar";
+import NotificationBell from "./notifications/NotificationBell";
 import "./AppShell.css";
 
 function ApertureMark() {
@@ -23,20 +22,6 @@ function ApertureMark() {
 
 export default function AppShell({ children }) {
   const { user, logout } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .get("/notifications/unread-count")
-      .then((data) => {
-        if (!cancelled) setUnreadCount(data.count);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   return (
     <div className="shell">
@@ -47,25 +32,7 @@ export default function AppShell({ children }) {
         </div>
 
         <div className="shell-actions">
-          <button className="shell-notif" type="button" aria-label="Notifications">
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-              <path
-                d="M12 3a6 6 0 0 0-6 6v3.3c0 .6-.2 1.2-.6 1.7L4 16h16l-1.4-2c-.4-.5-.6-1.1-.6-1.7V9a6 6 0 0 0-6-6Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M9.5 19a2.5 2.5 0 0 0 5 0"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-            </svg>
-            {unreadCount > 0 && <span className="shell-notif-badge">{unreadCount}</span>}
-          </button>
+          <NotificationBell />
 
           <div className="shell-user">
             <Avatar firstName={user?.first_name} lastName={user?.last_name} size={34} />
