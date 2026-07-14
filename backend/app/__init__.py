@@ -44,6 +44,9 @@ def create_app(config_object="config.DevConfig"):
     from app.routes.leave import leave_bp
     app.register_blueprint(leave_bp, url_prefix="/api/leave")
 
+    from app.routes.notifications import notifications_bp
+    app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
+
     @app.get("/api/health")
     def health():
         return {"status": "ok"}

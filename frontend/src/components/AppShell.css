@@ -1,0 +1,145 @@
+.shell {
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.shell-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 64px;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+}
+
+.shell-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mark {
+  width: 26px;
+  height: 26px;
+}
+
+.mark-ring {
+  fill: none;
+  stroke: rgba(240, 238, 233, 0.25);
+  stroke-width: 1.4;
+}
+
+.mark-blade {
+  fill: var(--amber);
+  transform-origin: 20px 20px;
+  transform-box: view-box;
+  transform: rotate(var(--a, 0deg));
+}
+
+.shell-brand-text {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  font-size: 0.95rem;
+}
+
+.shell-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.shell-notif {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.shell-notif:hover {
+  background: rgba(240, 238, 233, 0.08);
+}
+
+.shell-notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: var(--ink);
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-user {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.shell-user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.shell-user-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.shell-user-role {
+  font-size: 0.72rem;
+  color: rgba(240, 238, 233, 0.6);
+}
+
+.shell-logout {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(240, 238, 233, 0.2);
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.shell-logout:hover {
+  background: rgba(240, 238, 233, 0.08);
+}
+
+.shell-content {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2.25rem 1.5rem 3rem;
+}
+
+.avatar {
+  border-radius: 999px;
+  background: var(--ink-soft);
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  flex-shrink: 0;
+}

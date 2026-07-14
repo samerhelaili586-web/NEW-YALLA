@@ -68,3 +68,4 @@ class Holiday(db.Model):
 
     def to_dict(self):
         return {"id": self.id, "date": self.date.isoformat(), "label": self.label}
+        

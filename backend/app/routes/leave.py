@@ -212,3 +212,34 @@ def add_holiday():
 
     db.session.commit()
     return jsonify(holiday.to_dict()), 201
+# ---------- Homepage widget: who's unavailable today (leave or sick) ----------
+@leave_bp.get("/unavailable-today")
+@login_required
+def unavailable_today():
+    today = date.today()
+
+    on_leave = LeaveRequest.query.filter(
+        LeaveRequest.status == "approved",
+        LeaveRequest.start_date <= today,
+        LeaveRequest.end_date >= today,
+    ).all()
+    sick = SickAbsence.query.filter_by(absence_date=today).all()
+
+    result = [
+        {
+            "user_id": lv.user_id,
+            "user_name": f"{lv.user.first_name} {lv.user.last_name}" if lv.user else None,
+            "reason": "conge",
+            "until": lv.end_date.isoformat(),
+        }
+        for lv in on_leave
+    ] + [
+        {
+            "user_id": s.user_id,
+            "user_name": f"{s.user.first_name} {s.user.last_name}" if s.user else None,
+            "reason": "maladie",
+            "until": s.absence_date.isoformat(),
+        }
+        for s in sick
+    ]
+    return jsonify(result)
