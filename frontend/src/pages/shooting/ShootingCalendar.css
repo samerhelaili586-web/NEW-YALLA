@@ -1,0 +1,111 @@
+.sc-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sc-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+}
+
+.sc-subtitle {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.sc-nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sc-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.6rem;
+}
+
+.sc-day {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sc-day.is-today {
+  border-color: var(--amber-deep);
+  box-shadow: 0 0 0 1px var(--amber-deep);
+}
+
+.sc-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.sc-day-weekday {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.sc-day-date {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sc-day-body {
+  flex: 1;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sc-day-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin: 0.5rem 0 0;
+}
+
+.sc-shoot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  background: var(--amber);
+  font-size: 0.72rem;
+}
+
+.sc-shoot-time {
+  font-weight: 700;
+}
+
+.sc-shoot-equipment {
+  color: var(--ink);
+}
+
+.sc-shoot-crew {
+  color: var(--ink);
+  opacity: 0.75;
+}

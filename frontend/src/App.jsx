@@ -13,6 +13,7 @@ import ProjectDetail from "./pages/projects/ProjectDetail";
 import TachesAssociees from "./pages/tasks/TachesAssociees";
 import TachesMontage from "./pages/tasks/TachesMontage";
 import Planification from "./pages/planification/Planification";
+import ShootingCalendar from "./pages/shooting/ShootingCalendar";
 
 export default function App() {
   return (
@@ -64,6 +65,14 @@ export default function App() {
   element={
     <ProtectedRoute>
       <Planification />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/shooting-calendar"
+  element={
+    <ProtectedRoute>
+      <ShootingCalendar />
     </ProtectedRoute>
   }
 />
