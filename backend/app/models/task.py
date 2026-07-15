@@ -39,6 +39,7 @@ class Task(db.Model):
             "task_type_name": self.task_type.name if self.task_type else None,
             "status_id": self.status_id,
             "status_title": self.status.title if self.status else None,
+            "status_functional_type": self.status.functional_type if self.status else None,
             "title": self.title,
             "description": self.description,
             "planned_publish_date": self.planned_publish_date.isoformat(),

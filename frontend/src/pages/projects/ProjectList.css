@@ -1,0 +1,88 @@
+.pl-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.pl-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pl-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+}
+
+.pl-subtitle {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.pl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.pl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 1rem;
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color 0.15s ease;
+}
+
+.pl-card:hover {
+  border-color: var(--amber-deep);
+}
+
+.pl-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.pl-card-top h3 {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  margin: 0;
+}
+
+.pl-card-cm,
+.pl-card-date {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.pl-targets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.pl-target-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}

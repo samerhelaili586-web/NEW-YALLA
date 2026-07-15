@@ -8,6 +8,11 @@ import Home from "./pages/Home";
 import AdminUsers from "./pages/admin/Users";
 import AdminTaskTypes from "./pages/admin/TaskTypes";
 import AdminEquipment from "./pages/admin/Equipment";
+import ProjectList from "./pages/projects/ProjectList";
+import ProjectDetail from "./pages/projects/ProjectDetail";
+import TachesAssociees from "./pages/tasks/TachesAssociees";
+import TachesMontage from "./pages/tasks/TachesMontage";
+import Planification from "./pages/planification/Planification";
 
 export default function App() {
   return (
@@ -22,6 +27,46 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/projects"
+  element={
+    <ProtectedRoute>
+      <ProjectList />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/projects/:projectId"
+  element={
+    <ProtectedRoute>
+      <ProjectDetail />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/tasks"
+  element={
+    <ProtectedRoute>
+      <TachesAssociees />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/tasks-montage"
+  element={
+    <ProtectedRoute>
+      <TachesMontage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/planification"
+  element={
+    <ProtectedRoute>
+      <Planification />
+    </ProtectedRoute>
+  }
+/>
         <Route
         
           path="/admin"

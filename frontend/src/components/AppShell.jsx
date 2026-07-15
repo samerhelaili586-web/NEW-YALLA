@@ -1,3 +1,4 @@
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ROLE_LABELS } from "../constants";
 import Avatar from "./Avatar";
@@ -20,8 +21,19 @@ function ApertureMark() {
   );
 }
 
+const NAV_ITEMS = [
+  { to: "/", label: "Accueil", roles: null },
+  { to: "/projects", label: "Projets", roles: ["admin_sys", "manager", "chef_prod"] },
+  { to: "/tasks", label: "Mes tâches", roles: ["cm", "prod", "chef_prod"] },
+  { to: "/tasks-montage", label: "Tâches Montage", roles: ["prod", "chef_prod"] },
+  { to: "/planification", label: "Planification", roles: ["chef_prod"] },
+];
+
 export default function AppShell({ children }) {
   const { user, logout } = useAuth();
+  const visibleNav = NAV_ITEMS.filter(
+    (item) => !item.roles || item.roles.includes(user?.effective_role)
+  );
 
   return (
     <div className="shell">
@@ -51,6 +63,19 @@ export default function AppShell({ children }) {
           </button>
         </div>
       </header>
+
+      <nav className="shell-nav">
+        {visibleNav.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === "/"}
+            className={({ isActive }) => `shell-nav-link${isActive ? " is-active" : ""}`}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
 
       <main className="shell-content">{children}</main>
     </div>

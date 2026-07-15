@@ -143,3 +143,31 @@
   font-weight: 600;
   flex-shrink: 0;
 }
+.shell-nav {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.6rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.shell-nav-link {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+}
+
+.shell-nav-link:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.shell-nav-link.is-active {
+  background: var(--amber);
+  color: var(--ink);
+  font-weight: 600;
+}
