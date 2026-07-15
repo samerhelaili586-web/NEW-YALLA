@@ -167,12 +167,12 @@ export default function Planification() {
     if (conflicts.error === "equipment_conflict") {
       return (
         <div className="pf-conflict-section">
-          <h5>Conflits de réservation d'équipement :</h5>
+          <h5>Conflits de réservation d'équipement:</h5>
           <ul className="pf-conflict-list">
             {conflicts.conflicts.map((c) => (
               <li key={c.id}>
-                Réservé sur la tâche <strong>« {c.task_title} »</strong> de {" "}
-                {new Date(c.start_at).toLocaleString("fr-FR")} à {" "}
+                Réservé sur la tâche <strong>«{c.task_title}»</strong> de{" "}
+                {new Date(c.start_at).toLocaleString("fr-FR")} à{" "}
                 {new Date(c.end_at).toLocaleString("fr-FR")}
               </li>
             ))}
@@ -184,14 +184,14 @@ export default function Planification() {
     if (conflicts.error === "user_conflict") {
       return (
         <div className="pf-conflict-section">
-          <h5>Conflits de disponibilité de l'équipe :</h5>
+          <h5>Conflits de disponibilité de l'équipe:</h5>
           <ul className="pf-conflict-list">
             {Object.entries(conflicts.conflicts).map(([userId, userConflicts]) => {
               const u = prodUsers.find((user) => user.id === Number(userId));
               const name = u ? `${u.first_name} ${u.last_name}` : `Utilisateur #${userId}`;
               return (
                 <li key={userId}>
-                  <strong>{name}</strong> :
+                  <strong>{name}</strong>:
                   <ul style={{ margin: "0.2rem 0 0.5rem 1rem", padding: 0, listStyle: "circle" }}>
                     {userConflicts.map((uc, index) => {
                       if (uc.type === "shoot") {

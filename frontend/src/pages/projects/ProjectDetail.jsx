@@ -79,7 +79,7 @@ export default function ProjectDetail() {
           <div>
             <h1>{project.title}</h1>
             <p className="pd-meta">
-              CM : {project.cm_name || "—"} · Début : {new Date(project.start_date).toLocaleDateString("fr-FR")}
+              CM: {project.cm_name || "—"} · Début: {new Date(project.start_date).toLocaleDateString("fr-FR")}
             </p>
           </div>
           <div className="pd-header-actions">
@@ -168,7 +168,7 @@ export default function ProjectDetail() {
                           const percent = target.count > 0 ? Math.round((actual / target.count) * 100) : 0;
                           return (
                             <td key={month}>
-                              <span style={{ fontWeight: 600 }}>{actual}</span> / {target.count} 
+                              <span style={{ fontWeight: 600 }}>{actual}</span>/{target.count}
                               <span style={{ fontSize: "0.8rem", color: percent >= 100 ? "#10b981" : "#f59e0b" }}>
                                 ({percent}%)
                               </span>
