@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { to: "/tasks", label: "Mes tâches", roles: ["cm", "prod", "chef_prod"] },
   { to: "/tasks-montage", label: "Tâches Montage", roles: ["prod", "chef_prod"] },
   { to: "/planification", label: "Planification", roles: ["chef_prod"] },
+  { to: "/shooting-calendar", label: "Calendrier shooting", roles: null },
 ];
 
 export default function AppShell({ children }) {
