@@ -4,6 +4,7 @@ from app import db
 from app.models.task import Task, TaskAssignee, Comment, CommentMention, TimeEntry, TASK_TITLE_MAX_LEN
 from app.models.task_type import Status
 from app.models.project import Project
+from app.models.notification import Notification
 from app.permissions import require_action, login_required, current_user
 from app.routes.task_types import get_available_next_statuses
 
@@ -14,9 +15,29 @@ tasks_bp = Blueprint("tasks", __name__)
 @login_required
 def list_tasks():
     project_id = request.args.get("project_id", type=int)
+    # spec §5.2: assigned_to_me=1 → only tasks where the user appears in task_assignees
+    assigned_to_me = request.args.get("assigned_to_me", type=int)
+
     q = Task.query
     if project_id:
         q = q.filter_by(project_id=project_id)
+
+    if assigned_to_me:
+        user = current_user()
+        assigned_ids = [
+            a.task_id for a in TaskAssignee.query.filter_by(user_id=user.id).all()
+        ]
+        q = q.filter(Task.id.in_(assigned_ids))
+
+        # spec §5.2: CM must not see their own projects' tasks in this view
+        if user.effective_role == "cm":
+            from app.models.project import Project as Proj
+            own_project_ids = [
+                p.id for p in Proj.query.filter_by(cm_id=user.id).all()
+            ]
+            if own_project_ids:
+                q = q.filter(~Task.project_id.in_(own_project_ids))
+
     tasks = q.order_by(Task.planned_publish_date).all()
     return jsonify([t.to_dict() for t in tasks])
 
@@ -50,7 +71,15 @@ def create_task():
     if missing:
         return jsonify({"error": "missing_fields", "fields": missing}), 400
 
-    Project.query.get_or_404(data["project_id"])
+    project = Project.query.get_or_404(data["project_id"])
+
+    # spec §4.3: no task creation on on_hold or termine projects
+    if project.status in ("on_hold", "termine"):
+        return jsonify({
+            "error": "project_not_active",
+            "detail": f"Ce projet est '{project.status}' — aucune tâche ne peut être ajoutée.",
+        }), 409
+
     Status.query.get_or_404(data["status_id"])
 
     if len(data["title"]) > TASK_TITLE_MAX_LEN:
@@ -75,7 +104,7 @@ def create_task():
 
 
 @tasks_bp.patch("/<int:task_id>")
-@login_required
+@require_action("modifier_projet")  # spec §10.2: only admin_sys and manager can modify tasks
 def update_task(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.get_json(force=True) or {}
@@ -161,7 +190,7 @@ def list_comments(task_id):
 @tasks_bp.post("/<int:task_id>/comments")
 @require_action("ajouter_commentaire")
 def add_comment(task_id):
-    Task.query.get_or_404(task_id)
+    task = Task.query.get_or_404(task_id)
     data = request.get_json(force=True) or {}
     if not data.get("body"):
         return jsonify({"error": "body_required"}), 400
@@ -171,8 +200,16 @@ def add_comment(task_id):
     db.session.add(comment)
     db.session.flush()
 
-    for uid in data.get("mentioned_user_ids", []):
+    mentioned_ids = data.get("mentioned_user_ids", [])
+    for uid in mentioned_ids:
         db.session.add(CommentMention(comment_id=comment.id, user_id=uid))
+        # spec §4.4.2 + §8: mentioned users receive a clickable notification
+        db.session.add(Notification(
+            user_id=uid,
+            type="comment_mention",
+            message=f"{user.first_name} {user.last_name} vous a mentionné dans un commentaire sur « {task.title} ».",
+            link_url=f"/projects/{task.project_id}?task={task.id}",
+        ))
 
     db.session.commit()
     return jsonify(comment.to_dict()), 201

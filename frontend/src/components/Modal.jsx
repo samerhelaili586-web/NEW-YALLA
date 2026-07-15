@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import "./Modal.css";
 
-export default function Modal({ open, onClose, title, children, width = 480 }) {
+export default function Modal({ open, onClose, title, children, footer, width = 480 }) {
   useEffect(() => {
     if (!open) return undefined;
     function handleKeyDown(e) {
@@ -28,8 +28,9 @@ export default function Modal({ open, onClose, title, children, width = 480 }) {
           </button>
         </div>
         <div className="modal-body">{children}</div>
+        {footer && <div className="modal-footer">{footer}</div>}
       </div>
     </div>,
     document.body
   );
-}
+}

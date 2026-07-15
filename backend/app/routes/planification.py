@@ -76,6 +76,20 @@ def list_pending():
     ])
 
 
+# ---------- Badge count: number of tasks pending Chef Prod action (spec §5.1) ----------
+@planification_bp.get("/pending-count")
+@require_menu("planification")
+def pending_count():
+    count = (
+        Task.query.join(Status)
+        .filter(Status.temporal_type == "fige", Status.functional_type.in_(
+            ("planification_shooting", "planification_montage")
+        ))
+        .count()
+    )
+    return jsonify({"count": count})
+
+
 # ---------- Shooting planning (spec §5.1.1) ----------
 @planification_bp.get("/shoots/<int:task_id>")
 @require_menu("planification")

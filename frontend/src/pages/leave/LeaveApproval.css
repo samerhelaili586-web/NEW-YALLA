@@ -1,0 +1,91 @@
+.apr-header {
+  margin-bottom: 1.75rem;
+}
+
+.apr-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+}
+
+.apr-subtitle {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.apr-section {
+  margin-bottom: 2rem;
+}
+
+.apr-section h2 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 0.8rem;
+}
+
+.apr-status {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 0.5rem 0 1rem;
+}
+
+.apr-status--error {
+  color: #9a2c1c;
+}
+
+.apr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.apr-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+}
+
+.apr-card-name {
+  font-weight: 600;
+  margin: 0 0 0.2rem;
+}
+
+.apr-card-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.apr-card-submitted {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.2rem 0 0;
+}
+
+.apr-card-cert {
+  font-size: 0.82rem;
+  color: var(--amber-deep);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.apr-card-cert:hover {
+  text-decoration: underline;
+}
+
+.apr-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}

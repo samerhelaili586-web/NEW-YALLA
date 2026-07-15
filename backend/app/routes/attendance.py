@@ -7,6 +7,9 @@ from app.permissions import require_menu, login_required, current_user
 
 attendance_bp = Blueprint("attendance", __name__)
 
+# Spec §6.2: minimum 6 hours (360 minutes) per working day
+MIN_DAILY_MINUTES = 360
+
 
 def _week_bounds(ref_date: date):
     monday = ref_date - timedelta(days=ref_date.weekday())
@@ -14,7 +17,8 @@ def _week_bounds(ref_date: date):
 
 
 def _is_day_off(d: date, user_id: int):
-    if d.weekday() >= 5:  # Sat/Sun
+    # weekday(): 0=Mon ... 5=Sat, 6=Sun — this company works Saturdays, only Sunday is off
+    if d.weekday() == 6:  # Sunday only
         return "weekend"
     if Holiday.query.filter_by(date=d).first():
         return "holiday"
@@ -40,8 +44,8 @@ def _build_week(user_id: int, week_start: date):
             "day_off_reason": day_off,
             "total_minutes": total_minutes,
             "entries": [e.to_dict() for e in entries],
-            # spec: flag as missing report only for a past/today workday with zero time logged
-            "missing_report": day_off is None and d <= date.today() and total_minutes == 0,
+            # spec §6.2: flag if a past/today workday has less than 6h reported
+            "missing_report": day_off is None and d <= date.today() and total_minutes < MIN_DAILY_MINUTES,
         })
     return days
 
@@ -81,7 +85,8 @@ def team_week():
     ])
 
 
-# ---------- Alerts: users with missing reports today (for dashboard/notifications) ----------
+# ---------- Alerts: users with missing reports today ----------
+# spec §6.2: minimum is 6h (360 min), not just zero
 @attendance_bp.get("/alerts/missing-today")
 @require_menu("feuille_presence_equipe")
 def missing_today():
@@ -98,7 +103,34 @@ def missing_today():
             e.hours * 60 + e.minutes
             for e in TimeEntry.query.filter_by(user_id=u.id, entry_date=today).all()
         )
-        if total == 0:
-            flagged.append({"user_id": u.id, "user_name": f"{u.first_name} {u.last_name}"})
+        if total < MIN_DAILY_MINUTES:
+            flagged.append({
+                "user_id": u.id,
+                "user_name": f"{u.first_name} {u.last_name}",
+                "total_minutes": total,
+            })
 
     return jsonify(flagged)
+
+
+# ---------- Personal alert: check yesterday's reporting for the logged-in user ----------
+# spec §6.2: shown at login if previous workday < 6h
+@attendance_bp.get("/alerts/me-yesterday")
+@require_menu("feuille_presence_perso")
+def my_yesterday_alert():
+    user = current_user()
+    yesterday = date.today() - timedelta(days=1)
+
+    # Skip if yesterday was a day off
+    if _is_day_off(yesterday, user.id):
+        return jsonify({"missing": False})
+
+    total = sum(
+        e.hours * 60 + e.minutes
+        for e in TimeEntry.query.filter_by(user_id=user.id, entry_date=yesterday).all()
+    )
+    return jsonify({
+        "missing": total < MIN_DAILY_MINUTES,
+        "date": yesterday.isoformat(),
+        "total_minutes": total,
+    })

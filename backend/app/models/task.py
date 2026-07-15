@@ -106,6 +106,7 @@ class TimeEntry(db.Model):
     status_id_at_entry = db.Column(db.Integer, db.ForeignKey("statuses.id"))
 
     user = db.relationship("User")
+    status_at_entry = db.relationship("Status", foreign_keys=[status_id_at_entry])
 
     def to_dict(self):
         return {
@@ -117,5 +118,6 @@ class TimeEntry(db.Model):
             "hours": self.hours,
             "minutes": self.minutes,
             "status_id_at_entry": self.status_id_at_entry,
+            "status_title_at_entry": self.status_at_entry.title if self.status_at_entry else None,
         }
     

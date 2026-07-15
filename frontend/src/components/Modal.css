@@ -58,6 +58,18 @@
 .modal-body {
   padding: 1.4rem;
   overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.4rem;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+  background: #fff;
 }
 
 @keyframes modal-fade {

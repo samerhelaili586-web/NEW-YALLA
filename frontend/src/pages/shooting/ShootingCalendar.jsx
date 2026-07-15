@@ -57,9 +57,10 @@ export default function ShootingCalendar() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch on week change
-    loadShoots();
-  }, [weekStart]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch on week change
+  loadShoots();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadShoots always closes over current weekStart
+}, [weekStart]);
 
   const shootsByDay = useMemo(() => {
     const map = {};

@@ -78,13 +78,28 @@
   margin-top: 0.35rem;
 }
 
-.pf-conflict-detail {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  background: var(--paper);
+.pf-conflict-section {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
   border-radius: 8px;
-  padding: 0.6rem;
-  max-height: 140px;
-  overflow: auto;
-  white-space: pre-wrap;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.pf-conflict-section h5 {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: #991b1b;
+  margin: 0 0 0.35rem;
+}
+
+.pf-conflict-list {
+  list-style: disc;
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.8rem;
+  color: #7f1d1d;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }

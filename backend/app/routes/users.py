@@ -83,17 +83,21 @@ def update_user(user_id):
     if "password" in data and data["password"]:
         user.set_password(data["password"])
 
-    db.session.commit()
-
+    # Validate is_chef_prod BEFORE committing, so role change + chef flag are atomic
     if "is_chef_prod" in data:
         if data["is_chef_prod"]:
             if user.role != "prod":
                 return jsonify({"error": "chef_prod_requires_prod_role"}), 400
-            _set_chef_prod(user.id)
+            # Unset any previous holder without committing yet
+            User.query.filter(User.id != user.id, User.is_chef_prod.is_(True)).update(
+                {"is_chef_prod": False}
+            )
+            user.is_chef_prod = True
         else:
             user.is_chef_prod = False
-            db.session.commit()
 
+    # Single commit for all changes
+    db.session.commit()
     return jsonify({"user": user.to_dict()})
 
 

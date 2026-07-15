@@ -28,6 +28,10 @@ const NAV_ITEMS = [
   { to: "/tasks-montage", label: "Tâches Montage", roles: ["prod", "chef_prod"] },
   { to: "/planification", label: "Planification", roles: ["chef_prod"] },
   { to: "/shooting-calendar", label: "Calendrier shooting", roles: null },
+  { to: "/attendance", label: "Feuille de présence", roles: null },
+  { to: "/leave", label: "Congés", roles: null },
+  { to: "/leave/approval", label: "Approbation congés", roles: ["manager"] },
+  { to: "/admin", label: "Direction Générale", roles: ["admin_sys"] },
 ];
 
 export default function AppShell({ children }) {
@@ -35,7 +39,7 @@ export default function AppShell({ children }) {
   const visibleNav = NAV_ITEMS.filter(
     (item) => !item.roles || item.roles.includes(user?.effective_role)
   );
-
+  
   return (
     <div className="shell">
       <header className="shell-topbar">

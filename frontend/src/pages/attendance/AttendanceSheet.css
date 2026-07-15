@@ -1,0 +1,132 @@
+.att-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.att-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+}
+
+.att-subtitle {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.att-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.att-week-label {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.att-status {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.att-status--error {
+  color: #9a2c1c;
+}
+
+.att-table-wrap {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow-x: auto;
+}
+
+.att-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.att-table th {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0.8rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.att-th-date {
+  display: block;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  margin-top: 0.15rem;
+}
+
+.att-th-name {
+  text-align: left !important;
+  padding-left: 1.1rem !important;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.att-cell {
+  text-align: center;
+  padding: 0.9rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.att-table tr:last-child .att-cell,
+.att-table tr:last-child .att-th-name {
+  border-bottom: none;
+}
+
+.att-cell--off {
+  background: rgba(107, 104, 116, 0.05);
+}
+
+.att-off-label {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.att-cell--missing {
+  background: rgba(196, 60, 40, 0.06);
+  color: #9a2c1c;
+  font-weight: 600;
+}
+
+.att-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.att-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.att-legend-swatch--missing {
+  background: rgba(196, 60, 40, 0.2);
+}
