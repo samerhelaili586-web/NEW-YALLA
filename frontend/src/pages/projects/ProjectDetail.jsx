@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { api } from "../../api/client";
+import { api, ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
+import Modal from "../../components/Modal";
+import TaskDetailModal from "../../components/TaskDetailModal";
 import "../../styles/shared.css";
 import "./ProjectDetail.css";
 
@@ -23,7 +25,23 @@ export default function ProjectDetail() {
   const [loadError, setLoadError] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
 
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const [taskTypes, setTaskTypes] = useState([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    task_type_id: "",
+    title: "",
+    description: "",
+    planned_publish_date: "",
+  });
+  const [createError, setCreateError] = useState("");
+  const [creating, setCreating] = useState(false);
+
   const canManage = ["admin_sys", "manager"].includes(user?.effective_role);
+  const canCreateTask = ["admin_sys", "manager", "cm"].includes(user?.effective_role);
+  const projectIsLocked = project?.status === "on_hold" || project?.status === "termine";
 
   async function loadProject() {
     setLoading(true);
@@ -52,6 +70,21 @@ export default function ProjectDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loadProject always closes over current projectId
   }, [projectId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api.get("/task-types");
+        if (!cancelled) setTaskTypes(data);
+      } catch {
+        // silently ignore — the create-task button will just show no options
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function toggleOnHold() {
     if (!project) return;
     setSavingStatus(true);
@@ -63,6 +96,72 @@ export default function ProjectDetail() {
       setLoadError("Impossible de modifier le statut du projet.");
     } finally {
       setSavingStatus(false);
+    }
+  }
+
+  function openTask(task) {
+    setSelectedTaskId(task.id);
+    setDetailOpen(true);
+  }
+
+  function closeTaskDetail() {
+    setDetailOpen(false);
+    setSelectedTaskId(null);
+  }
+
+  function handleTaskChanged(updatedTask) {
+    setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)));
+  }
+
+  function openCreateTask() {
+    setCreateError("");
+    setCreateForm({
+      task_type_id: taskTypes[0]?.id ? String(taskTypes[0].id) : "",
+      title: "",
+      description: "",
+      planned_publish_date: "",
+    });
+    setCreateOpen(true);
+  }
+
+  async function handleCreateTask(e) {
+    e.preventDefault();
+    setCreateError("");
+
+    if (!createForm.task_type_id || !createForm.title.trim() || !createForm.planned_publish_date) {
+      setCreateError("Merci de renseigner le type de tâche, le titre et la date de publication prévue.");
+      return;
+    }
+
+    const selectedType = taskTypes.find((tt) => String(tt.id) === String(createForm.task_type_id));
+    const startStatus = selectedType?.statuses?.find((s) => s.functional_type === "debut");
+    if (!startStatus) {
+      setCreateError("Ce type de tâche n'a pas de statut de début configuré.");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      await api.post("/tasks", {
+        project_id: Number(projectId),
+        task_type_id: Number(createForm.task_type_id),
+        status_id: startStatus.id,
+        title: createForm.title.trim(),
+        description: createForm.description.trim() || undefined,
+        planned_publish_date: createForm.planned_publish_date,
+      });
+      setCreateOpen(false);
+      await loadProject();
+    } catch (err) {
+      if (err instanceof ApiError && err.data?.error === "title_too_long") {
+        setCreateError(`Le titre est trop long (max ${err.data.max} caractères).`);
+      } else if (err instanceof ApiError && err.data?.error === "project_not_active") {
+        setCreateError("Ce projet n'est pas actif — aucune tâche ne peut être ajoutée.");
+      } else {
+        setCreateError("Impossible de créer la tâche.");
+      }
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -104,6 +203,17 @@ export default function ProjectDetail() {
         <section className="pd-section">
           <div className="tt-section-header">
             <h3>Tâches ({tasks.length})</h3>
+            {canCreateTask && (
+              <button
+                type="button"
+                className="btn-primary btn-primary--compact"
+                onClick={openCreateTask}
+                disabled={projectIsLocked}
+                title={projectIsLocked ? "Ce projet n'accepte plus de nouvelles tâches." : undefined}
+              >
+                + Créer une tâche
+              </button>
+            )}
           </div>
 
           {tasks.length === 0 && <p className="tt-status">Aucune tâche pour ce projet.</p>}
@@ -122,10 +232,10 @@ export default function ProjectDetail() {
                 </thead>
                 <tbody>
                   {tasks.map((t) => (
-                    <tr key={t.id}>
+                    <tr key={t.id} className="pd-task-row" onClick={() => openTask(t)}>
                       <td>{t.title}</td>
                       <td>{t.task_type_name}</td>
-                      <td>{t.status_title}</td>
+                      <td><span className="status-chip is-active">{t.status_title}</span></td>
                       <td>{new Date(t.planned_publish_date).toLocaleDateString("fr-FR")}</td>
                       <td>
                         {t.is_late && <span className="status-chip is-archived">En retard</span>}
@@ -229,6 +339,75 @@ export default function ProjectDetail() {
           </section>
         )}
       </div>
+
+      <TaskDetailModal
+        taskId={selectedTaskId}
+        open={detailOpen}
+        onClose={closeTaskDetail}
+        onChanged={handleTaskChanged}
+      />
+
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="Créer une tâche"
+        footer={
+          <>
+            <button type="button" className="btn-secondary" onClick={() => setCreateOpen(false)}>
+              Annuler
+            </button>
+            <button type="submit" form="create-task-form" className="btn-primary btn-primary--compact" disabled={creating}>
+              {creating ? "Création…" : "Créer la tâche"}
+            </button>
+          </>
+        }
+      >
+        <form id="create-task-form" className="lv-form" onSubmit={handleCreateTask} noValidate>
+          <label className="field">
+            <span className="field-label">Type de tâche</span>
+            <select
+              value={createForm.task_type_id}
+              onChange={(e) => setCreateForm((f) => ({ ...f, task_type_id: e.target.value }))}
+            >
+              {taskTypes.length === 0 && <option value="">Aucun type disponible</option>}
+              {taskTypes.map((tt) => (
+                <option key={tt.id} value={tt.id}>{tt.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span className="field-label">Titre</span>
+            <input
+              type="text"
+              required
+              value={createForm.title}
+              onChange={(e) => setCreateForm((f) => ({ ...f, title: e.target.value }))}
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Description (optionnel)</span>
+            <textarea
+              rows={3}
+              value={createForm.description}
+              onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Date de publication prévue</span>
+            <input
+              type="date"
+              required
+              value={createForm.planned_publish_date}
+              onChange={(e) => setCreateForm((f) => ({ ...f, planned_publish_date: e.target.value }))}
+            />
+          </label>
+          {createError && (
+            <p className="field-error" role="alert">
+              {createError}
+            </p>
+          )}
+        </form>
+      </Modal>
     </AppShell>
   );
 }
