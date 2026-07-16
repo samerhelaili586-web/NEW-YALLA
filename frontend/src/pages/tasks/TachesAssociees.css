@@ -1,115 +1,328 @@
+/* ── Page layout ─────────────────────────────────────────────────────────── */
 .ta-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.ta-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Kanban grid ─────────────────────────────────────────────────────────── */
+.ta-kanban {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  align-items: flex-start;
+}
+
+.ta-kanban-col {
+  min-width: 260px;
+  max-width: 280px;
+  flex-shrink: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ta-kanban-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--muted);
+}
+
+.ta-kanban-col-title {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ta-kanban-col-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--ink-soft);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+.ta-kanban-col-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.7rem;
+}
+
+/* ── Task Card ───────────────────────────────────────────────────────────── */
+.ta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.85rem 0.9rem;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.ta-card:hover {
+  border-color: var(--amber);
+  box-shadow: 0 2px 12px rgba(232, 162, 61, 0.15);
+  transform: translateY(-1px);
+}
+
+.ta-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ta-card-type {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ta-card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.ta-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.ta-card-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.ta-card-status {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--amber-deep);
+  background: rgba(232, 162, 61, 0.12);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+/* ── Chips ───────────────────────────────────────────────────────────────── */
+.ta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ta-chip--active {
+  background: rgba(58, 138, 92, 0.12);
+  color: #3a8a5c;
+}
+
+.ta-chip--late {
+  background: rgba(181, 66, 58, 0.1);
+  color: #b5423a;
+}
+
+/* ── Empty / Skeleton ────────────────────────────────────────────────────── */
+.ta-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 4rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.ta-empty-icon {
+  font-size: 2.5rem;
+}
+
+.ta-skeleton-grid {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ta-skeleton-card {
+  width: 260px;
+  height: 110px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #ece9e2 25%, #f5f3ee 50%, #ece9e2 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+/* ── Modal body ──────────────────────────────────────────────────────────── */
+.ta-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Uses shared .task-tabs / .task-tab / .task-tab--active from TachesMontage.css */
+
+.ta-detail,
+.ta-history {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
-.ta-header h1 {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  margin: 0 0 0.25rem;
-}
-
-.ta-subtitle {
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  margin: 0;
-}
-
-.ta-table-wrap {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow: hidden;
-  background: #fff;
-}
-
-.ta-row {
-  cursor: pointer;
-}
-
-.ta-row:hover {
-  background: var(--paper);
-}
-
-.ta-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-}
-
-.ta-detail-meta {
+.ta-meta-row {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.ta-detail-date {
-  font-size: 0.82rem;
+.ta-meta-date,
+.ta-meta-type {
+  font-size: 0.81rem;
   color: var(--text-muted);
 }
 
-.ta-detail-desc {
+.ta-desc {
   font-size: 0.88rem;
   color: var(--ink);
-  line-height: 1.5;
+  line-height: 1.6;
   margin: 0;
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
 }
 
-.ta-detail-section h4 {
+.ta-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.ta-section:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.ta-section-title {
   font-family: var(--font-display);
-  font-size: 0.9rem;
-  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
 }
 
 .ta-status-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.5rem;
+}
+
+.ta-status-btn {
+  font-size: 0.82rem;
+  padding: 0.45rem 0.9rem;
+}
+
+.ta-no-transition {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--paper);
+  border-radius: 8px;
 }
 
 .ta-time-form {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ta-time-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
   flex-wrap: wrap;
 }
 
 .ta-time-input {
-  width: 56px;
+  width: 72px;
   font-family: var(--font-body);
-  font-size: 0.85rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: 6px;
+  font-size: 0.88rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
   border: 1px solid var(--line);
+  background: var(--card);
 }
 
-.ta-time-form input[type="date"] {
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--line);
+.ta-time-btn {
+  align-self: flex-end;
+  white-space: nowrap;
 }
 
 .ta-time-list {
   list-style: none;
-  margin: 0.6rem 0 0;
+  margin: 0;
   padding: 0;
-  font-size: 0.8rem;
-  color: var(--text-muted);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
+
+.ta-time-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.81rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--paper);
+  border-radius: 7px;
+}
+
+.ta-time-user { font-weight: 600; color: var(--ink); flex: 1; }
+.ta-time-date { color: var(--text-muted); }
+.ta-time-dur { font-family: var(--font-mono); font-size: 0.78rem; color: var(--amber-deep); font-weight: 600; }
 
 .ta-comment-list {
   list-style: none;
-  margin: 0 0 0.7rem;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 180px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
@@ -117,20 +330,22 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding: 0.5rem 0.7rem;
+  padding: 0.6rem 0.75rem;
   background: var(--paper);
   border-radius: 8px;
+  border-left: 2px solid var(--amber);
 }
 
 .ta-comment-author {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.74rem;
+  font-weight: 700;
   color: var(--amber-deep);
 }
 
 .ta-comment-body {
   font-size: 0.85rem;
   color: var(--ink);
+  line-height: 1.5;
 }
 
 .ta-comment-form {
@@ -143,8 +358,17 @@
   flex: 1;
   font-family: var(--font-body);
   font-size: 0.85rem;
-  padding: 0.5rem 0.7rem;
+  padding: 0.55rem 0.75rem;
   border-radius: 8px;
   border: 1px solid var(--line);
   resize: vertical;
+  min-height: 56px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.ta-comment-form textarea:focus {
+  outline: 2px solid var(--amber);
+  outline-offset: -1px;
+  border-color: var(--amber);
 }

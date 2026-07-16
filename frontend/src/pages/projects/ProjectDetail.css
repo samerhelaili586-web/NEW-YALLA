@@ -32,7 +32,7 @@
 .pd-remarks {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--card);
   padding: 1rem;
 }
 

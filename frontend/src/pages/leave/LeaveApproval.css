@@ -50,7 +50,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 1rem 1.2rem;

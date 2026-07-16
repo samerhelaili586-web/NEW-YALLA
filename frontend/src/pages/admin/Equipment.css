@@ -39,7 +39,7 @@
 .eq-card {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--card);
   overflow: hidden;
   display: flex;
   flex-direction: column;

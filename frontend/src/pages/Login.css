@@ -1,223 +1,233 @@
+/* ── Premium Animated Background ─────────────────────────────────────────── */
 .login-screen {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-}
-
-@media (max-width: 860px) {
-  .login-screen {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-}
-
-.login-brand {
-  position: relative;
-  background: var(--ink);
-  color: var(--paper);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem 2.5rem;
+  background-color: #09090b; /* Deep dark background */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.15), transparent 25%);
+  position: relative;
   overflow: hidden;
+  padding: 2rem;
 }
 
-@media (max-width: 860px) {
-  .login-brand {
-    padding: 2.75rem 1.5rem 2.25rem;
-  }
-}
-
-.login-grid {
+/* ── Interactive Mouse Spotlight Overlay ─────────────────────────────────── */
+.login-spotlight {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(rgba(240, 238, 233, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(240, 238, 233, 0.05) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(circle at 50% 40%, black, transparent 72%);
+  z-index: 0;
+  /* The spotlight glows around the mouse coordinates */
+  background: radial-gradient(
+    800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(59, 130, 246, 0.12),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.5s ease;
 }
 
-.login-brand-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  max-width: 380px;
-}
-
-.login-wordmark {
-  margin-top: 1.75rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.login-wordmark-main {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: var(--paper);
-}
-
-.login-wordmark-sub {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.32em;
-  color: var(--amber);
-  text-transform: uppercase;
-}
-
-.login-tagline {
-  margin-top: 1.25rem;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: rgba(240, 238, 233, 0.62);
-}
-
-.iris {
-  width: 148px;
-  height: 148px;
-}
-
-.iris-ring {
-  fill: none;
-  stroke: rgba(240, 238, 233, 0.18);
-  stroke-width: 1;
-}
-
-.iris-center {
-  fill: var(--amber);
-}
-
-.iris-blade {
-  fill: var(--ink-soft);
-  stroke: var(--amber-deep);
-  stroke-width: 0.75;
-  transform-origin: 100px 100px;
-  transform-box: view-box;
-  transform: rotate(var(--a, 0deg));
-  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms ease;
+/* Only show the spotlight when the user moves the mouse over the screen */
+.login-screen:hover .login-spotlight {
   opacity: 1;
 }
 
-.iris--open .iris-blade {
-  transform: rotate(var(--a, 0deg)) translateX(46px) rotate(38deg);
-  opacity: 0;
+/* Subtle animated glowing orbs */
+.login-screen::before,
+.login-screen::after {
+  content: "";
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  animation: float 20s infinite alternate ease-in-out;
+  pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .iris-blade {
-    transition: opacity 300ms ease;
-  }
-  .iris--open .iris-blade {
-    transform: rotate(var(--a, 0deg));
+.login-screen::before {
+  background: rgba(59, 130, 246, 0.08); /* Primary blue */
+  top: -200px;
+  left: -100px;
+}
+
+.login-screen::after {
+  background: rgba(14, 165, 233, 0.08); /* Lighter blue */
+  bottom: -200px;
+  right: -100px;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(100px, 50px) scale(1.1); }
+}
+
+/* ── Centered Split Card ─────────────────────────────────────────────────── */
+.login-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  max-width: 1000px;
+  min-height: 560px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 
+    0 24px 80px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05); /* Subtle border */
+  animation: cardEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes cardEntrance {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 860px) {
+  .login-card {
+    flex-direction: column;
+    max-width: 480px;
   }
 }
 
+/* ── Left Panel: Brand (Pure White) ──────────────────────────────────────── */
+.login-brand {
+  flex: 1.1;
+  background: #ffffff; /* Pure white to perfectly blend the logo */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 3rem;
+  text-align: center;
+  position: relative;
+}
+
+.login-brand-logo {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 2rem;
+  /* No mix-blend-mode needed because the background is perfectly white! */
+  filter: none; 
+}
+
+.login-tagline {
+  margin-top: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #64748b; /* Slate-500 for elegant contrast on white */
+  max-width: 320px;
+}
+
+/* ── Right Panel: Form (Dark Mode) ───────────────────────────────────────── */
 .login-form-panel {
-  background: var(--paper);
+  flex: 1;
+  background: #121214; /* Extremely dark, almost black for premium feel */
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2.5rem;
+  padding: 3.5rem;
+  position: relative;
+}
+
+.login-form-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+  pointer-events: none;
 }
 
 .login-form {
   width: 100%;
-  max-width: 360px;
+  max-width: 340px;
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1.25rem;
+  position: relative;
+  z-index: 2;
+}
+
+.login-form-header {
+  margin-bottom: 1.5rem;
 }
 
 .login-form-header h1 {
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: var(--ink);
-  margin: 0 0 0.35rem;
-}
-
-.login-form-header p {
-  color: var(--text-muted);
-  font-size: 0.92rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ffffff;
   margin: 0 0 0.5rem;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+/* Custom Input Styles for this specific premium form */
+.login-form .field-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.field-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--ink);
+.login-form input {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 10px !important;
+  font-size: 0.95rem !important;
+  transition: all 0.2s ease !important;
 }
 
-.field input {
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  padding: 0.7rem 0.85rem;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--ink);
-  outline-offset: 2px;
+.login-form input:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
 }
 
-.field input:focus-visible {
-  outline: 2px solid var(--amber);
-  border-color: var(--amber-deep);
+.login-form input:focus {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
 }
 
-.field-error {
+.login-form .field-error {
   margin: 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: 8px;
-  background: rgba(196, 60, 40, 0.08);
-  border: 1px solid rgba(196, 60, 40, 0.25);
-  color: #9a2c1c;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  color: #ef4444;
 }
 
-.btn-primary {
-  margin-top: 0.35rem;
-  font-family: var(--font-body);
+/* Premium Button */
+.login-form .btn-primary {
+  margin-top: 1rem;
+  padding: 0.85rem;
+  font-size: 1rem;
   font-weight: 600;
-  font-size: 0.95rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+  color: #ffffff;
   border: none;
-  background: var(--ink);
-  color: var(--paper);
-  cursor: pointer;
-  transition: background 160ms ease, transform 160ms ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--ink-soft);
+.login-form .btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
 }
 
-.btn-primary:active:not(:disabled) {
+.login-form .btn-primary:active:not(:disabled) {
   transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
 }
 
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.btn-primary:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
+.login-form .btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
 }

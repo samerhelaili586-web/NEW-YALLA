@@ -38,7 +38,7 @@
   padding: 0.55rem 0.85rem;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
 }
 
 .users-filters {
@@ -68,7 +68,7 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--card);
 }
 
 .users-table {

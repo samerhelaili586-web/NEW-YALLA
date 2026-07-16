@@ -12,7 +12,7 @@
 
 .modal-panel {
   width: 100%;
-  background: #fff;
+  background: var(--card);
   border-radius: 14px;
   box-shadow: 0 24px 60px rgba(14, 13, 18, 0.3);
   max-height: min(88vh, 720px);
@@ -69,7 +69,7 @@
   padding: 1rem 1.4rem;
   border-top: 1px solid var(--line);
   flex-shrink: 0;
-  background: #fff;
+  background: var(--card);
 }
 
 @keyframes modal-fade {

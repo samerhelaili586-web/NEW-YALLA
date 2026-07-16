@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../../api/client";
 import "./NotificationBell.css";
 
@@ -20,6 +21,7 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const containerRef = useRef(null);
+  const panelRef = useRef(null);
 
   async function refreshUnreadCount() {
     try {
@@ -39,7 +41,10 @@ export default function NotificationBell() {
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      const clickedInsideWrap = containerRef.current && containerRef.current.contains(e.target);
+      const clickedInsidePanel = panelRef.current && panelRef.current.contains(e.target);
+      
+      if (!clickedInsideWrap && !clickedInsidePanel) {
         setOpen(false);
       }
     }
@@ -126,8 +131,8 @@ export default function NotificationBell() {
         {unreadCount > 0 && <span className="shell-notif-badge">{unreadCount}</span>}
       </button>
 
-      {open && (
-        <div className="notif-panel" role="dialog" aria-label="Notifications">
+      {open && createPortal(
+        <div className="notif-panel" role="dialog" aria-label="Notifications" ref={panelRef}>
           <div className="notif-panel-header">
             <span>Notifications</span>
             {notifications.some((n) => !n.is_read) && (
@@ -159,7 +164,8 @@ export default function NotificationBell() {
                 </button>
               ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

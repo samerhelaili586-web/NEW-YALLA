@@ -38,7 +38,7 @@
 .sc-day {
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--card);
   min-height: 160px;
   display: flex;
   flex-direction: column;

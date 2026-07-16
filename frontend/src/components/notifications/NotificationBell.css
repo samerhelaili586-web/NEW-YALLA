@@ -3,20 +3,21 @@
 }
 
 .notif-panel {
-  position: absolute;
-  top: calc(100% + 0.6rem);
-  right: 0;
-  width: 340px;
+  position: fixed;
+  bottom: 4.5rem;
+  left: 1rem;
+  width: 320px;
   max-height: 420px;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(14, 13, 18, 0.14);
+  box-shadow: 0 12px 32px rgba(14, 13, 18, 0.18);
   overflow: hidden;
-  z-index: 40;
+  z-index: 9999;
 }
+
 
 .notif-panel-header {
   display: flex;

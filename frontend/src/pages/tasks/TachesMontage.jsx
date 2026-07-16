@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
 import "../../styles/shared.css";
@@ -9,11 +10,63 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString("fr-FR");
 }
 
+function fmtMinutes(total) {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${h}h${String(m).padStart(2, "0")}`;
+}
+
+// ── Status chips ─────────────────────────────────────────────────────────────
+function StatusChip({ label, isLate }) {
+  return (
+    <span className={`tm-chip ${isLate ? "tm-chip--late" : "tm-chip--active"}`}>
+      {label}
+    </span>
+  );
+}
+
+// ── Task Card ─────────────────────────────────────────────────────────────────
+function TaskCard({ task, onClick }) {
+  const totalMins = (task.time_entries || []).reduce(
+    (s, e) => s + e.hours * 60 + e.minutes, 0
+  );
+  return (
+    <button type="button" className="tm-card" onClick={onClick} aria-label={`Ouvrir ${task.title}`}>
+      <div className="tm-card-header">
+        <span className="tm-card-type">{task.task_type_name}</span>
+        {task.is_late && <span className="tm-chip tm-chip--late">En retard</span>}
+      </div>
+      <p className="tm-card-title">{task.title}</p>
+      <div className="tm-card-footer">
+        <span className="tm-card-date">
+          📅 {fmtDate(task.planned_publish_date)}
+        </span>
+        <span className="tm-card-status">{task.status_title}</span>
+      </div>
+    </button>
+  );
+}
+
+// ── Tab Button ────────────────────────────────────────────────────────────────
+function TabBtn({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      className={`task-tab${active ? " task-tab--active" : ""}`}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function TachesMontage() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [selectedTask, setSelectedTask] = useState(null);
   const [activeTab, setActiveTab] = useState("detail");
@@ -34,7 +87,6 @@ export default function TachesMontage() {
     setLoadError("");
     try {
       const data = await api.get("/tasks");
-      // spec §5.3: only tasks in a "montage" functional_type status
       const montageTasks = data.filter((t) =>
         ["montage", "planification_montage"].includes(t.status_functional_type)
       );
@@ -47,15 +99,45 @@ export default function TachesMontage() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch on mount
     loadTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Unique statuses for filter chips
+  const allStatuses = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    for (const t of tasks) {
+      if (!seen.has(t.status_title)) {
+        seen.add(t.status_title);
+        result.push(t.status_title);
+      }
+    }
+    return result;
+  }, [tasks]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return tasks;
-    return tasks.filter((t) => t.title.toLowerCase().includes(q));
-  }, [tasks, search]);
+    return tasks.filter((t) => {
+      if (statusFilter !== "all" && t.status_title !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        t.title.toLowerCase().includes(q) ||
+        (t.task_type_name || "").toLowerCase().includes(q)
+      );
+    });
+  }, [tasks, search, statusFilter]);
+
+  // Group by status_title for kanban view
+  const grouped = useMemo(() => {
+    const map = {};
+    for (const t of filtered) {
+      const key = t.status_title;
+      if (!map[key]) map[key] = [];
+      map[key].push(t);
+    }
+    return map;
+  }, [filtered]);
 
   async function openTask(task) {
     setSelectedTask(task);
@@ -149,192 +231,226 @@ export default function TachesMontage() {
     }
   }
 
+  const totalTimeOnSelected = useMemo(() => {
+    if (!selectedTask?.time_entries) return 0;
+    return selectedTask.time_entries.reduce((s, e) => s + e.hours * 60 + e.minutes, 0);
+  }, [selectedTask]);
+
+  const timeByUser = useMemo(() => {
+    if (!selectedTask?.time_entries) return {};
+    return selectedTask.time_entries.reduce((acc, te) => {
+      acc[te.user_name || "Inconnu"] = (acc[te.user_name || "Inconnu"] || 0) + te.hours * 60 + te.minutes;
+      return acc;
+    }, {});
+  }, [selectedTask]);
+
+  const timeByStatus = useMemo(() => {
+    if (!selectedTask?.time_entries) return {};
+    return selectedTask.time_entries.reduce((acc, te) => {
+      const key = te.status_title_at_entry || "Étape initiale";
+      acc[key] = (acc[key] || 0) + te.hours * 60 + te.minutes;
+      return acc;
+    }, {});
+  }, [selectedTask]);
+
   return (
     <AppShell>
       <div className="tm-page">
-        <div className="tm-header">
+        {/* ── Header ── */}
+        <div className="page-header">
           <div>
             <h1>Tâches Montage</h1>
-            <p className="tm-subtitle">Tâches en attente de montage ou montage en cours.</p>
+            <p className="page-subtitle">
+              {loading ? "Chargement…" : `${tasks.length} tâche${tasks.length !== 1 ? "s" : ""} en attente ou en cours de montage`}
+            </p>
           </div>
         </div>
 
-        <input
-          type="search"
-          className="users-search"
-          placeholder="Rechercher une tâche de montage…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        {/* ── Toolbar ── */}
+        <div className="tm-toolbar">
+          <input
+            type="search"
+            className="users-search"
+            placeholder="Rechercher…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="users-filters">
+            <button
+              type="button"
+              className={`chip-toggle${statusFilter === "all" ? " is-selected" : ""}`}
+              onClick={() => setStatusFilter("all")}
+            >
+              Toutes
+            </button>
+            {allStatuses.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`chip-toggle${statusFilter === s ? " is-selected" : ""}`}
+                onClick={() => setStatusFilter(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {loadError && <p className="tt-status tt-status--error">{loadError}</p>}
-        {loading && <p className="tt-status">Chargement…</p>}
-
-        {!loading && (
-          <div className="tm-table-wrap">
-            <table className="tt-table">
-              <thead>
-                <tr>
-                  <th>Titre</th>
-                  <th>Type</th>
-                  <th>Statut</th>
-                  <th>Publication prévue</th>
-                  <th aria-label="État" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="users-empty">Aucune tâche de montage.</td>
-                  </tr>
-                )}
-                {filtered.map((t) => (
-                  <tr key={t.id} className="tm-row" onClick={() => openTask(t)}>
-                    <td>{t.title}</td>
-                    <td>{t.task_type_name}</td>
-                    <td><span className="status-chip is-active">{t.status_title}</span></td>
-                    <td>{fmtDate(t.planned_publish_date)}</td>
-                    <td>{t.is_late && <span className="status-chip is-archived">En retard</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {loading && (
+          <div className="tm-skeleton-grid">
+            {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="tm-skeleton-card" />)}
           </div>
+        )}
+
+        {!loading && !loadError && (
+          <>
+            {filtered.length === 0 ? (
+              <div className="tm-empty-state">
+                <span className="tm-empty-icon">🎬</span>
+                <p>Aucune tâche de montage{search ? " ne correspond à votre recherche" : ""}.</p>
+              </div>
+            ) : (
+              <div className="tm-kanban">
+                {Object.entries(grouped).map(([statusTitle, statusTasks]) => (
+                  <div key={statusTitle} className="tm-kanban-col">
+                    <div className="tm-kanban-col-header">
+                      <span className="tm-kanban-col-title">{statusTitle}</span>
+                      <span className="tm-kanban-col-count">{statusTasks.length}</span>
+                    </div>
+                    <div className="tm-kanban-col-cards">
+                      {statusTasks.map((t) => (
+                        <TaskCard key={t.id} task={t} onClick={() => openTask(t)} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      <Modal
-        open={detailOpen}
-        onClose={closeDetail}
-        title={selectedTask?.title || "Tâche"}
-        width={620}
-      >
+      {/* ── Detail Modal ── */}
+      <Modal open={detailOpen} onClose={closeDetail} title={selectedTask?.title || "Tâche"} width={640}>
         {detailLoading && <p className="tt-status">Chargement…</p>}
         {!detailLoading && selectedTask && (
-          <div className="tm-detail">
-            <div className="task-detail-tabs" style={{ display: "flex", gap: "1rem", borderBottom: "1px solid var(--line)", paddingBottom: "0.5rem", marginBottom: "0.5rem" }}>
-              <button
-                type="button"
-                className={`tab-btn ${activeTab === "detail" ? "is-selected" : ""}`}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "0.5rem 1rem",
-                  fontFamily: "var(--font-display)",
-                  fontWeight: "600",
-                  fontSize: "0.9rem",
-                  cursor: "pointer",
-                  color: activeTab === "detail" ? "var(--amber-deep)" : "var(--text-muted)",
-                  borderBottom: activeTab === "detail" ? "2px solid var(--amber-deep)" : "none"
-                }}
-                onClick={() => setActiveTab("detail")}
-              >
-                Détail
-              </button>
-              <button
-                type="button"
-                className={`tab-btn ${activeTab === "history" ? "is-selected" : ""}`}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "0.5rem 1rem",
-                  fontFamily: "var(--font-display)",
-                  fontWeight: "600",
-                  fontSize: "0.9rem",
-                  cursor: "pointer",
-                  color: activeTab === "history" ? "var(--amber-deep)" : "var(--text-muted)",
-                  borderBottom: activeTab === "history" ? "2px solid var(--amber-deep)" : "none"
-                }}
-                onClick={() => setActiveTab("history")}
-              >
-                Historique
-              </button>
+          <div className="tm-modal-body">
+            {/* Tabs */}
+            <div className="task-tabs">
+              <TabBtn active={activeTab === "detail"} onClick={() => setActiveTab("detail")}>Détail</TabBtn>
+              <TabBtn active={activeTab === "history"} onClick={() => setActiveTab("history")}>
+                Historique {totalTimeOnSelected > 0 && <span className="task-tab-badge">{fmtMinutes(totalTimeOnSelected)}</span>}
+              </TabBtn>
             </div>
 
             {activeTab === "detail" ? (
-              <>
-                <div className="tm-detail-meta">
-                  <span className="status-chip is-active">{selectedTask.status_title}</span>
-                  <span className="tm-detail-date">Publication : {fmtDate(selectedTask.planned_publish_date)}</span>
+              <div className="tm-detail">
+                {/* Meta */}
+                <div className="tm-meta-row">
+                  <span className="tm-chip tm-chip--active">{selectedTask.status_title}</span>
+                  {selectedTask.is_late && <span className="tm-chip tm-chip--late">En retard</span>}
+                  <span className="tm-meta-date">📅 Publication : {fmtDate(selectedTask.planned_publish_date)}</span>
+                  <span className="tm-meta-type">🎞 {selectedTask.task_type_name}</span>
                 </div>
 
-                {selectedTask.description && <p className="tm-detail-desc">{selectedTask.description}</p>}
+                {selectedTask.description && (
+                  <p className="tm-desc">{selectedTask.description}</p>
+                )}
 
                 {actionError && <p className="field-error">{actionError}</p>}
 
-                <div className="tm-detail-section">
-                  <h4>Changer de statut</h4>
-                  {nextStatuses.length === 0 ? (
-                    <p className="tt-status">Aucune transition disponible.</p>
-                  ) : (
+                {/* Change status */}
+                {nextStatuses.length > 0 && (
+                  <div className="tm-section">
+                    <h4 className="tm-section-title">Faire avancer la tâche</h4>
                     <div className="tm-status-buttons">
                       {nextStatuses.map((s) => (
                         <button
                           key={s.id}
                           type="button"
-                          className="chip-toggle"
+                          className="btn-primary tm-status-btn"
                           disabled={changingStatus}
                           onClick={() => handleChangeStatus(s.id)}
                         >
-                          {s.title}
+                          {changingStatus ? "…" : `→ ${s.title}`}
                         </button>
                       ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+                {nextStatuses.length === 0 && !detailLoading && (
+                  <p className="tm-no-transition">✓ Aucune transition disponible depuis ce statut.</p>
+                )}
 
-                <div className="tm-detail-section">
-                  <h4>Temps passé</h4>
+                {/* Time entry */}
+                <div className="tm-section">
+                  <h4 className="tm-section-title">Déclarer du temps</h4>
                   <form className="tm-time-form" onSubmit={handlePostTime}>
-                    <input
-                      type="date"
-                      value={timeForm.entry_date}
-                      onChange={(e) => setTimeForm((f) => ({ ...f, entry_date: e.target.value }))}
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      className="tm-time-input"
-                      value={timeForm.hours}
-                      onChange={(e) => setTimeForm((f) => ({ ...f, hours: e.target.value }))}
-                    />
-                    <span>h</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="59"
-                      className="tm-time-input"
-                      value={timeForm.minutes}
-                      onChange={(e) => setTimeForm((f) => ({ ...f, minutes: e.target.value }))}
-                    />
-                    <span>min</span>
-                    <button type="submit" className="btn-secondary" disabled={postingTime}>
-                      {postingTime ? "…" : "Ajouter"}
-                    </button>
+                    <div className="field">
+                      <label htmlFor="tm-date">Date</label>
+                      <input
+                        id="tm-date"
+                        type="date"
+                        value={timeForm.entry_date}
+                        onChange={(e) => setTimeForm((f) => ({ ...f, entry_date: e.target.value }))}
+                      />
+                    </div>
+                    <div className="tm-time-inputs">
+                      <div className="field">
+                        <label htmlFor="tm-hours">Heures</label>
+                        <input
+                          id="tm-hours"
+                          type="number"
+                          min="0"
+                          className="tm-time-input"
+                          value={timeForm.hours}
+                          onChange={(e) => setTimeForm((f) => ({ ...f, hours: e.target.value }))}
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="tm-mins">Minutes</label>
+                        <input
+                          id="tm-mins"
+                          type="number"
+                          min="0"
+                          max="59"
+                          className="tm-time-input"
+                          value={timeForm.minutes}
+                          onChange={(e) => setTimeForm((f) => ({ ...f, minutes: e.target.value }))}
+                        />
+                      </div>
+                      <button type="submit" className="btn-secondary tm-time-btn" disabled={postingTime}>
+                        {postingTime ? "…" : "Ajouter"}
+                      </button>
+                    </div>
                   </form>
                   {(selectedTask.time_entries || []).length > 0 && (
                     <ul className="tm-time-list">
                       {selectedTask.time_entries.map((te) => (
-                        <li key={te.id}>
-                          {te.user_name} — {fmtDate(te.entry_date)} — {te.hours}h{String(te.minutes).padStart(2, "0")}
+                        <li key={te.id} className="tm-time-item">
+                          <span className="tm-time-user">{te.user_name}</span>
+                          <span className="tm-time-date">{fmtDate(te.entry_date)}</span>
+                          <span className="tm-time-dur">{te.hours}h{String(te.minutes).padStart(2, "0")}</span>
                         </li>
                       ))}
                     </ul>
                   )}
                 </div>
 
-                <div className="tm-detail-section">
-                  <h4>Commentaires</h4>
+                {/* Comments */}
+                <div className="tm-section">
+                  <h4 className="tm-section-title">Commentaires</h4>
+                  {(selectedTask.comments || []).length === 0 && (
+                    <p className="tt-status" style={{ padding: "0.5rem 0" }}>Aucun commentaire.</p>
+                  )}
                   <ul className="tm-comment-list">
                     {(selectedTask.comments || []).map((c) => (
                       <li key={c.id} className="tm-comment">
-                        <span className="ta-comment-author">{c.author_name}</span>
-                        <span className="ta-comment-body">{c.body}</span>
+                        <span className="tm-comment-author">{c.author_name}</span>
+                        <span className="tm-comment-body">{c.body}</span>
                       </li>
                     ))}
-                    {(selectedTask.comments || []).length === 0 && (
-                      <p className="tt-status">Aucun commentaire.</p>
-                    )}
                   </ul>
                   <form className="tm-comment-form" onSubmit={handlePostComment}>
                     <textarea
@@ -348,37 +464,29 @@ export default function TachesMontage() {
                     </button>
                   </form>
                 </div>
-              </>
+              </div>
             ) : (
+              /* History tab */
               <div className="tm-history">
-                <div className="tm-detail-section">
-                  <h4>Répartition du temps par utilisateur</h4>
-                  {Object.keys(
-                    (selectedTask.time_entries || []).reduce((acc, te) => {
-                      acc[te.user_name || "Inconnu"] = (acc[te.user_name || "Inconnu"] || 0) + te.hours * 60 + te.minutes;
-                      return acc;
-                    }, {})
-                  ).length === 0 ? (
-                    <p className="tt-status">Aucune saisie de temps pour le moment.</p>
+                <div className="tm-section">
+                  <h4 className="tm-section-title">
+                    Temps total : <strong>{totalTimeOnSelected > 0 ? fmtMinutes(totalTimeOnSelected) : "—"}</strong>
+                  </h4>
+                </div>
+
+                <div className="tm-section">
+                  <h4 className="tm-section-title">Par collaborateur</h4>
+                  {Object.keys(timeByUser).length === 0 ? (
+                    <p className="tt-status" style={{ padding: "0.5rem 0" }}>Aucune saisie de temps.</p>
                   ) : (
                     <div className="tt-table-wrap">
                       <table className="tt-table">
-                        <thead>
-                          <tr>
-                            <th>Collaborateur</th>
-                            <th>Temps total</th>
-                          </tr>
-                        </thead>
+                        <thead><tr><th>Collaborateur</th><th>Temps total</th></tr></thead>
                         <tbody>
-                          {Object.entries(
-                            (selectedTask.time_entries || []).reduce((acc, te) => {
-                              acc[te.user_name || "Inconnu"] = (acc[te.user_name || "Inconnu"] || 0) + te.hours * 60 + te.minutes;
-                              return acc;
-                            }, {})
-                          ).map(([name, mins]) => (
+                          {Object.entries(timeByUser).map(([name, mins]) => (
                             <tr key={name}>
                               <td>{name}</td>
-                              <td>{Math.floor(mins / 60)}h{String(mins % 60).padStart(2, "0")}</td>
+                              <td><strong>{fmtMinutes(mins)}</strong></td>
                             </tr>
                           ))}
                         </tbody>
@@ -387,36 +495,19 @@ export default function TachesMontage() {
                   )}
                 </div>
 
-                <div className="ta-detail-section" style={{ marginTop: "1.5rem" }}>
-                  <h4>Répartition du temps par étape (statut)</h4>
-                  {Object.keys(
-                    (selectedTask.time_entries || []).reduce((acc, te) => {
-                      const key = te.status_title_at_entry || "Étape initiale";
-                      acc[key] = (acc[key] || 0) + te.hours * 60 + te.minutes;
-                      return acc;
-                    }, {})
-                  ).length === 0 ? (
-                    <p className="tt-status">Aucune saisie de temps pour le moment.</p>
+                <div className="tm-section">
+                  <h4 className="tm-section-title">Par étape (statut)</h4>
+                  {Object.keys(timeByStatus).length === 0 ? (
+                    <p className="tt-status" style={{ padding: "0.5rem 0" }}>Aucune saisie de temps.</p>
                   ) : (
                     <div className="tt-table-wrap">
                       <table className="tt-table">
-                        <thead>
-                          <tr>
-                            <th>Statut</th>
-                            <th>Temps total</th>
-                          </tr>
-                        </thead>
+                        <thead><tr><th>Statut</th><th>Temps total</th></tr></thead>
                         <tbody>
-                          {Object.entries(
-                            (selectedTask.time_entries || []).reduce((acc, te) => {
-                              const key = te.status_title_at_entry || "Étape initiale";
-                              acc[key] = (acc[key] || 0) + te.hours * 60 + te.minutes;
-                              return acc;
-                            }, {})
-                          ).map(([statusTitle, mins]) => (
+                          {Object.entries(timeByStatus).map(([statusTitle, mins]) => (
                             <tr key={statusTitle}>
                               <td>{statusTitle}</td>
-                              <td>{Math.floor(mins / 60)}h{String(mins % 60).padStart(2, "0")}</td>
+                              <td><strong>{fmtMinutes(mins)}</strong></td>
                             </tr>
                           ))}
                         </tbody>

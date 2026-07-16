@@ -1,33 +1,79 @@
-.home-header h1 {
+/* ── Greeting ────────────────────────────────────────────────────────────── */
+.home-greeting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.home-greeting h1 {
   font-family: var(--font-display);
   font-size: 1.7rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: var(--ink);
+}
+
+/* ── Quick actions strip ──────────────────────────────────────────────────── */
+.home-quick-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.home-quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  text-decoration: none;
+  color: var(--card-foreground);
+  min-width: 110px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-quick-btn:hover {
+  border-color: var(--primary);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px var(--primary);
+  transform: translateY(-2px);
+}
+
+.home-quick-emoji {
+  font-size: 1.6rem;
+}
+
+.home-quick-label {
+  font-size: 0.78rem;
   font-weight: 600;
-  margin: 0 0 0.3rem;
+  text-align: center;
+  color: var(--ink);
+  white-space: nowrap;
 }
 
-.home-date {
-  color: var(--text-muted);
-  margin: 0 0 1.75rem;
-  text-transform: capitalize;
-}
-
+/* ── Main grid ───────────────────────────────────────────────────────────── */
 .home-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 1.75rem;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 1.5rem;
   align-items: start;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .home-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* ---------- Directory ---------- */
-
+/* ── Directory panel ─────────────────────────────────────────────────────── */
 .directory-panel {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 1.5rem;
@@ -36,41 +82,47 @@
 .directory-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  margin-bottom: 1.4rem;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .directory-search {
   font-family: var(--font-body);
-  font-size: 0.92rem;
-  padding: 0.65rem 0.9rem;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--paper);
-  color: var(--ink);
+  font-size: 0.95rem;
+  padding: 0.85rem 1.2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--input);
+  color: var(--foreground);
+  width: 100%;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 }
 
-.directory-search:focus-visible {
-  outline: 2px solid var(--amber);
-  border-color: var(--amber-deep);
+.directory-search:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--background);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .directory-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .filter-chip {
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 500;
-  padding: 0.4rem 0.75rem;
+  padding: 0.35rem 0.7rem;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--text-muted);
   cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
 
 .filter-chip--active {
@@ -81,7 +133,7 @@
 
 .directory-status {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   padding: 1rem 0;
 }
 
@@ -94,64 +146,86 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.85rem;
 }
 
 .directory-card {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.25rem;
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.directory-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.directory-card--absent {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.04);
 }
 
 .directory-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.6rem;
 }
 
 .badge-unavailable {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: #9a2c1c;
-  background: rgba(196, 60, 40, 0.08);
-  border: 1px solid rgba(196, 60, 40, 0.2);
-  padding: 0.2rem 0.5rem;
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: var(--destructive);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .badge-chef {
-  margin-left: 0.4rem;
+  margin-left: 0.5rem;
   font-size: 0.65rem;
   font-weight: 700;
-  color: var(--amber-deep);
-  background: rgba(232, 162, 61, 0.14);
-  padding: 0.15rem 0.4rem;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 0.2rem 0.5rem;
   border-radius: 6px;
   vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .directory-card-name {
+  font-size: 0.9rem;
   font-weight: 600;
   margin: 0;
+  color: var(--ink);
 }
 
 .directory-card-role {
-  font-size: 0.82rem;
+  font-size: 0.79rem;
   color: var(--text-muted);
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.45rem;
 }
 
 .directory-card-email {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--ink);
+  font-size: 0.74rem;
+  color: var(--text-muted);
   text-decoration: none;
   word-break: break-all;
+  transition: color 0.1s ease;
 }
 
 .directory-card-email:hover {
@@ -160,15 +234,14 @@
 
 .directory-card-phone {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
-  margin: 0.2rem 0 0;
+  margin: 0.15rem 0 0;
 }
 
-/* ---------- Unavailable widget ---------- */
-
+/* ── Unavailable widget ───────────────────────────────────────────────────── */
 .unavailable-panel {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 1.25rem;
@@ -176,13 +249,14 @@
 
 .unavailable-panel h2 {
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin: 0 0 0.9rem;
+  margin: 0 0 1rem;
+  color: var(--ink);
 }
 
 .unavailable-empty {
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
   margin: 0;
 }
@@ -201,12 +275,20 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--paper);
+  border-radius: 8px;
+}
+
+.unavailable-name {
+  font-weight: 500;
+  color: var(--ink);
 }
 
 .unavailable-reason {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   white-space: nowrap;

@@ -49,7 +49,10 @@ def get_task(task_id):
     data = task.to_dict()
     data["comments"] = [c.to_dict() for c in task.comments]
     data["time_entries"] = [te.to_dict() for te in task.time_entries]
-    data["assignee_ids"] = [a.user_id for a in task.assignees]
+    data["assignees"] = [
+        {"id": a.user_id, "name": f"{a.user.first_name} {a.user.last_name}", "role_on_task": a.role_on_task}
+        for a in task.assignees
+    ]
     return jsonify(data)
 
 

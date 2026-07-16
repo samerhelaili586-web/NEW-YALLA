@@ -18,22 +18,23 @@
   font-size: 0.9rem;
   padding: 0.6rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--ink);
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  outline: 2px solid var(--amber);
-  outline-offset: -1px;
-  border-color: var(--amber);
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .field-error {
   font-size: 0.76rem;
-  color: #b5423a;
+  color: var(--destructive);
 }
 
 .field-row {
@@ -153,7 +154,7 @@
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 600;
@@ -169,4 +170,126 @@
   background: var(--ink);
   border-color: var(--ink);
   color: var(--paper);
+}
+
+/* ── Page header ─────────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  margin: 0 0 0.2rem;
+  color: var(--ink);
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  margin: 0;
+}
+
+/* ── Shared table utilities ──────────────────────────────────────────────── */
+.tt-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.tt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.tt-table th {
+  text-align: left;
+  padding: 0.65rem 1rem;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--line);
+  background: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.tt-table td {
+  padding: 0.72rem 1rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.tt-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tt-table tbody tr:hover td {
+  background: var(--muted);
+}
+
+.tt-table tbody tr.is-clickable {
+  cursor: pointer;
+}
+
+.tt-table tbody tr.is-clickable:hover td {
+  background: rgba(232, 162, 61, 0.05);
+}
+
+.tt-status {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  text-align: center;
+  padding: 2rem 1rem;
+  margin: 0;
+}
+
+.tt-status.tt-status--error {
+  color: #b5423a;
+}
+
+.users-search {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  width: 240px;
+  transition: border-color 0.15s ease;
+}
+
+.users-search:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+.users-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.users-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  padding: 1.5rem;
+}
+
+/* ── Shimmer animation ───────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }

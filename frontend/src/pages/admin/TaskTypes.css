@@ -44,7 +44,7 @@
   gap: 0.75rem;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--card);
   padding: 0.85rem;
 }
 
@@ -105,7 +105,7 @@
 .tt-detail {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--card);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -217,7 +217,7 @@
   padding: 0.5rem 0.7rem;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   min-width: 180px;
 }
 

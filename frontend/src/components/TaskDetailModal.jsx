@@ -22,6 +22,10 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
   const [postingTime, setPostingTime] = useState(false);
   const [actionError, setActionError] = useState("");
 
+  const [users, setUsers] = useState([]);
+  const [assigneeSelect, setAssigneeSelect] = useState("");
+  const [addingAssignee, setAddingAssignee] = useState(false);
+
   useEffect(() => {
     if (!open || !taskId) return;
 
@@ -37,13 +41,15 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
 
     (async () => {
       try {
-        const [full, statuses] = await Promise.all([
+        const [full, statuses, allUsers] = await Promise.all([
           api.get(`/tasks/${taskId}`),
           api.get(`/tasks/${taskId}/next-statuses`),
+          api.get("/users/directory"),
         ]);
         if (!cancelled) {
           setTask(full);
           setNextStatuses(statuses);
+          setUsers(allUsers);
         }
       } catch {
         if (!cancelled) setLoadError("Impossible de charger le détail de cette tâche.");
@@ -124,6 +130,37 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
     }
   }
 
+  async function handleAddAssignee(e) {
+    e.preventDefault();
+    if (!assigneeSelect || !taskId) return;
+    setAddingAssignee(true);
+    setActionError("");
+    try {
+      await api.post(`/tasks/${taskId}/assignees`, { user_id: Number(assigneeSelect) });
+      setAssigneeSelect("");
+      await refresh();
+    } catch (err) {
+      if (err instanceof ApiError && err.data?.error === "already_assigned") {
+        setActionError("Cet utilisateur est déjà assigné.");
+      } else {
+        setActionError("Impossible d'assigner l'utilisateur.");
+      }
+    } finally {
+      setAddingAssignee(false);
+    }
+  }
+
+  async function handleRemoveAssignee(userId) {
+    if (!taskId) return;
+    setActionError("");
+    try {
+      await api.delete(`/tasks/${taskId}/assignees/${userId}`);
+      await refresh();
+    } catch {
+      setActionError("Impossible de retirer l'utilisateur.");
+    }
+  }
+
   const timeByUser = (task?.time_entries || []).reduce((acc, te) => {
     const key = te.user_name || "Inconnu";
     acc[key] = (acc[key] || 0) + te.hours * 60 + te.minutes;
@@ -165,6 +202,45 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
               <div className="tdm-detail-meta">
                 <span className="status-chip is-active">{task.status_title}</span>
                 <span className="tdm-detail-date">Publication : {fmtDate(task.planned_publish_date)}</span>
+              </div>
+
+              <div className="tdm-detail-section" style={{ marginTop: "1rem" }}>
+                <h4>Assignés ({(task.assignees || []).length})</h4>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                  {(task.assignees || []).map((a) => (
+                    <span key={a.id} className="status-chip" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      {a.name}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAssignee(a.id)}
+                        style={{ background: "transparent", border: "none", cursor: "pointer", opacity: 0.6, padding: "0 4px" }}
+                        title="Retirer"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {(task.assignees || []).length === 0 && (
+                    <span style={{ fontSize: "0.86rem", color: "var(--text-muted)" }}>Personne n'est assigné.</span>
+                  )}
+                </div>
+                <form onSubmit={handleAddAssignee} style={{ display: "flex", gap: "0.5rem" }}>
+                  <select
+                    value={assigneeSelect}
+                    onChange={(e) => setAssigneeSelect(e.target.value)}
+                    style={{ flex: 1, padding: "0.4rem 0.6rem", borderRadius: "6px", border: "1px solid var(--line)", fontFamily: "var(--font-body)", fontSize: "0.86rem" }}
+                  >
+                    <option value="">Sélectionner un collaborateur...</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.first_name} {u.last_name} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" className="btn-secondary" disabled={!assigneeSelect || addingAssignee}>
+                    {addingAssignee ? "…" : "Assigner"}
+                  </button>
+                </form>
               </div>
 
               {task.description && <p className="tdm-detail-desc">{task.description}</p>}

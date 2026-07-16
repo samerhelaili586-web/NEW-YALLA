@@ -46,7 +46,7 @@
 }
 
 .att-table-wrap {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
   overflow-x: auto;
