@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import AnoAI from "../components/AnoAI";
 import "./Login.css";
 
 // ── ApertureIris removed in favor of image logo ──────────────────────────
@@ -55,6 +56,7 @@ export default function Login() {
 
   return (
     <div className="login-screen" onMouseMove={handleMouseMove}>
+      <AnoAI />
       {/* Interactive Spotlight Overlay */}
       <div className="login-spotlight" aria-hidden="true" />
       

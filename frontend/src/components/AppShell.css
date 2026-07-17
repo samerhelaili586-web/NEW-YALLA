@@ -169,7 +169,7 @@
 .shell-user-name {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--paper);
+  color: var(--sidebar-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -177,7 +177,7 @@
 
 .shell-user-role {
   font-size: 0.7rem;
-  color: rgba(240, 238, 233, 0.5);
+  color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -267,16 +267,18 @@
   width: 32px;
   height: 32px;
   border-radius: 7px;
-  border: 1px solid rgba(240, 238, 233, 0.15);
+  border: 1px solid var(--sidebar-border);
   background: transparent;
-  color: rgba(240, 238, 233, 0.55);
+  color: var(--sidebar-foreground);
+  opacity: 0.7;
   cursor: pointer;
-  transition: background 0.1s ease, color 0.1s ease;
+  transition: background 0.1s ease, color 0.1s ease, opacity 0.1s ease;
 }
 
 .shell-notif:hover {
-  background: rgba(240, 238, 233, 0.1);
-  color: var(--paper);
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+  opacity: 1;
 }
 
 .shell-notif-badge {
