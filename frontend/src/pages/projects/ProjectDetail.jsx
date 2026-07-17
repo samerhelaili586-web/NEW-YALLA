@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
 import TaskDetailModal from "../../components/TaskDetailModal";
+import { UrgentBadge } from "../../utils/taskUtils";
 import "../../styles/shared.css";
 import "./ProjectDetail.css";
 
@@ -57,6 +58,14 @@ export default function ProjectDetail() {
       setTasks(tasksData);
       setKpis(kpisData);
       setTimeSummary(timeSummaryData);
+
+      // Deep linking for ?task=
+      const urlParams = new URLSearchParams(window.location.search);
+      const taskIdParam = urlParams.get("task");
+      if (taskIdParam) {
+        const found = tasksData.find((t) => String(t.id) === taskIdParam);
+        if (found) openTask(found);
+      }
     } catch {
       setLoadError("Impossible de charger ce projet.");
     } finally {
@@ -235,7 +244,10 @@ export default function ProjectDetail() {
                     <tr key={t.id} className="pd-task-row" onClick={() => openTask(t)}>
                       <td>{t.title}</td>
                       <td>{t.task_type_name}</td>
-                      <td><span className="status-chip is-active">{t.status_title}</span></td>
+                      <td>
+                        <span className="status-chip is-active">{t.status_title}</span>
+                        <UrgentBadge date={t.planned_publish_date} isCompleted={t.status_functional_type === "validation"} />
+                      </td>
                       <td>{new Date(t.planned_publish_date).toLocaleDateString("fr-FR")}</td>
                       <td>
                         {t.is_late && <span className="status-chip is-archived">En retard</span>}

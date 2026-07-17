@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../../api/client";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./Planification.css";
 
@@ -233,6 +234,7 @@ export default function Planification() {
         {!loading && (
           <div className="pf-columns">
             <section className="pf-column">
+              <GlowingEffect spread={60} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={2} />
               <h3>Shooting à planifier ({shootingQueue.length})</h3>
               {shootingQueue.length === 0 && <p className="tt-status">Rien en attente.</p>}
               <ul className="pf-queue-list">
@@ -246,6 +248,7 @@ export default function Planification() {
             </section>
 
             <section className="pf-column">
+              <GlowingEffect spread={60} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={2} />
               <h3>Montage à planifier ({montageQueue.length})</h3>
               {montageQueue.length === 0 && <p className="tt-status">Rien en attente.</p>}
               <ul className="pf-queue-list">

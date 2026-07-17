@@ -38,6 +38,7 @@
 }
 
 .pl-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -50,9 +51,12 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
 
+.pl-card-top, .pl-card > p {
+  position: relative;
+  z-index: 10;
+}
 
 .pl-card:hover {
-  border-color: var(--amber);
   box-shadow: 0 3px 16px rgba(232, 162, 61, 0.14);
   transform: translateY(-2px);
 }

@@ -1,10 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { api, ApiError } from "../api/client";
 import Modal from "./Modal";
+import { UrgentBadge } from "../utils/taskUtils";
 import "./TaskDetailModal.css";
 
 function fmtDate(d) {
   return new Date(d).toLocaleDateString("fr-FR");
+}
+
+function renderCommentBody(body) {
+  if (!body) return null;
+  const parts = body.split(/(@\w+)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("@")) {
+      return <span key={i} className="tdm-mention">{part}</span>;
+    }
+    return part;
+  });
 }
 
 export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
@@ -25,6 +37,9 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
   const [users, setUsers] = useState([]);
   const [assigneeSelect, setAssigneeSelect] = useState("");
   const [addingAssignee, setAddingAssignee] = useState(false);
+
+  const [mentionQuery, setMentionQuery] = useState(null);
+  const textareaRef = useRef(null);
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -161,6 +176,40 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
     }
   }
 
+  const handleCommentChange = (e) => {
+    const val = e.target.value;
+    setCommentBody(val);
+    
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/@([a-zA-Z0-9_]*)$/);
+    if (match) {
+      setMentionQuery(match[1]);
+    } else {
+      setMentionQuery(null);
+    }
+  };
+  
+  const filteredUsers = mentionQuery !== null 
+    ? users.filter(u => 
+        u.first_name.toLowerCase().includes(mentionQuery.toLowerCase()) || 
+        u.last_name.toLowerCase().includes(mentionQuery.toLowerCase())
+      )
+    : [];
+
+  const insertMention = (user) => {
+    const cursorPos = textareaRef.current?.selectionStart || commentBody.length;
+    const textBeforeCursor = commentBody.slice(0, cursorPos);
+    const textAfterCursor = commentBody.slice(cursorPos);
+    
+    const textBeforeMention = textBeforeCursor.replace(/@[a-zA-Z0-9_]*$/, "");
+    const mention = `@${user.first_name}${user.last_name} `;
+    
+    setCommentBody(textBeforeMention + mention + textAfterCursor);
+    setMentionQuery(null);
+    textareaRef.current?.focus();
+  };
+
   const timeByUser = (task?.time_entries || []).reduce((acc, te) => {
     const key = te.user_name || "Inconnu";
     acc[key] = (acc[key] || 0) + te.hours * 60 + te.minutes;
@@ -201,6 +250,7 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
             <>
               <div className="tdm-detail-meta">
                 <span className="status-chip is-active">{task.status_title}</span>
+                <UrgentBadge date={task.planned_publish_date} isCompleted={task.status_functional_type === "validation"} />
                 <span className="tdm-detail-date">Publication : {fmtDate(task.planned_publish_date)}</span>
               </div>
 
@@ -314,18 +364,31 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
                   {(task.comments || []).map((c) => (
                     <li key={c.id} className="tdm-comment">
                       <span className="tdm-comment-author">{c.author_name}</span>
-                      <span className="tdm-comment-body">{c.body}</span>
+                      <span className="tdm-comment-body">{renderCommentBody(c.body)}</span>
                     </li>
                   ))}
                   {(task.comments || []).length === 0 && <p className="tt-status">Aucun commentaire.</p>}
                 </ul>
                 <form className="tdm-comment-form" onSubmit={handlePostComment}>
-                  <textarea
-                    rows={2}
-                    placeholder="Ajouter un commentaire…"
-                    value={commentBody}
-                    onChange={(e) => setCommentBody(e.target.value)}
-                  />
+                  <div style={{ position: "relative", flex: 1 }}>
+                    <textarea
+                      ref={textareaRef}
+                      rows={2}
+                      style={{ width: "100%", boxSizing: "border-box" }}
+                      placeholder="Ajouter un commentaire…"
+                      value={commentBody}
+                      onChange={handleCommentChange}
+                    />
+                    {mentionQuery !== null && filteredUsers.length > 0 && (
+                      <div className="tdm-mention-dropdown">
+                        {filteredUsers.map(u => (
+                          <div key={u.id} className="tdm-mention-item" onClick={() => insertMention(u)}>
+                            {u.first_name} {u.last_name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button type="submit" className="btn-primary" disabled={postingComment || !commentBody.trim()}>
                     {postingComment ? "…" : "Envoyer"}
                   </button>

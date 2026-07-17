@@ -10,7 +10,7 @@ MENU_ACCESS = {
     "projets_affectes": {"cm"},
     "taches_associees": {"cm", "prod", "chef_prod"},
     "taches_montage": {"prod", "chef_prod"},
-    "planification": {"chef_prod"},
+    "planification": {"chef_prod", "admin_sys", "manager"},
     "feuille_presence_perso": {"cm", "prod", "chef_prod"},
     "feuille_presence_equipe": {"admin_sys", "manager"},
     "shooting_calendrier": {"admin_sys", "manager", "cm", "prod", "chef_prod"},

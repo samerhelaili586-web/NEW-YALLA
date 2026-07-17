@@ -3,6 +3,7 @@ import { api, ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
+import { UrgentBadge } from "../../utils/taskUtils";
 import "../../styles/shared.css";
 import "./TachesMontage.css";
 
@@ -34,7 +35,10 @@ function TaskCard({ task, onClick }) {
     <button type="button" className="tm-card" onClick={onClick} aria-label={`Ouvrir ${task.title}`}>
       <div className="tm-card-header">
         <span className="tm-card-type">{task.task_type_name}</span>
-        {task.is_late && <span className="tm-chip tm-chip--late">En retard</span>}
+        <div>
+          {task.is_late && <span className="tm-chip tm-chip--late">En retard</span>}
+          <UrgentBadge date={task.planned_publish_date} isCompleted={task.status_functional_type === "validation"} />
+        </div>
       </div>
       <p className="tm-card-title">{task.title}</p>
       <div className="tm-card-footer">
@@ -86,7 +90,7 @@ export default function TachesMontage() {
     setLoading(true);
     setLoadError("");
     try {
-      const data = await api.get("/tasks");
+      const data = await api.get("/tasks", { assigned_to_me: 1 });
       const montageTasks = data.filter((t) =>
         ["montage", "planification_montage"].includes(t.status_functional_type)
       );
@@ -350,6 +354,7 @@ export default function TachesMontage() {
                 <div className="tm-meta-row">
                   <span className="tm-chip tm-chip--active">{selectedTask.status_title}</span>
                   {selectedTask.is_late && <span className="tm-chip tm-chip--late">En retard</span>}
+                  <UrgentBadge date={selectedTask.planned_publish_date} isCompleted={selectedTask.status_functional_type === "validation"} />
                   <span className="tm-meta-date">📅 Publication : {fmtDate(selectedTask.planned_publish_date)}</span>
                   <span className="tm-meta-type">🎞 {selectedTask.task_type_name}</span>
                 </div>

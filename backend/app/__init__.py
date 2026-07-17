@@ -50,6 +50,9 @@ def create_app(config_object="config.DevConfig"):
     from app.routes.planification import planification_bp
     app.register_blueprint(planification_bp, url_prefix="/api/planification")
 
+    from app.routes.login_history import login_history_bp
+    app.register_blueprint(login_history_bp, url_prefix="/api/login-history")
+
     @app.get("/api/health")
     def health():
         return {"status": "ok"}

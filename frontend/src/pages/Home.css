@@ -24,6 +24,7 @@
 }
 
 .home-quick-btn {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -39,9 +40,13 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.home-quick-btn > span {
+  position: relative;
+  z-index: 10;
+}
+
 .home-quick-btn:hover {
-  border-color: var(--primary);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px var(--primary);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   transform: translateY(-2px);
 }
 
@@ -151,6 +156,7 @@
 }
 
 .directory-card {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.25rem;
@@ -164,7 +170,6 @@
 }
 
 .directory-card:hover {
-  border-color: var(--primary);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
 }
@@ -302,4 +307,13 @@
 .unavailable-reason--maladie {
   color: #9a2c1c;
   background: rgba(196, 60, 40, 0.08);
+}
+
+.directory-card-top,
+.directory-card-name,
+.directory-card-role,
+.directory-card-email,
+.directory-card-phone {
+  position: relative;
+  z-index: 10;
 }

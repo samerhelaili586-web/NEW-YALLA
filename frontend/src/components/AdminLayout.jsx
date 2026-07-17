@@ -6,6 +6,8 @@ const NAV_ITEMS = [
   { to: "/admin/users", label: "Utilisateurs" },
   { to: "/admin/task-types", label: "Types de tâches" },
   { to: "/admin/equipment", label: "Matériel" },
+  { to: "/admin/holidays", label: "Jours Fériés" },
+  { to: "/admin/login-history", label: "Historique de connexions" },
 ];
 
 export default function AdminLayout() {

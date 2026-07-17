@@ -39,7 +39,7 @@ const NAV_ITEMS = [
   { to: "/projects",        label: "Projets",              icon: "projects",   roles: ["admin_sys", "manager", "chef_prod", "cm"] },
   { to: "/tasks",           label: "Mes tâches",           icon: "tasks",      roles: ["cm", "prod", "chef_prod"] },
   { to: "/tasks-montage",   label: "Tâches Montage",       icon: "montage",    roles: ["prod", "chef_prod"] },
-  { to: "/planification",   label: "Planification",        icon: "planif",     roles: ["chef_prod"] },
+  { to: "/planification",   label: "Planification",        icon: "planif",     roles: ["chef_prod", "admin_sys", "manager"] },
   { to: "/shooting-calendar", label: "Calendrier Shooting", icon: "calendar",  roles: null },
   { to: "/attendance",      label: "Présences",            icon: "attendance", roles: null },
   { to: "/leave",           label: "Congés",               icon: "leave",      roles: null },

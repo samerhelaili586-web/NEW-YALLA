@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import AppShell from "../../components/AppShell";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./ShootingCalendar.css";
 
@@ -14,14 +15,51 @@ function startOfWeek(date) {
   return d;
 }
 
-function addDays(date, n) {
+function startOfMonthGrid(date) {
   const d = new Date(date);
-  d.setDate(d.getDate() + n);
+  d.setDate(1); // 1st of month
+  const day = (d.getDay() + 6) % 7; // Monday = 0
+  d.setDate(d.getDate() - day); // back to previous Monday
+  d.setHours(0, 0, 0, 0);
   return d;
 }
 
-function fmtDay(d) {
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+function getMonthDays(currentDate) {
+  const d = new Date(currentDate);
+  d.setDate(1);
+  const month = d.getMonth();
+  
+  const start = startOfMonthGrid(currentDate);
+  const days = [];
+  let curr = new Date(start);
+  
+  // Render exactly 42 days (6 weeks) to maintain a consistent grid size
+  for (let i = 0; i < 42; i++) {
+    days.push(new Date(curr));
+    curr.setDate(curr.getDate() + 1);
+  }
+  return days;
+}
+
+function getWeekDays(currentDate) {
+  const start = startOfWeek(currentDate);
+  const days = [];
+  let curr = new Date(start);
+  for (let i = 0; i < 7; i++) {
+    days.push(new Date(curr));
+    curr.setDate(curr.getDate() + 1);
+  }
+  return days;
+}
+
+function addMonths(date, n) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + n);
+  return d;
+}
+
+function fmtMonth(d) {
+  return d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 }
 
 function fmtTime(iso) {
@@ -29,24 +67,26 @@ function fmtTime(iso) {
 }
 
 export default function ShootingCalendar() {
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [viewMode, setViewMode] = useState("month");
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [shoots, setShoots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
-  const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
-  const days = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
-    [weekStart]
-  );
+  const days = useMemo(() => {
+    return viewMode === "month" ? getMonthDays(currentDate) : getWeekDays(currentDate);
+  }, [currentDate, viewMode]);
+  
+  const rangeStart = days[0];
+  const rangeEnd = days[days.length - 1];
 
   async function loadShoots() {
     setLoading(true);
     setLoadError("");
     try {
       const data = await api.get("/planification/calendar", {
-        start: weekStart.toISOString(),
-        end: addDays(weekEnd, 1).toISOString(),
+        start: rangeStart.toISOString(),
+        end: new Date(rangeEnd.getTime() + 86400000).toISOString(),
       });
       setShoots(data);
     } catch {
@@ -57,10 +97,9 @@ export default function ShootingCalendar() {
   }
 
   useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch on week change
-  loadShoots();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadShoots always closes over current weekStart
-}, [weekStart]);
+    loadShoots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate, viewMode]);
 
   const shootsByDay = useMemo(() => {
     const map = {};
@@ -79,37 +118,58 @@ export default function ShootingCalendar() {
     return map;
   }, [shoots, days]);
 
-  function goToPreviousWeek() {
-    setWeekStart((w) => addDays(w, -7));
+  function goToPrevious() {
+    if (viewMode === "month") setCurrentDate((m) => addMonths(m, -1));
+    else {
+      setCurrentDate(d => {
+        const next = new Date(d);
+        next.setDate(next.getDate() - 7);
+        return next;
+      });
+    }
   }
-  function goToNextWeek() {
-    setWeekStart((w) => addDays(w, 7));
+  function goToNext() {
+    if (viewMode === "month") setCurrentDate((m) => addMonths(m, 1));
+    else {
+      setCurrentDate(d => {
+        const next = new Date(d);
+        next.setDate(next.getDate() + 7);
+        return next;
+      });
+    }
   }
   function goToToday() {
-    setWeekStart(startOfWeek(new Date()));
+    setCurrentDate(new Date());
   }
 
   const todayKey = new Date().toDateString();
+  const targetMonthIndex = currentDate.getMonth();
 
   return (
     <AppShell>
-      <div className="sc-page">
+      <div className={`sc-page${viewMode === "week" ? " is-week-view" : ""}`}>
         <div className="sc-header">
           <div>
             <h1>Calendrier de shooting</h1>
             <p className="sc-subtitle">
-              Semaine du {fmtDay(weekStart)} au {fmtDay(weekEnd)}
+              {viewMode === "month" 
+                ? fmtMonth(currentDate)
+                : `Semaine du ${rangeStart.toLocaleDateString("fr-FR", {day:"numeric", month:"short"})} au ${rangeEnd.toLocaleDateString("fr-FR", {day:"numeric", month:"short"})}`}
             </p>
           </div>
           <div className="sc-nav">
-            <button type="button" className="btn-secondary" onClick={goToPreviousWeek}>
-              ← Précédente
+            <button type="button" className="btn-secondary" onClick={() => setViewMode(v => v === "month" ? "week" : "month")}>
+              {viewMode === "month" ? "Vue Semaine" : "Vue Mois"}
+            </button>
+            <div style={{ width: "1px", background: "var(--line)", margin: "0 0.25rem" }}></div>
+            <button type="button" className="btn-secondary" onClick={goToPrevious}>
+              ← Précédent
             </button>
             <button type="button" className="btn-secondary" onClick={goToToday}>
               Aujourd&rsquo;hui
             </button>
-            <button type="button" className="btn-secondary" onClick={goToNextWeek}>
-              Suivante →
+            <button type="button" className="btn-secondary" onClick={goToNext}>
+              Suivant →
             </button>
           </div>
         </div>
@@ -118,32 +178,100 @@ export default function ShootingCalendar() {
         {loading && <p className="tt-status">Chargement…</p>}
 
         {!loading && (
-          <div className="sc-grid">
-            {days.map((day) => {
-              const key = day.toDateString();
-              const dayShoots = shootsByDay[key] || [];
-              return (
-                <div key={key} className={`sc-day${key === todayKey ? " is-today" : ""}`}>
-                  <div className="sc-day-header">
-                    <span className="sc-day-weekday">{WEEKDAY_SHORT[(day.getDay() + 6) % 7]}</span>
-                    <span className="sc-day-date">{day.getDate()}</span>
+          <>
+            <div className="sc-grid-header">
+              {WEEKDAY_SHORT.map(wd => (
+                <div key={wd} className="sc-grid-header-day">{wd}</div>
+              ))}
+            </div>
+            <div className="sc-grid">
+              {days.map((day) => {
+                const key = day.toDateString();
+                const dayShoots = shootsByDay[key] || [];
+                const isOutsideMonth = day.getMonth() !== targetMonthIndex;
+                const isToday = key === todayKey;
+
+                return (
+                  <div key={key} className={`sc-day${isToday ? " is-today" : ""}${isOutsideMonth ? " is-outside-month" : ""}`}>
+                    <div className="sc-day-header">
+                      <span className="sc-day-date">{day.getDate()}</span>
+                    </div>
+                    <div className="sc-day-body">
+                      {dayShoots.map((shoot) => (
+                        <div key={shoot.id} className="sc-shoot-card" title={`${shoot.equipment_name} - ${shoot.crew.length} membre(s)`}>
+                          {viewMode === "week" && <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={1} />}
+                          <span className="sc-shoot-time">
+                            {fmtTime(shoot.start_at)} – {fmtTime(shoot.end_at)}
+                          </span>
+                          <span className="sc-shoot-equipment">{shoot.equipment_name}</span>
+                          {viewMode === "week" && <span className="sc-shoot-crew">{shoot.crew.length} membre(s)</span>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="sc-day-body">
-                    {dayShoots.length === 0 && <p className="sc-day-empty">—</p>}
-                    {dayShoots.map((shoot) => (
-                      <div key={shoot.id} className="sc-shoot-card">
-                        <span className="sc-shoot-time">
-                          {fmtTime(shoot.start_at)} – {fmtTime(shoot.end_at)}
-                        </span>
-                        <span className="sc-shoot-equipment">{shoot.equipment_name}</span>
-                        <span className="sc-shoot-crew">{shoot.crew.length} membre(s)</span>
-                      </div>
-                    ))}
-                  </div>
+                );
+              })}
+            </div>
+
+            {/* List View for Week Mode */}
+            {viewMode === "week" && (
+              <div className="sc-list-view">
+                <div className="sc-list-header">
+                  <h3>Détails de la semaine</h3>
                 </div>
-              );
-            })}
-          </div>
+                {shoots.length === 0 ? (
+                  <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>
+                    Aucun shooting prévu cette semaine.
+                  </div>
+                ) : (
+                  <table className="sc-list-table">
+                    <thead>
+                      <tr>
+                        <th>Date et Heure</th>
+                        <th>Projet / Tâche</th>
+                        <th>Matériel</th>
+                        <th>Équipe Assignée</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shoots.map(shoot => {
+                        const sDate = new Date(shoot.start_at);
+                        const dateStr = sDate.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" });
+                        return (
+                          <tr key={shoot.id}>
+                            <td style={{ whiteSpace: "nowrap" }}>
+                              <div style={{ fontWeight: 600 }}>{dateStr}</div>
+                              <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                                {fmtTime(shoot.start_at)} – {fmtTime(shoot.end_at)}
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 600 }}>{shoot.project_name || "Projet inconnu"}</div>
+                              <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>{shoot.task_title || "Tâche inconnue"}</div>
+                            </td>
+                            <td style={{ color: "var(--amber)" }}>{shoot.equipment_name}</td>
+                            <td>
+                              <div className="sc-list-crew-tags">
+                                {shoot.crew_names && shoot.crew_names.length > 0 ? (
+                                  shoot.crew_names.map((name, i) => (
+                                    <span key={i} className="sc-list-crew-tag">{name}</span>
+                                  ))
+                                ) : (
+                                  <span className="sc-list-crew-tag" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-muted)", borderColor: "var(--line)" }}>
+                                    Non assigné
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </AppShell>

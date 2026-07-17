@@ -3,6 +3,7 @@ import { api, ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
+import { UrgentBadge } from "../../utils/taskUtils";
 import "../../styles/shared.css";
 import "./TachesAssociees.css";
 
@@ -22,7 +23,10 @@ function TaskCard({ task, onClick }) {
     <button type="button" className="ta-card" onClick={onClick} aria-label={`Ouvrir ${task.title}`}>
       <div className="ta-card-header">
         <span className="ta-card-type">{task.task_type_name}</span>
-        {task.is_late && <span className="ta-chip ta-chip--late">En retard</span>}
+        <div>
+          {task.is_late && <span className="ta-chip ta-chip--late">En retard</span>}
+          <UrgentBadge date={task.planned_publish_date} isCompleted={task.status_functional_type === "validation"} />
+        </div>
       </div>
       <p className="ta-card-title">{task.title}</p>
       <div className="ta-card-footer">
@@ -339,6 +343,7 @@ export default function TachesAssociees() {
                 <div className="ta-meta-row">
                   <span className="ta-chip ta-chip--active">{selectedTask.status_title}</span>
                   {selectedTask.is_late && <span className="ta-chip ta-chip--late">En retard</span>}
+                  <UrgentBadge date={selectedTask.planned_publish_date} isCompleted={selectedTask.status_functional_type === "validation"} />
                   <span className="ta-meta-date">📅 Publication : {fmtDate(selectedTask.planned_publish_date)}</span>
                   <span className="ta-meta-type">📋 {selectedTask.task_type_name}</span>
                 </div>

@@ -4,6 +4,9 @@
   gap: 1.25rem;
 }
 
+.sc-page.is-week-view {
+}
+
 .sc-header {
   display: flex;
   align-items: flex-start;
@@ -22,11 +25,28 @@
   color: var(--text-muted);
   font-size: 0.88rem;
   margin: 0;
+  text-transform: capitalize;
 }
 
 .sc-nav {
   display: flex;
   gap: 0.5rem;
+}
+
+.sc-grid-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.6rem;
+  margin-bottom: -0.5rem;
+}
+
+.sc-grid-header-day {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.5rem 0;
 }
 
 .sc-grid {
@@ -35,77 +55,192 @@
   gap: 0.6rem;
 }
 
+.sc-page.is-week-view .sc-grid {
+}
+
 .sc-day {
+  position: relative;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--card);
-  min-height: 160px;
+  min-height: 100px;
   display: flex;
   flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.sc-page.is-week-view .sc-day {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sc-day.is-outside-month {
+  opacity: 0.4;
+  background: transparent;
+}
+
+.sc-day-header, .sc-day-body {
+  position: relative;
+  z-index: 10;
+}
+
+.sc-day:hover {
+  background: linear-gradient(180deg, var(--card) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .sc-day.is-today {
   border-color: var(--amber-deep);
-  box-shadow: 0 0 0 1px var(--amber-deep);
+  box-shadow: 0 4px 20px rgba(232, 162, 61, 0.15), inset 0 0 0 1px var(--amber-deep);
 }
 
 .sc-day-header {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  padding: 0.5rem 0.4rem;
-  border-bottom: 1px solid var(--line);
-  background: var(--paper);
-}
-
-.sc-day-weekday {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
+  justify-content: flex-end;
+  padding: 0.4rem 0.5rem;
 }
 
 .sc-day-date {
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
   font-weight: 600;
+  color: var(--text);
+}
+
+.sc-day.is-today .sc-day-date {
+  background: var(--amber-deep);
+  color: #fff;
+  border-radius: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sc-day-body {
   flex: 1;
-  padding: 0.4rem;
+  padding: 0 0.3rem 0.3rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
+  overflow: hidden;
 }
 
-.sc-day-empty {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  margin: 0.5rem 0 0;
+.sc-page.is-week-view .sc-day-body {
+  padding: 0.5rem;
+  gap: 0.5rem;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px);
+  background-size: 100% 4rem;
+  overflow-y: auto;
 }
 
 .sc-shoot-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: 6px;
-  background: var(--amber);
-  font-size: 0.72rem;
+  gap: 0.15rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(232, 162, 61, 0.9) 0%, rgba(200, 130, 40, 0.9) 100%);
+  color: #fff;
+  font-size: 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-page.is-week-view .sc-shoot-card {
+  gap: 0.35rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(232, 162, 61, 0.95) 0%, rgba(200, 130, 40, 0.95) 100%);
+  white-space: normal;
+  overflow: visible;
+  box-shadow: 0 4px 12px rgba(232, 162, 61, 0.25);
+}
+
+.sc-shoot-time, .sc-shoot-equipment {
+  position: relative;
+  z-index: 10;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sc-shoot-time {
   font-weight: 700;
+  font-size: 0.7rem;
 }
 
 .sc-shoot-equipment {
-  color: var(--ink);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.65rem;
 }
 
-.sc-shoot-crew {
-  color: var(--ink);
-  opacity: 0.75;
+/* List View (Week mode) */
+.sc-list-view {
+  margin-top: 2rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.sc-list-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(0,0,0,0.1);
+}
+
+.sc-list-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-family: var(--font-display);
+}
+
+.sc-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sc-list-table th {
+  text-align: left;
+  padding: 0.75rem 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--line);
+}
+
+.sc-list-table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+
+.sc-list-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sc-list-table tbody tr:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.sc-list-crew-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sc-list-crew-tag {
+  background: rgba(232, 162, 61, 0.15);
+  color: var(--amber);
+  border: 1px solid rgba(232, 162, 61, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
 }

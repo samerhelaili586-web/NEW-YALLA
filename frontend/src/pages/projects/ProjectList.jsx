@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./ProjectList.css";
 
@@ -167,6 +168,7 @@ export default function ProjectList() {
           )}
           {filtered.map((p) => (
             <Link key={p.id} to={`/projects/${p.id}`} className="pl-card">
+              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
               <div className="pl-card-top">
                 <h3>{p.title}</h3>
                 <span className={`status-chip ${p.status === "actif" ? "is-active" : p.status === "on_hold" ? "is-inactive" : "is-archived"}`}>

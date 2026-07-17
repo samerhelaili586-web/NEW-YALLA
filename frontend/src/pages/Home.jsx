@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { ROLE_LABELS } from "../constants";
 import AppShell from "../components/AppShell";
 import Avatar from "../components/Avatar";
+import { GlowingEffect } from "../components/GlowingEffect";
 import "../styles/shared.css";
 import "./Home.css";
 
@@ -111,6 +112,7 @@ export default function Home() {
         <section className="home-quick-actions">
           {quickActions.map((a) => (
             <Link key={a.to} to={a.to} className="home-quick-btn">
+              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
               <span className="home-quick-emoji">{a.emoji}</span>
               <span className="home-quick-label">{a.label}</span>
             </Link>
@@ -155,6 +157,7 @@ export default function Home() {
                 <ul className="directory-grid">
                   {filtered.map((person) => (
                     <li key={person.id} className={`directory-card${unavailableIds.has(person.id) ? " directory-card--absent" : ""}`}>
+                      <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                       <div className="directory-card-top">
                         <Avatar firstName={person.first_name} lastName={person.last_name} size={44} />
                         {unavailableIds.has(person.id) && (

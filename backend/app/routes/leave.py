@@ -58,6 +58,11 @@ def create_request():
         return jsonify({"error": "start_date_too_soon",
                         "detail": "La demande doit être soumise au moins 6h avant la date de début."}), 400
 
+    # block if overlapping with a holiday
+    overlapping_holidays = Holiday.query.filter(Holiday.date >= start_date, Holiday.date <= end_date).count()
+    if overlapping_holidays > 0:
+        return jsonify({"error": "holiday_overlap", "detail": "La période demandée inclut un ou plusieurs jours fériés."}), 400
+
     user = current_user()
     leave = LeaveRequest(
         user_id=user.id, start_date=start_date, end_date=end_date, reason=data.get("reason"),

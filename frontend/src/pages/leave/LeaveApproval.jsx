@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import AppShell from "../../components/AppShell";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./LeaveApproval.css";
 
@@ -95,6 +96,7 @@ export default function LeaveApproval() {
               <ul className="apr-list">
                 {requests.map((r) => (
                   <li key={r.id} className="apr-card">
+                    <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                     <div>
                       <p className="apr-card-name">{r.user_name || userNames[r.user_id]}</p>
                       <p className="apr-card-meta">
@@ -135,6 +137,7 @@ export default function LeaveApproval() {
               <ul className="apr-list">
                 {absences.map((a) => (
                   <li key={a.id} className="apr-card">
+                    <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                     <div>
                       <p className="apr-card-name">{userNames[a.user_id]}</p>
                       <p className="apr-card-meta">Absence du {fmtDate(a.absence_date)}</p>

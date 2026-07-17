@@ -1,0 +1,75 @@
+/* LoginHistory.css */
+
+.lh-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.lh-search-container {
+  position: relative;
+  min-width: 320px;
+}
+
+.lh-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.lh-search-input {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.8rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.lh-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--bg);
+  box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.15), inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lh-search-input:focus + .lh-search-icon {
+  color: var(--primary);
+}
+
+.lh-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.tt-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.tt-table tbody tr:hover {
+  background: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.lh-event-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Add a glowing effect to the active chip */
+.status-chip.is-active {
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
+.status-chip.is-inactive {
+  opacity: 0.8;
+}

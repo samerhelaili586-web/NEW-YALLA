@@ -46,6 +46,7 @@
 }
 
 .apr-card {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -54,6 +55,11 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 1rem 1.2rem;
+}
+
+.apr-card > div {
+  position: relative;
+  z-index: 10;
 }
 
 .apr-card-name {

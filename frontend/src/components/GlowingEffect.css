@@ -1,0 +1,48 @@
+.glowing-effect-border {
+  pointer-events: none;
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  display: none;
+  border-radius: inherit;
+  border: 2px solid var(--sidebar-border, #e5e5e5);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.glowing-effect-border.is-glow { opacity: 1; }
+.glowing-effect-border.is-disabled { display: block !important; }
+.glowing-effect-border.variant-white { border-color: #fff; }
+
+.glowing-effect-container {
+  pointer-events: none;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+.glowing-effect-container.is-disabled { display: none !important; }
+.glowing-effect-container.has-blur { filter: blur(var(--blur)); }
+
+.glowing-effect-glow {
+  border-radius: inherit;
+  position: absolute;
+  inset: 0;
+}
+
+.glowing-effect-glow::after {
+  content: "";
+  border-radius: inherit;
+  position: absolute;
+  inset: calc(-1 * var(--glowingeffect-border-width));
+  border: var(--glowingeffect-border-width) solid transparent;
+  background: var(--gradient);
+  background-attachment: fixed;
+  opacity: var(--active);
+  transition: opacity 300ms;
+  mask-clip: padding-box, border-box;
+  -webkit-mask-clip: padding-box, border-box;
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(#0000, #0000), conic-gradient(from calc((var(--start) - var(--spread)) * 1deg), #00000000 0deg, #fff, #00000000 calc(var(--spread) * 2deg));
+  -webkit-mask-image: linear-gradient(#0000, #0000), conic-gradient(from calc((var(--start) - var(--spread)) * 1deg), #00000000 0deg, #fff, #00000000 calc(var(--spread) * 2deg));
+}

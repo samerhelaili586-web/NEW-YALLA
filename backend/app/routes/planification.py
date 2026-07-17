@@ -143,6 +143,12 @@ def create_or_update_shoot():
             "conflicts": [s.to_dict() for s in equipment_conflicts],
         }), 409
 
+    # spec: block if it overlaps with a holiday
+    from app.models.leave import Holiday
+    holidays = Holiday.query.filter(Holiday.date >= start_at.date(), Holiday.date <= end_at.date()).count()
+    if holidays > 0:
+        return jsonify({"error": "holiday_conflict", "message": "Le shooting ne peut pas être planifié sur un jour férié."}), 409
+
     user_conflicts = {}
     for uid in prod_user_ids:
         c = _user_conflicts(uid, start_at, end_at, exclude_id)
@@ -249,4 +255,18 @@ def shooting_calendar():
     if end:
         q = q.filter(Shoot.start_at <= end)
 
-    return jsonify([s.to_dict() for s in q.order_by(Shoot.start_at).all()])
+    shoots = q.order_by(Shoot.start_at).all()
+    results = []
+    for s in shoots:
+        d = s.to_dict()
+        d["task_title"] = s.task.title if s.task else None
+        d["project_name"] = s.task.project.title if s.task and s.task.project else None
+        # fetch crew user names
+        crew_details = []
+        for c in s.crew:
+            if c.user:
+                crew_details.append(f"{c.user.first_name} {c.user.last_name}")
+        d["crew_names"] = crew_details
+        results.append(d)
+        
+    return jsonify(results)
