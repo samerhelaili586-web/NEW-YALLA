@@ -26,6 +26,9 @@ def _notify_admin_sys(message, notif_type="certificate_uploaded", link_url=None)
 @leave_bp.get("/requests")
 @require_menu("conges_absences")
 def list_my_requests():
+    # Trigger auto-rejection logic on list load
+    auto_reject_stale_requests()
+    
     user = current_user()
     requests_q = LeaveRequest.query
     if user.effective_role not in ("admin_sys", "manager"):

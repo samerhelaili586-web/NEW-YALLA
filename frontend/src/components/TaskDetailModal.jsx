@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { api, ApiError } from "../api/client";
 import Modal from "./Modal";
 import { UrgentBadge } from "../utils/taskUtils";
+import { useAuth } from "../context/AuthContext";
 import "./TaskDetailModal.css";
 
 function fmtDate(d) {
@@ -20,6 +21,7 @@ function renderCommentBody(body) {
 }
 
 export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
+  const { user } = useAuth();
   const [task, setTask] = useState(null);
   const [activeTab, setActiveTab] = useState("detail");
   const [detailLoading, setDetailLoading] = useState(false);
@@ -115,7 +117,14 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
     setPostingComment(true);
     setActionError("");
     try {
-      await api.post(`/tasks/${taskId}/comments`, { body: commentBody.trim() });
+      const mentioned_user_ids = users
+        .filter(u => commentBody.includes(`@${u.first_name}${u.last_name}`))
+        .map(u => u.id);
+        
+      await api.post(`/tasks/${taskId}/comments`, { 
+        body: commentBody.trim(),
+        mentioned_user_ids
+      });
       setCommentBody("");
       await refresh();
     } catch {
@@ -190,10 +199,13 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
     }
   };
   
+  const assignedUserIds = new Set((task?.assignees || []).map(a => a.id));
+  
   const filteredUsers = mentionQuery !== null 
     ? users.filter(u => 
-        u.first_name.toLowerCase().includes(mentionQuery.toLowerCase()) || 
-        u.last_name.toLowerCase().includes(mentionQuery.toLowerCase())
+        assignedUserIds.has(u.id) &&
+        (u.first_name.toLowerCase().includes(mentionQuery.toLowerCase()) || 
+         u.last_name.toLowerCase().includes(mentionQuery.toLowerCase()))
       )
     : [];
 
@@ -318,45 +330,6 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
                 )}
               </div>
 
-              <div className="tdm-detail-section">
-                <h4>Temps passé</h4>
-                <form className="tdm-time-form" onSubmit={handlePostTime}>
-                  <input
-                    type="date"
-                    value={timeForm.entry_date}
-                    onChange={(e) => setTimeForm((f) => ({ ...f, entry_date: e.target.value }))}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    className="tdm-time-input"
-                    value={timeForm.hours}
-                    onChange={(e) => setTimeForm((f) => ({ ...f, hours: e.target.value }))}
-                  />
-                  <span>h</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
-                    className="tdm-time-input"
-                    value={timeForm.minutes}
-                    onChange={(e) => setTimeForm((f) => ({ ...f, minutes: e.target.value }))}
-                  />
-                  <span>min</span>
-                  <button type="submit" className="btn-secondary" disabled={postingTime}>
-                    {postingTime ? "…" : "Ajouter"}
-                  </button>
-                </form>
-                {(task.time_entries || []).length > 0 && (
-                  <ul className="tdm-time-list">
-                    {task.time_entries.map((te) => (
-                      <li key={te.id}>
-                        {te.user_name} — {fmtDate(te.entry_date)} — {te.hours}h{String(te.minutes).padStart(2, "0")}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
 
               <div className="tdm-detail-section">
                 <h4>Commentaires</h4>
@@ -398,6 +371,62 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged }) {
           ) : (
             <div className="tdm-history">
               <div className="tdm-detail-section">
+                <h4>Saisir du temps</h4>
+                {(() => {
+                  const isManagerOrAdmin = ["manager", "admin_sys"].includes(user?.effective_role);
+                  const isAllowedByStatus = (task.status_allowed_roles || []).includes(user?.effective_role);
+                  const canReport = isManagerOrAdmin || isAllowedByStatus;
+                  
+                  if (!canReport) {
+                    return (
+                      <p className="tt-status" style={{ fontSize: "0.9rem", textAlign: "left", marginBottom: "1rem" }}>
+                        Le statut actuel de cette tâche ({task.status_title}) ne vous autorise pas à déclarer du temps.
+                      </p>
+                    );
+                  }
+                  
+                  return (
+                    <form className="tdm-time-form" onSubmit={handlePostTime}>
+                      <input
+                        type="date"
+                        value={timeForm.entry_date}
+                        onChange={(e) => setTimeForm((f) => ({ ...f, entry_date: e.target.value }))}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        className="tdm-time-input"
+                        value={timeForm.hours}
+                        onChange={(e) => setTimeForm((f) => ({ ...f, hours: e.target.value }))}
+                      />
+                      <span>h</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        className="tdm-time-input"
+                        value={timeForm.minutes}
+                        onChange={(e) => setTimeForm((f) => ({ ...f, minutes: e.target.value }))}
+                      />
+                      <span>min</span>
+                      <button type="submit" className="btn-secondary" disabled={postingTime}>
+                        {postingTime ? "…" : "Ajouter"}
+                      </button>
+                    </form>
+                  );
+                })()}
+                {(task.time_entries || []).length > 0 && (
+                  <ul className="tdm-time-list" style={{ marginTop: "1rem" }}>
+                    {task.time_entries.map((te) => (
+                      <li key={te.id}>
+                        {te.user_name} — {fmtDate(te.entry_date)} — {te.hours}h{String(te.minutes).padStart(2, "0")}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="tdm-detail-section" style={{ marginTop: "1.5rem" }}>
                 <h4>Répartition du temps par utilisateur</h4>
                 {Object.keys(timeByUser).length === 0 ? (
                   <p className="tt-status">Aucune saisie de temps pour le moment.</p>

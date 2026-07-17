@@ -26,6 +26,7 @@ export default function ProjectList() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -62,10 +63,11 @@ export default function ProjectList() {
     const q = search.trim().toLowerCase();
     return projects.filter((p) => {
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
-      if (!q) return true;
-      return p.title.toLowerCase().includes(q) || (p.cm_name || "").toLowerCase().includes(q);
+      if (q && !p.title.toLowerCase().includes(q) && !(p.cm_name || "").toLowerCase().includes(q)) return false;
+      if (dateFilter && !p.created_at.startsWith(dateFilter)) return false;
+      return true;
     });
-  }, [projects, search, statusFilter]);
+  }, [projects, search, statusFilter, dateFilter]);
 
   function openCreate() {
     setForm({ ...EMPTY_FORM, start_date: new Date().toISOString().slice(0, 10) });
@@ -143,6 +145,13 @@ export default function ProjectList() {
           placeholder="Rechercher un projet…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+        />
+        <input
+          type="date"
+          className="users-search"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          title="Filtrer par date de création"
         />
         <div className="users-filters">
           {["all", "actif", "on_hold", "termine"].map((s) => (

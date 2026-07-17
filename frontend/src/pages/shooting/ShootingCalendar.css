@@ -237,10 +237,50 @@
 }
 
 .sc-list-crew-tag {
-  background: rgba(232, 162, 61, 0.15);
-  color: var(--amber);
-  border: 1px solid rgba(232, 162, 61, 0.3);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
   font-size: 0.75rem;
+  border-radius: 12px;
+  background: rgba(232, 162, 61, 0.1);
+  color: var(--amber);
+  border: 1px solid rgba(232, 162, 61, 0.2);
+}
+
+.sc-shoot-card--clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sc-shoot-card--clickable:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(232, 162, 61, 0.2);
+}
+
+.sc-role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.sc-conflict-section {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.sc-conflict-section h5 {
+  margin: 0 0 0.5rem;
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.sc-conflict-list {
+  margin: 0;
+  padding: 0 0 0 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text);
 }

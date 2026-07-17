@@ -120,8 +120,8 @@ export default function Planification() {
         equipment_id: Number(shootForm.equipment_id),
         prod_user_ids: shootForm.prod_user_ids,
         invited_user_ids: shootForm.invited_user_ids,
-        start_at: new Date(shootForm.start_at).toISOString(),
-        end_at: new Date(shootForm.end_at).toISOString(),
+        start_at: shootForm.start_at,
+        end_at: shootForm.end_at,
       });
       closeModal();
       await loadAll();

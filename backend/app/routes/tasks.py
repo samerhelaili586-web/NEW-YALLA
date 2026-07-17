@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.task import Task, TaskAssignee, Comment, CommentMention, TimeEntry, TASK_TITLE_MAX_LEN
-from app.models.task_type import Status
+from app.models.task_type import Status, DEFAULT_ALLOWED_ROLES
 from app.models.project import Project
 from app.models.notification import Notification
 from app.permissions import require_action, login_required, current_user
@@ -146,7 +146,9 @@ def change_status(task_id):
         allowed = get_available_next_statuses(task.status, user.effective_role)
         if new_status not in allowed:
             return jsonify({"error": "transition_not_allowed"}), 403
-        if user.effective_role not in (task.status.allowed_roles or []):
+            
+        allowed_roles_for_transition = DEFAULT_ALLOWED_ROLES.get(task.status.functional_type, [])
+        if user.effective_role not in allowed_roles_for_transition:
             return jsonify({"error": "role_not_allowed_for_status"}), 403
 
     task.status_id = new_status.id
@@ -243,6 +245,11 @@ def add_time_entry(task_id):
         return jsonify({"error": "invalid_date"}), 400
 
     user = current_user()
+    
+    if user.effective_role not in ("manager", "admin_sys"):
+        if user.effective_role not in (task.status.allowed_roles or []):
+            return jsonify({"error": "role_not_allowed_for_time_reporting"}), 403
+
     entry = TimeEntry(
         task_id=task.id,
         user_id=user.id,

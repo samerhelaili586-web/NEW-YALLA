@@ -1,10 +1,16 @@
 export function isUrgentTask(plannedDateStr) {
   if (!plannedDateStr) return false;
-  const target = new Date(plannedDateStr).getTime();
+  
+  // Define the deadline as the end of the planned day (23:59:59 local time)
+  const targetDate = new Date(plannedDateStr);
+  targetDate.setHours(23, 59, 59, 999);
+  const target = targetDate.getTime();
+  
   const now = Date.now();
   const diff = target - now;
-  // 6 hours in milliseconds
-  return diff < 6 * 60 * 60 * 1000;
+  
+  // Urgent if deadline is approaching in less than 6 hours, but not already past
+  return diff >= 0 && diff < 6 * 60 * 60 * 1000;
 }
 
 export function UrgentBadge({ date, isCompleted }) {

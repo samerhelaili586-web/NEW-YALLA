@@ -45,6 +45,7 @@ class Task(db.Model):
             "planned_publish_date": self.planned_publish_date.isoformat(),
             "created_at": self.created_at.isoformat(),
             "is_late": self.is_late,
+            "status_allowed_roles": self.status.allowed_roles if self.status else [],
         }
 
 

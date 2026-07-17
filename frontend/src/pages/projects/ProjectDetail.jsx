@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { api, ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
@@ -17,6 +17,7 @@ const STATUS_LABELS = {
 
 export default function ProjectDetail() {
   const { projectId } = useParams();
+  const location = useLocation();
   const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -39,6 +40,8 @@ export default function ProjectDetail() {
   });
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
+  
+  const [taskSearch, setTaskSearch] = useState("");
 
   const canManage = ["admin_sys", "manager"].includes(user?.effective_role);
   const canCreateTask = ["admin_sys", "manager", "cm"].includes(user?.effective_role);
@@ -59,13 +62,7 @@ export default function ProjectDetail() {
       setKpis(kpisData);
       setTimeSummary(timeSummaryData);
 
-      // Deep linking for ?task=
-      const urlParams = new URLSearchParams(window.location.search);
-      const taskIdParam = urlParams.get("task");
-      if (taskIdParam) {
-        const found = tasksData.find((t) => String(t.id) === taskIdParam);
-        if (found) openTask(found);
-      }
+      // Deep linking logic moved to a separate useEffect to react to navigation
     } catch {
       setLoadError("Impossible de charger ce projet.");
     } finally {
@@ -78,6 +75,21 @@ export default function ProjectDetail() {
     loadProject();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loadProject always closes over current projectId
   }, [projectId]);
+
+  // Handle deep linking for ?task=
+  useEffect(() => {
+    if (tasks.length === 0) return;
+    const urlParams = new URLSearchParams(location.search);
+    const taskIdParam = urlParams.get("task");
+    if (taskIdParam) {
+      const found = tasks.find((t) => String(t.id) === taskIdParam);
+      if (found) {
+        openTask(found);
+        // Clear the query parameter so it doesn't re-open automatically
+        window.history.replaceState({}, document.title, location.pathname);
+      }
+    }
+  }, [location.search, location.pathname, tasks]);
 
   useEffect(() => {
     let cancelled = false;
@@ -225,6 +237,16 @@ export default function ProjectDetail() {
             )}
           </div>
 
+          <div style={{ marginBottom: "1rem" }}>
+            <input
+              type="search"
+              className="users-search"
+              placeholder="Rechercher une tâche par titre ou statut…"
+              value={taskSearch}
+              onChange={(e) => setTaskSearch(e.target.value)}
+            />
+          </div>
+
           {tasks.length === 0 && <p className="tt-status">Aucune tâche pour ce projet.</p>}
 
           {tasks.length > 0 && (
@@ -240,7 +262,11 @@ export default function ProjectDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tasks.map((t) => (
+                  {tasks.filter(t => {
+                    const q = taskSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return t.title.toLowerCase().includes(q) || (t.status_title || "").toLowerCase().includes(q);
+                  }).map((t) => (
                     <tr key={t.id} className="pd-task-row" onClick={() => openTask(t)}>
                       <td>{t.title}</td>
                       <td>{t.task_type_name}</td>
