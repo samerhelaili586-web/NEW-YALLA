@@ -143,6 +143,15 @@ export default function LeaveRequests() {
     }
   }
 
+  async function cancelRequest(id) {
+    try {
+      await api.delete(`/leave/requests/${id}`);
+      await loadAll();
+    } catch {
+      setLoadError("Impossible d'annuler cette demande.");
+    }
+  }
+
   return (
     <AppShell>
       <div className="lv-header">
@@ -182,6 +191,7 @@ export default function LeaveRequests() {
                       <th>Motif</th>
                       <th>Soumise le</th>
                       <th>Statut</th>
+                      <th aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -196,6 +206,18 @@ export default function LeaveRequests() {
                           <td className="lv-cell-muted">{fmtDate(r.submitted_at)}</td>
                           <td>
                             <span className={`status-chip status-chip--${s.tone}`}>{s.text}</span>
+                          </td>
+                          <td>
+                            {r.status === "pending" && (
+                              <button
+                                type="button"
+                                className="link-action"
+                                style={{ color: "var(--danger, #e53e3e)", fontSize: "0.8rem" }}
+                                onClick={() => cancelRequest(r.id)}
+                              >
+                                Annuler
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );

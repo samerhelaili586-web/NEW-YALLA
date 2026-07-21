@@ -116,8 +116,9 @@ def missing_today():
 # ---------- Personal alert: check yesterday's reporting for the logged-in user ----------
 # spec §6.2: shown at login if previous workday < 6h
 @attendance_bp.get("/alerts/me-yesterday")
-@require_menu("feuille_presence_perso")
+@login_required
 def my_yesterday_alert():
+
     user = current_user()
     yesterday = date.today() - timedelta(days=1)
 

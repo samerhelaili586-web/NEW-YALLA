@@ -7,6 +7,27 @@ db = SQLAlchemy()
 sess = Session()
 
 
+def _run_migrations(db):
+    """Safely add new columns to existing SQLite tables (no Alembic)."""
+    from sqlalchemy import text
+    migrations = [
+        "ALTER TABLE task_types ADD COLUMN description VARCHAR(255)",
+        "ALTER TABLE task_types ADD COLUMN workflow_status VARCHAR(10) NOT NULL DEFAULT 'draft'",
+        "ALTER TABLE task_types ADD COLUMN updated_at DATETIME",
+        "ALTER TABLE transitions ADD COLUMN allowed_roles JSON NOT NULL DEFAULT '[]'",
+        "ALTER TABLE transitions ADD COLUMN form_fields JSON NOT NULL DEFAULT '[]'",
+    ]
+    with db.engine.connect() as conn:
+        for stmt in migrations:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+            except Exception:
+                # Column already exists or other benign error — skip
+                pass
+
+
+
 def create_app(config_object="config.DevConfig"):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -58,6 +79,7 @@ def create_app(config_object="config.DevConfig"):
         return {"status": "ok"}
 
     with app.app_context():
+        _run_migrations(db)
         db.create_all()
         from app.seed import run_seed
         run_seed()

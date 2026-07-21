@@ -183,7 +183,7 @@ def create_or_update_shoot():
     if not existing_shoot and task.status and task.status.functional_type == "planification_shooting":
         from app.routes.task_types import get_available_next_statuses
         next_statuses = get_available_next_statuses(task.status, "chef_prod")
-        if len(next_statuses) == 1:
+        if len(next_statuses) >= 1:
             task.status_id = next_statuses[0].id
             db.session.commit()
 
@@ -194,10 +194,15 @@ def create_or_update_shoot():
 @login_required
 def check_equipment_availability(equipment_id):
     Equipment.query.get_or_404(equipment_id)
-    start = request.args.get("start")
-    end = request.args.get("end")
-    if not start or not end:
+    start_str = request.args.get("start")
+    end_str = request.args.get("end")
+    if not start_str or not end_str:
         return jsonify({"error": "missing_fields", "fields": ["start", "end"]}), 400
+    try:
+        start = datetime.fromisoformat(start_str)
+        end = datetime.fromisoformat(end_str)
+    except ValueError:
+        return jsonify({"error": "invalid_datetime"}), 400
     conflicts = _equipment_conflicts(equipment_id, start, end)
     return jsonify({"available": len(conflicts) == 0, "conflicts": [s.to_dict() for s in conflicts]})
 
@@ -206,10 +211,15 @@ def check_equipment_availability(equipment_id):
 @login_required
 def check_user_availability(user_id):
     User.query.get_or_404(user_id)
-    start = request.args.get("start")
-    end = request.args.get("end")
-    if not start or not end:
+    start_str = request.args.get("start")
+    end_str = request.args.get("end")
+    if not start_str or not end_str:
         return jsonify({"error": "missing_fields", "fields": ["start", "end"]}), 400
+    try:
+        start = datetime.fromisoformat(start_str)
+        end = datetime.fromisoformat(end_str)
+    except ValueError:
+        return jsonify({"error": "invalid_datetime"}), 400
     conflicts = _user_conflicts(user_id, start, end)
     return jsonify({"available": len(conflicts) == 0, "conflicts": conflicts})
 
@@ -235,7 +245,7 @@ def assign_montage(task_id):
     if task.status and task.status.functional_type == "planification_montage":
         from app.routes.task_types import get_available_next_statuses
         next_statuses = get_available_next_statuses(task.status, "chef_prod")
-        if len(next_statuses) == 1:
+        if len(next_statuses) >= 1:
             task.status_id = next_statuses[0].id
 
     db.session.commit()

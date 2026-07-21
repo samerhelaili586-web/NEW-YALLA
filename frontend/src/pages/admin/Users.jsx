@@ -44,7 +44,17 @@ export default function AdminUsers() {
   const [saving, setSaving] = useState(false);
 
   const [confirmArchive, setConfirmArchive] = useState(null);
+  const [confirmRestore, setConfirmRestore] = useState(null);
   const [rowActionId, setRowActionId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  useEffect(() => {
+    function handleClickOutside() {
+      setOpenMenuId(null);
+    }
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   async function loadUsers() {
     setLoading(true);
@@ -195,6 +205,20 @@ export default function AdminUsers() {
     }
   }
 
+  async function confirmRestoreUser() {
+    if (!confirmRestore) return;
+    setRowActionId(confirmRestore.id);
+    try {
+      const { user: updated } = await api.post(`/users/${confirmRestore.id}/restore`);
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      setConfirmRestore(null);
+    } catch {
+      setLoadError("Impossible de restaurer cet utilisateur.");
+    } finally {
+      setRowActionId(null);
+    }
+  }
+
   return (
     <div className="users-page">
       <div className="users-header">
@@ -297,37 +321,88 @@ export default function AdminUsers() {
                       <span className="status-chip is-inactive">Désactivé</span>
                     )}
                   </td>
-                  <td>
-                    <div className="users-row-actions">
-                      {!u.is_archived && (
-                        <>
+                  <td style={{ textAlign: "right", position: "relative" }}>
+                    <button
+                      type="button"
+                      className="users-dots-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === u.id ? null : u.id);
+                      }}
+                      title="Actions"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="5" r="2" fill="currentColor" />
+                        <circle cx="12" cy="12" r="2" fill="currentColor" />
+                        <circle cx="12" cy="19" r="2" fill="currentColor" />
+                      </svg>
+                    </button>
+
+                    {openMenuId === u.id && (
+                      <div className="users-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                        {!u.is_archived ? (
+                          <>
+                            <button
+                              type="button"
+                              className="users-menu-item"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                openEditModal(u);
+                              }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              Modifier
+                            </button>
+                            <button
+                              type="button"
+                              className="users-menu-item"
+                              disabled={rowActionId === u.id}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                toggleActive(u);
+                              }}
+                            >
+                              {u.is_active ? (
+                                <>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/></svg>
+                                  Désactiver
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+                                  Activer
+                                </>
+                              )}
+                            </button>
+                            <div className="users-menu-divider" />
+                            <button
+                              type="button"
+                              className="users-menu-item is-danger"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setConfirmArchive(u);
+                              }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="21 8 21 21 3 21 3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><rect x="1" y="3" width="22" height="5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                              Archiver
+                            </button>
+                          </>
+                        ) : (
                           <button
                             type="button"
-                            className="link-action"
-                            onClick={() => openEditModal(u)}
+                            className="users-menu-item"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              setConfirmRestore(u);
+                            }}
                           >
-                            Modifier
+                            Restaurer / Désarchiver
                           </button>
-                          <button
-                            type="button"
-                            className="link-action is-muted"
-                            disabled={rowActionId === u.id}
-                            onClick={() => toggleActive(u)}
-                          >
-                            {u.is_active ? "Désactiver" : "Activer"}
-                          </button>
-                          <button
-                            type="button"
-                            className="link-action is-danger"
-                            disabled={rowActionId === u.id}
-                            onClick={() => setConfirmArchive(u)}
-                          >
-                            Archiver
-                          </button>
-                        </>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
                   </td>
+
                 </tr>
               ))}
             </tbody>
@@ -456,6 +531,37 @@ export default function AdminUsers() {
             disabled={rowActionId === confirmArchive?.id}
           >
             {rowActionId === confirmArchive?.id ? "Archivage…" : "Archiver"}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(confirmRestore)}
+        onClose={() => setConfirmRestore(null)}
+        title="Restaurer cet utilisateur ?"
+        width={420}
+      >
+        <p className="users-confirm-text">
+          {confirmRestore
+            ? `${confirmRestore.first_name} ${confirmRestore.last_name} sera restauré(e) et pourra à nouveau se connecter.`
+            : ""}
+        </p>
+        <div className="form-actions">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setConfirmRestore(null)}
+            disabled={rowActionId === confirmRestore?.id}
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={confirmRestoreUser}
+            disabled={rowActionId === confirmRestore?.id}
+          >
+            {rowActionId === confirmRestore?.id ? "Restauration…" : "Restaurer"}
           </button>
         </div>
       </Modal>

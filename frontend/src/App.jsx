@@ -19,6 +19,9 @@ import ShootingCalendar from "./pages/shooting/ShootingCalendar";
 import AttendanceSheet from "./pages/attendance/AttendanceSheet";
 import LeaveRequests from "./pages/leave/LeaveRequests";
 import LeaveApproval from "./pages/leave/LeaveApproval";
+import Annuaire from "./pages/Annuaire";
+import Workflows from "./pages/workflows/Workflows";
+import WorkflowEditor from "./pages/workflows/WorkflowEditor";
 
 export default function App() {
   return (
@@ -30,6 +33,30 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/annuaire"
+          element={
+            <ProtectedRoute>
+              <Annuaire />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/workflows"
+          element={
+            <ProtectedRoute>
+              <Workflows />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/workflows/:id"
+          element={
+            <ProtectedRoute>
+              <WorkflowEditor />
             </ProtectedRoute>
           }
         />
@@ -116,7 +143,7 @@ export default function App() {
         >
           <Route index element={<AdminUsers />} />
           <Route path="users" element={<AdminUsers />} />
-          <Route path="task-types" element={<AdminTaskTypes />} />
+          <Route path="task-types" element={<Workflows />} />
           <Route path="equipment" element={<AdminEquipment />} />
           <Route path="holidays" element={<AdminHolidays />} />
           <Route path="login-history" element={<AdminLoginHistory />} />

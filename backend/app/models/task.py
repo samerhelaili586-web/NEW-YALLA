@@ -35,6 +35,7 @@ class Task(db.Model):
         return {
             "id": self.id,
             "project_id": self.project_id,
+            "project_title": self.project.title if self.project else None,
             "task_type_id": self.task_type_id,
             "task_type_name": self.task_type.name if self.task_type else None,
             "status_id": self.status_id,
@@ -46,6 +47,7 @@ class Task(db.Model):
             "created_at": self.created_at.isoformat(),
             "is_late": self.is_late,
             "status_allowed_roles": self.status.allowed_roles if self.status else [],
+            "task_type_statuses": [s.to_dict() for s in sorted(self.task_type.statuses, key=lambda x: x.id)] if self.task_type else [],
         }
 
 
@@ -113,6 +115,8 @@ class TimeEntry(db.Model):
         return {
             "id": self.id,
             "task_id": self.task_id,
+            "task_title": self.task.title if self.task else None,
+            "project_id": self.task.project_id if self.task else None,
             "user_id": self.user_id,
             "user_name": f"{self.user.first_name} {self.user.last_name}" if self.user else None,
             "entry_date": self.entry_date.isoformat(),

@@ -65,6 +65,11 @@ export default function AdminTaskTypes() {
   const [statusErrors, setStatusErrors] = useState(emptyErrors());
   const [statusSaving, setStatusSaving] = useState(false);
   const [confirmDeleteStatus, setConfirmDeleteStatus] = useState(null);
+  const [deleteStatusError, setDeleteStatusError] = useState("");
+
+  useEffect(() => {
+    setDeleteStatusError("");
+  }, [confirmDeleteStatus]);
 
   // transition builder
   const [transitionFrom, setTransitionFrom] = useState("");
@@ -241,9 +246,9 @@ export default function AdminTaskTypes() {
       setConfirmDeleteStatus(null);
     } catch (err) {
       if (err instanceof ApiError && err.data?.error === "status_in_use") {
-        setLoadError("Ce statut est utilisé par des tâches existantes et ne peut pas être supprimé.");
+        setDeleteStatusError("Ce statut est utilisé par des tâches existantes et ne peut pas être supprimé.");
       } else {
-        setLoadError("Impossible de supprimer ce statut.");
+        setDeleteStatusError("Impossible de supprimer ce statut.");
       }
     } finally {
       setRowActionId(null);
@@ -655,6 +660,11 @@ export default function AdminTaskTypes() {
             ? `"${confirmDeleteStatus.title}" sera définitivement supprimé. Cette action est impossible si des tâches utilisent ce statut.`
             : ""}
         </p>
+        {deleteStatusError && (
+          <p className="field-error" style={{ color: "var(--danger)", margin: "0.5rem 0", fontSize: "0.86rem" }}>
+            {deleteStatusError}
+          </p>
+        )}
         <div className="form-actions">
           <button
             type="button"

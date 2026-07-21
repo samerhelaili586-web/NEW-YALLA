@@ -101,7 +101,8 @@
   font-weight: 600;
 }
 
-.notif-item-time {
-  font-size: 0.72rem;
-  color: var(--text-muted);
+.notif-item.is-clickable .notif-item-message {
+  text-decoration: underline;
+  text-decoration-color: rgba(232, 162, 61, 0.35);
+  text-underline-offset: 2px;
 }

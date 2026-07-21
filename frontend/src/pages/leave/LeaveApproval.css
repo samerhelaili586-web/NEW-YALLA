@@ -1,5 +1,10 @@
 .apr-header {
   margin-bottom: 1.75rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .apr-header h1 {
@@ -8,6 +13,7 @@
   font-weight: 600;
   margin: 0 0 0.3rem;
 }
+
 
 .apr-subtitle {
   color: var(--text-muted);
@@ -94,4 +100,30 @@
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+
+/* History table */
+.apr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.apr-table th {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 2px solid var(--line);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.apr-table td {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.apr-table tr:hover td {
+  background: var(--sidebar-accent);
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import "./NotificationBell.css";
 
@@ -15,6 +16,7 @@ function timeAgo(isoString) {
 }
 
 export default function NotificationBell() {
+  const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
@@ -103,6 +105,14 @@ export default function NotificationBell() {
     }
   }
 
+  async function handleNotificationClick(notif) {
+    await handleMarkRead(notif);
+    setOpen(false);
+    if (notif.link_url) {
+      navigate(notif.link_url);
+    }
+  }
+
   return (
     <div className="notif-bell-wrap" ref={containerRef}>
       <button
@@ -153,13 +163,16 @@ export default function NotificationBell() {
                 <button
                   key={n.id}
                   type="button"
-                  className={`notif-item${n.is_read ? "" : " is-unread"}`}
-                  onClick={() => handleMarkRead(n)}
+                  className={`notif-item${n.is_read ? "" : " is-unread"}${n.link_url ? " is-clickable" : ""}`}
+                  onClick={() => handleNotificationClick(n)}
                 >
                   <span className="notif-item-dot" />
                   <span className="notif-item-body">
                     <span className="notif-item-message">{n.message}</span>
-                    <span className="notif-item-time">{timeAgo(n.created_at)}</span>
+                    <span className="notif-item-time">
+                      {timeAgo(n.created_at)}
+                      {n.link_url && !n.is_read && " · Cliquer pour ouvrir"}
+                    </span>
                   </span>
                 </button>
               ))}

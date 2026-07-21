@@ -30,32 +30,84 @@ const ICONS = {
   admin:        "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
   logout:       "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1",
   moon:         "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
-  sun:          "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+  sun:          "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z",
+  directory:    "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  workflows:    "M5 3h4v4H5V3zM15 3h4v4h-4V3zM5 13h4v4H5v-4zM15 13h4v4h-4v-4zM9 5h6M19 5v8M5 15h6M15 7v6",
+  users:        "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75",
+  equipment:    "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+  holidays:     "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+  history:      "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
 };
 
-// ── Nav items (CM now sees Projets per spec §4.2) ──────────────────────────
-const NAV_ITEMS = [
-  { to: "/",                label: "Accueil",             icon: "home",       roles: null },
-  { to: "/projects",        label: "Projets",              icon: "projects",   roles: ["admin_sys", "manager", "chef_prod", "cm"] },
-  { to: "/tasks",           label: "Mes tâches",           icon: "tasks",      roles: ["cm", "prod", "chef_prod"] },
-  { to: "/tasks-montage",   label: "Tâches Montage",       icon: "montage",    roles: ["prod", "chef_prod"] },
-  { to: "/planification",   label: "Planification",        icon: "planif",     roles: ["chef_prod", "admin_sys", "manager"] },
-  { to: "/shooting-calendar", label: "Calendrier Shooting", icon: "calendar",  roles: null },
-  { to: "/attendance",      label: "Présences",            icon: "attendance", roles: null },
-  { to: "/leave",           label: "Congés",               icon: "leave",      roles: null },
-  { to: "/leave/approval",  label: "Approbation Congés",   icon: "approval",   roles: ["manager"] },
-  { to: "/admin",           label: "Administration",       icon: "admin",      roles: ["admin_sys"] },
+// ── Nav items grouped by section ───────────────────────────────────────────
+const NAV_SECTIONS = [
+  {
+    title: "GÉNÉRAL",
+    items: [
+      { to: "/",                label: "Accueil",             icon: "home",       roles: null },
+      { to: "/annuaire",        label: "Annuaire",            icon: "directory",  roles: null },
+    ],
+  },
+  {
+    title: "TÂCHES & PROJETS",
+    items: [
+      { to: "/projects",        label: "Projets",              icon: "projects",   roles: ["admin_sys", "manager", "chef_prod", "cm"] },
+      { to: "/tasks",           label: "Mes tâches",           icon: "tasks",      roles: ["cm", "prod", "chef_prod"] },
+      { to: "/tasks-montage",   label: "Tâches Montage",       icon: "montage",    roles: ["prod", "chef_prod"] },
+      { to: "/workflows",      label: "Workflows",           icon: "workflows",  roles: null },
+      { to: "/planification",   label: "Planification",        icon: "planif",     roles: ["chef_prod", "admin_sys", "manager"] },
+      { to: "/shooting-calendar", label: "Calendrier Shooting", icon: "calendar",  roles: null },
+    ],
+  },
+  {
+    title: "GESTION DU TEMPS",
+    items: [
+      { to: "/attendance",      label: "Présences",            icon: "attendance", roles: null },
+      { to: "/leave",           label: "Congés",               icon: "leave",      roles: null },
+      { to: "/leave/approval",  label: "Approbation Congés",   icon: "approval",   roles: ["manager"] },
+    ],
+  },
+  {
+    title: "ADMINISTRATION",
+    items: [
+      { to: "/admin/users",         label: "Utilisateurs",       icon: "users",      roles: ["admin_sys"] },
+      { to: "/admin/equipment",     label: "Matériel",           icon: "equipment",  roles: ["admin_sys"] },
+      { to: "/admin/holidays",      label: "Jours Fériés",       icon: "holidays",   roles: ["admin_sys"] },
+      { to: "/admin/login-history", label: "Historique Connexions", icon: "history", roles: ["admin_sys"] },
+    ],
+  },
 ];
+
+// ── Planification badge count ─────────────────────────────────────────────
+function usePlanifBadge(role) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!["chef_prod", "manager", "admin_sys"].includes(role)) return;
+    let active = true;
+    api.get("/planification/pending-count").then((data) => {
+      if (active) setCount(data?.count ?? 0);
+    }).catch(() => {});
+    const interval = setInterval(() => {
+      api.get("/planification/pending-count").then((data) => {
+        if (active) setCount(data?.count ?? 0);
+      }).catch(() => {});
+    }, 120000);
+    return () => { active = false; clearInterval(interval); };
+  }, [role]);
+  return count;
+}
 
 // ── Brand mark (aperture) removed in favor of image logo ──────────────────────
 
 function MissingTimeAlert() {
+  const { user } = useAuth();
   const [alertData, setAlertData] = useState(null);
   const [dismissed, setDismissed] = useState(false);
 
+  const showForRole = ["cm", "prod", "chef_prod"].includes(user?.effective_role);
+
   useEffect(() => {
-    if (new Date().getHours() < 15) return;
-    
+    if (!showForRole) return;
     const dismissedDate = sessionStorage.getItem("dismissedTimeAlert");
     if (dismissedDate === new Date().toDateString()) {
       setDismissed(true);
@@ -67,7 +119,7 @@ function MissingTimeAlert() {
       if (active && data?.missing) setAlertData(data);
     }).catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [showForRole]);
 
   function handleDismiss() {
     sessionStorage.setItem("dismissedTimeAlert", new Date().toDateString());
@@ -90,7 +142,7 @@ function MissingTimeAlert() {
       fontSize: "0.9rem"
     }}>
       <div>
-        <strong style={{ fontWeight: 600 }}>⚠️ Rappel de saisie :</strong> Vous n'avez pas déclaré vos 6 heures minimum lors de votre précédente journée de travail ({new Date(alertData.date).toLocaleDateString("fr-FR")}). Vous n'avez déclaré que {alertData.total_minutes} minutes.
+        <strong style={{ fontWeight: 600 }}>⚠️ Rappel de saisie :</strong> Vous n'avez pas déclaré vos 6 heures minimum lors de votre précédente journée de travail ({new Date(alertData.date).toLocaleDateString("fr-FR")}). Total déclaré : {Math.floor(alertData.total_minutes / 60)}h{String(alertData.total_minutes % 60).padStart(2, "0")}.
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
         <NavLink to="/attendance" style={{ fontWeight: 600, color: "#b5423a", textDecoration: "underline" }}>
@@ -110,6 +162,7 @@ function MissingTimeAlert() {
 export default function AppShell({ children }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const planifBadge = usePlanifBadge(user?.effective_role);
   const [isHovered, setIsHovered] = useState(false);
   const [isDark, setIsDark] = useState(() => {
     return document.documentElement.classList.contains("dark") || 
@@ -128,9 +181,12 @@ export default function AppShell({ children }) {
 
   const toggleTheme = () => setIsDark(d => !d);
 
-  const visibleNav = NAV_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(user?.effective_role)
-  );
+  const visibleSections = NAV_SECTIONS.map((sec) => ({
+    ...sec,
+    items: sec.items.filter(
+      (item) => !item.roles || item.roles.includes(user?.effective_role)
+    ),
+  })).filter((sec) => sec.items.length > 0);
 
   function handleLogout() {
     logout();
@@ -152,16 +208,25 @@ export default function AppShell({ children }) {
         </div>
 
         <nav className="shell-nav" aria-label="Navigation principale">
-          {visibleNav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/"}
-              className={({ isActive }) => `shell-nav-link${isActive ? " is-active" : ""}`}
-            >
-              <Icon d={ICONS[item.icon]} size={17} />
-              <span>{item.label}</span>
-            </NavLink>
+          {visibleSections.map((section, idx) => (
+            <div key={section.title} className="shell-nav-section">
+              {idx > 0 && <div className="shell-nav-divider" />}
+              <div className="shell-nav-section-title">{section.title}</div>
+              {section.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/"}
+                  className={({ isActive }) => `shell-nav-link${isActive ? " is-active" : ""}`}
+                >
+                  <Icon d={ICONS[item.icon]} size={17} />
+                  <span>{item.label}</span>
+                  {item.to === "/planification" && planifBadge > 0 && (
+                    <span className="shell-nav-badge">{planifBadge}</span>
+                  )}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -174,9 +239,6 @@ export default function AppShell({ children }) {
             </div>
           </div>
           <div className="shell-sidebar-actions">
-            <button className="shell-theme-toggle" type="button" onClick={toggleTheme} title="Basculer le thème">
-              <Icon d={isDark ? ICONS.sun : ICONS.moon} size={17} />
-            </button>
             <NotificationBell />
             <button className="shell-logout" type="button" onClick={handleLogout} title="Déconnexion">
               <Icon d={ICONS.logout} size={17} />
@@ -190,6 +252,11 @@ export default function AppShell({ children }) {
         <MissingTimeAlert />
         {children}
       </main>
+
+      {/* Floating Theme Toggle (less prominent) */}
+      <button className="shell-theme-toggle-floating" type="button" onClick={toggleTheme} title="Basculer le thème">
+        <Icon d={isDark ? ICONS.sun : ICONS.moon} size={16} />
+      </button>
     </div>
   );
 }

@@ -67,6 +67,17 @@ def create_request():
         return jsonify({"error": "holiday_overlap", "detail": "La période demandée inclut un ou plusieurs jours fériés."}), 400
 
     user = current_user()
+    
+    # Check for overlapping pending or approved requests by this user
+    overlapping = LeaveRequest.query.filter(
+        LeaveRequest.user_id == user.id,
+        LeaveRequest.status.in_(["pending", "approved"]),
+        LeaveRequest.start_date <= end_date,
+        LeaveRequest.end_date >= start_date,
+    ).first()
+    if overlapping:
+        return jsonify({"error": "overlapping_request", "detail": "Vous avez déjà une demande en cours sur cette période."}), 409
+
     leave = LeaveRequest(
         user_id=user.id, start_date=start_date, end_date=end_date, reason=data.get("reason"),
     )
@@ -102,15 +113,30 @@ def reject_request(request_id):
     return jsonify(leave.to_dict())
 
 
+@leave_bp.delete("/requests/<int:request_id>")
+@require_menu("conges_absences")
+def cancel_request(request_id):
+    leave = LeaveRequest.query.get_or_404(request_id)
+    user = current_user()
+    if leave.user_id != user.id:
+        return jsonify({"error": "forbidden"}), 403
+    if leave.status != "pending":
+        return jsonify({"error": "cannot_cancel_non_pending"}), 409
+    db.session.delete(leave)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
 # ---------- Auto-rejection: spec §7.1.1 — 6h before start date ----------
 def auto_reject_stale_requests():
     """Reject pending leave requests where the start is within 6h and no decision was made."""
     # cutoff: any leave starting within the next 6 hours should already be decided
-    cutoff_date = (datetime.utcnow() + timedelta(hours=6)).date()
+    cutoff_dt = datetime.utcnow() + timedelta(hours=6)
     stale = LeaveRequest.query.filter(
         LeaveRequest.status == "pending",
-        LeaveRequest.start_date <= cutoff_date,
     ).all()
+    # then filter in Python:
+    stale = [lv for lv in stale if datetime(lv.start_date.year, lv.start_date.month, lv.start_date.day) <= cutoff_dt]
     for leave in stale:
         leave.status = "auto_rejected"
         leave.decided_at = datetime.utcnow()

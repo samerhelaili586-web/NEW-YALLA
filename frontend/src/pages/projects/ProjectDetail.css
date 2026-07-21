@@ -115,3 +115,99 @@
 .pd-task-row:hover {
   background: var(--paper);
 }
+
+/* ─── Project Sub-navigation Tabs ─────────────────────────────────────────── */
+.pd-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.pd-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-tab-btn:hover {
+  color: var(--ink);
+  background: var(--sidebar-accent);
+}
+
+.pd-tab-btn.is-active {
+  color: var(--primary);
+  font-weight: 700;
+  border-bottom-color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.pd-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--line);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.pd-tab-btn.is-active .pd-tab-badge {
+  background: var(--primary);
+  color: #fff;
+}
+
+.pd-tab-badge--time {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+/* ─── KPI & Time Summary Cards ────────────────────────────────────────────── */
+.pd-kpis-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.pd-stat-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pd-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pd-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--ink);
+}

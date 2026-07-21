@@ -71,10 +71,47 @@
 .shell-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.5rem;
   padding: 0.75rem 0.65rem;
   flex: 1;
   overflow-y: auto;
+}
+
+.shell-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shell-nav-divider {
+  height: 1px;
+  background: var(--sidebar-border);
+  margin: 0.4rem 0.4rem 0.25rem;
+  opacity: 0.5;
+}
+
+.shell-nav-section-title {
+  padding: 0.5rem 0.75rem 0.2rem;
+  font-family: var(--font-body);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--sidebar-foreground);
+  opacity: 0.45;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s ease, max-height 0.2s ease, padding 0.2s ease;
+}
+
+.shell-sidebar.is-collapsed .shell-nav-section-title {
+  opacity: 0;
+  max-height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .shell-nav-link {
@@ -135,7 +172,29 @@
   opacity: 1;
 }
 
-/* Footer */
+/* Planification badge */
+.shell-nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+}
+
+.shell-sidebar.is-collapsed .shell-nav-badge {
+  opacity: 0;
+}
+
+
 .shell-sidebar-footer {
   border-top: 1px solid rgba(240, 238, 233, 0.07);
   padding: 0.85rem 0.9rem;
@@ -196,8 +255,7 @@
   pointer-events: none;
 }
 
-.shell-logout,
-.shell-theme-toggle {
+.shell-logout {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -213,11 +271,34 @@
   flex-shrink: 0;
 }
 
-.shell-logout:hover,
-.shell-theme-toggle:hover {
+.shell-logout:hover {
   background: var(--sidebar-accent);
   color: var(--sidebar-accent-foreground);
   opacity: 1;
+}
+
+.shell-theme-toggle-floating {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.shell-theme-toggle-floating:hover {
+  background: var(--paper);
+  transform: scale(1.05);
 }
 
 /* ── Main content ────────────────────────────────────────────────────────── */

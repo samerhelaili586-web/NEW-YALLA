@@ -4,7 +4,7 @@ import "./AdminLayout.css";
 
 const NAV_ITEMS = [
   { to: "/admin/users", label: "Utilisateurs" },
-  { to: "/admin/task-types", label: "Types de tâches" },
+  { to: "/workflows", label: "Workflows (Types de tâches)" },
   { to: "/admin/equipment", label: "Matériel" },
   { to: "/admin/holidays", label: "Jours Fériés" },
   { to: "/admin/login-history", label: "Historique de connexions" },

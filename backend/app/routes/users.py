@@ -111,6 +111,16 @@ def archive_user(user_id):
     return jsonify({"user": user.to_dict()})
 
 
+@users_bp.post("/<int:user_id>/restore")
+@require_menu("gestion_utilisateurs")
+def restore_user(user_id):
+    user = User.query.get_or_404(user_id)
+    user.is_archived = False
+    user.is_active = True
+    db.session.commit()
+    return jsonify({"user": user.to_dict()})
+
+
 @users_bp.post("/<int:user_id>/deactivate")
 @require_menu("gestion_utilisateurs")
 def deactivate_user(user_id):

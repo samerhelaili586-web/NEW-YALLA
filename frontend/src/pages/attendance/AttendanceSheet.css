@@ -130,3 +130,19 @@
 .att-legend-swatch--missing {
   background: rgba(196, 60, 40, 0.2);
 }
+
+.att-totals-row td {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark .att-totals-row td {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.att-totals-cell {
+  text-align: center;
+  padding: 0.9rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+

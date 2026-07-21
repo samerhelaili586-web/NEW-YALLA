@@ -19,6 +19,8 @@ export default function Planification() {
   const [pending, setPending] = useState([]);
   const [equipmentList, setEquipmentList] = useState([]);
   const [prodUsers, setProdUsers] = useState([]);
+  const [inviteUsers, setInviteUsers] = useState([]);
+  const [scheduledShoots, setScheduledShoots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -42,14 +44,17 @@ export default function Planification() {
     setLoading(true);
     setLoadError("");
     try {
-      const [pendingData, equipmentData, usersData] = await Promise.all([
+      const [pendingData, equipmentData, usersData, calendarData] = await Promise.all([
         api.get("/planification/pending"),
         api.get("/equipment"),
         api.get("/users/directory"),
+        api.get("/planification/calendar"),
       ]);
       setPending(pendingData);
       setEquipmentList(equipmentData.filter((e) => e.is_active));
       setProdUsers(usersData.filter((u) => u.role === "prod"));
+      setInviteUsers(usersData.filter((u) => ['cm', 'manager', 'admin_sys'].includes(u.role) || u.is_chef_prod));
+      setScheduledShoots(calendarData);
     } catch {
       setLoadError("Impossible de charger la file de planification.");
     } finally {
@@ -232,7 +237,8 @@ export default function Planification() {
         {loading && <p className="tt-status">Chargement…</p>}
 
         {!loading && (
-          <div className="pf-columns">
+          <>
+            <div className="pf-columns">
             <section className="pf-column">
               <GlowingEffect spread={60} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={2} />
               <h3>Shooting à planifier ({shootingQueue.length})</h3>
@@ -261,8 +267,40 @@ export default function Planification() {
               </ul>
             </section>
           </div>
-        )}
-      </div>
+
+          {/* Planned shootings schedule */}
+          <div style={{ marginTop: "2.5rem", background: "var(--card)", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--line)" }}>
+            <h3 style={{ margin: "0 0 1rem", fontSize: "1.1rem", fontWeight: 600, color: "var(--ink)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              📅 Tournages Planifiés ({scheduledShoots.length})
+            </h3>
+            {scheduledShoots.length === 0 ? (
+              <p className="tt-status" style={{ padding: "0.5rem 0" }}>Aucun tournage planifié pour le moment.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                {scheduledShoots.map((s) => (
+                  <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--sidebar-accent)", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid var(--line)" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                      <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--ink)" }}>{s.task_title}</span>
+                      <span style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
+                        Projet : <strong>{s.project_name}</strong> | Équipement : <strong>{s.equipment_name}</strong>
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.2rem" }}>
+                      <span style={{ fontSize: "0.82rem", color: "var(--primary)", fontWeight: 600 }}>
+                        ⏱️ {new Date(s.start_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} - {new Date(s.end_at).toLocaleTimeString("fr-FR", { timeStyle: "short" })}
+                      </span>
+                      <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>
+                        Équipe : {s.crew_names.join(", ") || "Aucune"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
 
       <Modal
         open={modalOpen}
@@ -319,6 +357,30 @@ export default function Planification() {
                   >
                     {u.first_name} {u.last_name}
                   </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Invited users */}
+            <div className="field">
+              <label>Inviter des participants (optionnel)</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--line)', borderRadius: '8px', padding: '0.5rem' }}>
+                {inviteUsers.map((u) => (
+                  <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.88rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={shootForm.invited_user_ids.includes(u.id)}
+                      onChange={(e) => {
+                        setShootForm((f) => ({
+                          ...f,
+                          invited_user_ids: e.target.checked
+                            ? [...f.invited_user_ids, u.id]
+                            : f.invited_user_ids.filter((id) => id !== u.id),
+                        }));
+                      }}
+                    />
+                    {u.first_name} {u.last_name} ({u.role})
+                  </label>
                 ))}
               </div>
             </div>

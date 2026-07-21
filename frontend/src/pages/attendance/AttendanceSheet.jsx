@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
@@ -129,29 +130,107 @@ export default function AttendanceSheet() {
       {loading && <p className="att-status">Chargement…</p>}
       {loadError && <p className="att-status att-status--error">{loadError}</p>}
 
-      {!loading && !loadError && !isTeamView && personalWeek && (
-        <div className="att-table-wrap">
-          <table className="att-table">
-            <thead>
-              <tr>
-                {days.map((d) => (
-                  <th key={d.date}>
-                    {DAY_LABELS[new Date(d.date).getDay() === 0 ? 6 : new Date(d.date).getDay() - 1]}
-                    <span className="att-th-date">{fmtDayHeader(d.date)}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {days.map((d) => (
-                  <DayCell key={d.date} day={d} />
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
+      {!loading && !loadError && !isTeamView && personalWeek && (() => {
+        // Collect all unique tasks with time logged this week
+        const taskMap = new Map();
+        days.forEach(d => {
+          (d.entries || []).forEach(e => {
+            if (e.task_id && e.task_title) {
+              taskMap.set(e.task_id, { title: e.task_title, project_id: e.project_id });
+            }
+          });
+        });
+        const taskList = Array.from(taskMap.entries()).map(([id, info]) => ({ id, ...info }));
+
+        // Get minutes spent on a specific task on a specific day
+        const getTaskMinutesForDay = (taskId, dayEntries) => {
+          return (dayEntries || [])
+            .filter(e => e.task_id === taskId)
+            .reduce((s, e) => s + e.hours * 60 + e.minutes, 0);
+        };
+
+        return (
+          <div className="att-table-wrap">
+            <table className="att-table att-table--personal">
+              <thead>
+                <tr>
+                  <th className="att-th-name">Tâche</th>
+                  {days.map((d) => (
+                    <th key={d.date}>
+                      {DAY_LABELS[new Date(d.date).getDay() === 0 ? 6 : new Date(d.date).getDay() - 1]}
+                      <span className="att-th-date">{fmtDayHeader(d.date)}</span>
+                    </th>
+                  ))}
+                  <th className="att-th-name">Total tâche</th>
+                </tr>
+              </thead>
+              <tbody>
+                {taskList.map((task) => {
+                  const taskWeekTotal = days.reduce((s, d) => s + getTaskMinutesForDay(task.id, d.entries), 0);
+                  return (
+                    <tr key={task.id}>
+                      <td className="att-th-name">
+                        {task.project_id ? (
+                          <Link
+                            to={`/projects/${task.project_id}?task=${task.id}`}
+                            className="att-task-link"
+                            style={{ color: "var(--primary)", textDecoration: "underline" }}
+                          >
+                            {task.title}
+                          </Link>
+                        ) : (
+                          <span>{task.title}</span>
+                        )}
+                      </td>
+                      {days.map((d) => {
+                        const mins = getTaskMinutesForDay(task.id, d.entries);
+                        return (
+                          <td key={d.date} className="att-cell">
+                            {mins > 0 ? fmtMinutes(mins) : "—"}
+                          </td>
+                        );
+                      })}
+                      <td className="att-totals-cell" style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.85rem" }}>
+                        {fmtMinutes(taskWeekTotal)}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {taskList.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="att-status" style={{ textAlign: "center", padding: "2rem" }}>
+                      Aucun temps déclaré cette semaine.
+                    </td>
+                  </tr>
+                )}
+
+                {/* Daily totals row */}
+                <tr className="att-totals-row" style={{ borderTop: "2px solid var(--line)" }}>
+                  <td className="att-th-name" style={{ fontWeight: 700 }}>Totaux</td>
+                  {days.map((d) => {
+                    if (d.day_off_reason && d.total_minutes === 0) {
+                      return (
+                        <td key={d.date} className="att-cell att-cell--off">
+                          <span className="att-off-label">{DAY_OFF_LABELS[d.day_off_reason] || d.day_off_reason}</span>
+                        </td>
+                      );
+                    }
+                    return (
+                      <td key={d.date} className={`att-cell att-totals-cell ${d.missing_report ? "att-cell--missing" : ""}`} style={{ fontWeight: 700 }}>
+                        {fmtMinutes(d.total_minutes)}
+                      </td>
+                    );
+                  })}
+                  <td className="att-totals-cell" style={{ fontWeight: 700, textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.85rem" }}>
+                    {fmtMinutes(days.reduce((s, d) => s + d.total_minutes, 0))}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       {!loading && !loadError && isTeamView && (
         <div className="att-table-wrap">
@@ -165,24 +244,45 @@ export default function AttendanceSheet() {
                     <span className="att-th-date">{fmtDayHeader(d.date)}</span>
                   </th>
                 ))}
+                <th className="att-th-name">Total semaine</th>
               </tr>
             </thead>
             <tbody>
-              {teamWeeks.map((row) => (
-                <tr key={row.user_id}>
-                  <td className="att-th-name">{row.user_name}</td>
-                  {row.days.map((d) => (
-                    <DayCell key={d.date} day={d} />
-                  ))}
-                </tr>
-              ))}
+              {teamWeeks.map((row) => {
+                const weekTotal = row.days.reduce((s, d) => s + (d.day_off_reason ? 0 : d.total_minutes), 0);
+                return (
+                  <tr key={row.user_id}>
+                    <td className="att-th-name">{row.user_name}</td>
+                    {row.days.map((d) => (
+                      <DayCell key={d.date} day={d} />
+                    ))}
+                    <td className="att-totals-cell">{fmtMinutes(weekTotal)}</td>
+                  </tr>
+                );
+              })}
               {teamWeeks.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="att-status">
+                  <td colSpan={9} className="att-status">
                     Aucun utilisateur actif à afficher.
                   </td>
                 </tr>
               )}
+              {teamWeeks.length > 0 && (() => {
+                const dayTotals = (teamWeeks[0]?.days || []).map((_, di) =>
+                  teamWeeks.reduce((s, row) => s + (row.days[di]?.day_off_reason ? 0 : row.days[di]?.total_minutes || 0), 0)
+                );
+                return (
+                  <tr className="att-totals-row">
+                    <td className="att-th-name" style={{ fontWeight: 700 }}>Totaux</td>
+                    {dayTotals.map((total, i) => (
+                      <td key={i} className="att-totals-cell">{fmtMinutes(total)}</td>
+                    ))}
+                    <td className="att-totals-cell" style={{ fontWeight: 700 }}>
+                      {fmtMinutes(dayTotals.reduce((a, b) => a + b, 0))}
+                    </td>
+                  </tr>
+                );
+              })()}
             </tbody>
           </table>
         </div>
