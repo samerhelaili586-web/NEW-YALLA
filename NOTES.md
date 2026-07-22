@@ -150,6 +150,35 @@ Les flèches entre les statuts définissent les transitions possibles. Lorsqu'un
 
 > **Exception Manager / Admin Sys :** Le Manager et l'Administrateur Système disposent d'un droit de dérogation leur permettant de forcer un changement vers n'importe quel statut du workflow, sans respecter l'ordre des étapes définies. Dans ce cas, la liste déroulante leur affiche l'ensemble des statuts disponibles du workflow, et non uniquement les statuts suivants.
 
+#### 3.1.4 Interface du Constructeur Visuel
+
+Le constructeur de workflows se présente sous la forme d'une interface graphique dédiée, distincte du reste de la configuration, organisée en deux écrans principaux.
+
+**Écran "Gestion des workflows" (liste) :**
+
+Cet écran liste l'ensemble des workflows créés par l'agence, sous forme de tableau. Chaque ligne affiche le nom du workflow, sa description courte, son statut (Actif, Brouillon ou Désactivé), le nombre d'étapes, le nombre de transitions, la date de dernière mise à jour, ainsi que des actions rapides (activer/mettre en pause, dupliquer, modifier, supprimer/archiver selon la règle de non-suppression définie en §2.4 et §9.2). En haut de l'écran, des indicateurs chiffrés résument le nombre total de workflows, ainsi que la répartition par statut (Actifs, Brouillons, Désactivés). Un système d'onglets permet de filtrer la liste par statut, complété par une recherche par nom. Un bouton "Créer un workflow" permet d'initier un nouveau workflow depuis cet écran.
+
+**Écran "Éditeur de workflow" (canevas) :**
+
+Au clic sur un workflow, l'administrateur accède à un éditeur graphique en plein écran, structuré en trois zones :
+
+| Zone | Contenu |
+| --- | --- |
+| Palette d'étapes (gauche) | Bibliothèque des types de statuts disponibles (cf. §3.1.2), organisée par catégorie : démarrage, étapes intermédiaires/de production, statuts finaux. Chaque élément de la palette s'ajoute au canevas par un simple clic. |
+| Canevas (centre) | Zone de travail où les statuts apparaissent sous forme de blocs déplaçables, codés par couleur selon leur type fonctionnel. Chaque bloc affiche son type, son titre, son type temporel (évolutif ou figé) et le nombre de rôles participants configurés. Les transitions se créent en reliant deux blocs par une flèche. |
+| Propriétés (droite) | Panneau contextuel affichant les paramètres du statut sélectionné (§3.1.1). Reste vide tant qu'aucun statut n'est sélectionné. |
+
+La barre supérieure de l'éditeur permet de renommer le workflow, de modifier son statut (Actif, Brouillon, Désactivé), de vérifier la validité de la configuration, d'ajuster le zoom, de prévisualiser le workflow et d'enregistrer les modifications.
+
+**Configuration d'une transition :**
+
+Au clic sur une flèche reliant deux statuts, une fenêtre modale dédiée à cette transition s'ouvre et permet de configurer :
+
+| Paramètre | Description |
+| --- | --- |
+| Rôles autorisés à déclencher la transition | Sélection des rôles (parmi Admin Sys, Manager, CM, Prod, Chef Prod) habilités à faire passer une tâche d'un statut au statut suivant via cette transition précise. Ce paramètre est propre à chaque transition et distinct des "Rôles participants" définis au niveau du statut (§3.1.1), qui régissent uniquement le droit de reporter du temps. |
+| Formulaire de transition | Ensemble optionnel de champs supplémentaires que l'utilisateur doit renseigner au moment d'emprunter cette transition. Si aucun champ n'est défini, la transition s'effectue sans formulaire. |
+
 ### 3.2 Gestion du Matériel
 
 L'administrateur système gère l'inventaire matériel de l'agence. Ce matériel est utilisé lors de la planification des shootings par le Chef d'équipe Prod.
@@ -504,4 +533,3 @@ Ce schéma synthétise les menus accessibles à chaque rôle de la plateforme.
 ---
 
 *Document rédigé par Ameur Stambouli - Neopolis Development - Juillet 2026*
-
