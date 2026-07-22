@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import Modal from "../../components/Modal";
@@ -73,88 +73,209 @@ function nodeCenter(node) {
   return { x: node.pos_x + NODE_W / 2, y: node.pos_y + NODE_H / 2 };
 }
 
+// ─── Design constants ──────────────────────────────────────────────────────────
+const SLOT_SPACING  = 28;   // px between parallel slots along a side
+const MIN_TENSION   = 65;   // min bezier control-point pull distance
+const MAX_TENSION   = 230;  // max
+const TENSION_RATIO = 0.44; // fraction of distance used as tension
+
+// ─── Core geometry helpers ─────────────────────────────────────────────────────
+/** Center of a given side of a node. */
+function sideCenterOf(node, side) {
+  if (side === 'right')  return { x: node.pos_x + NODE_W,    y: node.pos_y + NODE_H / 2 };
+  if (side === 'left')   return { x: node.pos_x,              y: node.pos_y + NODE_H / 2 };
+  if (side === 'bottom') return { x: node.pos_x + NODE_W / 2, y: node.pos_y + NODE_H    };
+  if (side === 'top')    return { x: node.pos_x + NODE_W / 2, y: node.pos_y             };
+  return nodeCenter(node);
+}
+
+/** Pick best side pair by testing all 16 combinations; return the min-distance pair. */
+function bestSidePair(fromNode, toNode) {
+  const SIDES = ['right', 'left', 'bottom', 'top'];
+  let best = { fromSide: 'right', toSide: 'left' }, bestDist = Infinity;
+  for (const fs of SIDES) {
+    for (const ts of SIDES) {
+      const d = Math.hypot(
+        sideCenterOf(toNode, ts).x   - sideCenterOf(fromNode, fs).x,
+        sideCenterOf(toNode, ts).y   - sideCenterOf(fromNode, fs).y
+      );
+      if (d < bestDist) { bestDist = d; best = { fromSide: fs, toSide: ts }; }
+    }
+  }
+  return best;
+}
+
 /**
- * Given two nodes, pick the best exit port on `from` and entry port on `to`
- * based on the angle between their centers.
+ * Pre-compute all anchor points for all transitions in one pass.
+ * Transitions between the same node pair share a side and get evenly-spaced
+ * slot offsets along that side — no mid-air branching, no overlap.
+ *
+ * Returns a Map<transitionId, { p1, fromSide, p2, toSide }>
+ */
+function computeAllAnchors(statuses, transitions) {
+  // Step 1 — find closest side pair for every transition
+  const items = transitions.map(t => {
+    const from = statuses.find(s => s.id === t.from_status_id);
+    const to   = statuses.find(s => s.id === t.to_status_id);
+    if (!from || !to) return null;
+    const { fromSide, toSide } = bestSidePair(from, to);
+    return { t, from, to, fromSide, toSide };
+  }).filter(Boolean);
+
+  // Step 2 — group by UNORDERED pair so A→B and B→A share the same side slots
+  const pairMap = new Map();
+  items.forEach(item => {
+    const key = [item.t.from_status_id, item.t.to_status_id].sort().join('_');
+    if (!pairMap.has(key)) pairMap.set(key, []);
+    pairMap.get(key).push(item);
+  });
+
+  // Step 3 — within each pair, sort by id for stable order, then assign slots
+  const anchorMap = new Map();
+  pairMap.forEach(group => {
+    group.sort((a, b) => a.t.id - b.t.id);
+    const count = group.length;
+    group.forEach((item, idx) => {
+      const offset = (idx - (count - 1) / 2) * SLOT_SPACING;
+
+      let p1 = { ...sideCenterOf(item.from, item.fromSide) };
+      let p2 = { ...sideCenterOf(item.to,   item.toSide)   };
+
+      // Slide the port along the side edge (not into/out of the card)
+      if (item.fromSide === 'right' || item.fromSide === 'left') p1.y += offset;
+      else                                                         p1.x += offset;
+      if (item.toSide   === 'right' || item.toSide   === 'left') p2.y += offset;
+      else                                                         p2.x += offset;
+
+      anchorMap.set(item.t.id, { p1, fromSide: item.fromSide, p2, toSide: item.toSide });
+    });
+  });
+
+  return anchorMap;
+}
+
+/**
+ * Build a cubic Bezier path string. Control points exit perpendicular to port sides.
+ * Tension is adaptive: grows with distance so nearby nodes curve gently,
+ * distant nodes curve strongly.
+ * Returns { d, c1x, c1y, c2x, c2y } for reuse in midpoint calculation.
+ */
+function makeBezier(p1, p2, fromSide, toSide) {
+  const dx   = p2.x - p1.x;
+  const dy   = p2.y - p1.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const t    = Math.max(MIN_TENSION, Math.min(dist * TENSION_RATIO, MAX_TENSION));
+
+  let c1x = p1.x, c1y = p1.y;
+  let c2x = p2.x, c2y = p2.y;
+
+  if (fromSide === 'right')  c1x += t;
+  if (fromSide === 'left')   c1x -= t;
+  if (fromSide === 'bottom') c1y += t;
+  if (fromSide === 'top')    c1y -= t;
+
+  if (toSide === 'left')   c2x -= t;
+  if (toSide === 'right')  c2x += t;
+  if (toSide === 'top')    c2y -= t;
+  if (toSide === 'bottom') c2y += t;
+
+  return {
+    d: `M ${p1.x} ${p1.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`,
+    c1x, c1y, c2x, c2y,
+  };
+}
+
+/** Accurate cubic Bezier midpoint at t=0.5. */
+function bezierMid(p1, p2, fromSide, toSide) {
+  const { c1x, c1y, c2x, c2y } = makeBezier(p1, p2, fromSide, toSide);
+  // B(0.5) = 0.125·P0 + 0.375·C1 + 0.375·C2 + 0.125·P3
+  return {
+    x: 0.125 * p1.x + 0.375 * c1x + 0.375 * c2x + 0.125 * p2.x,
+    y: 0.125 * p1.y + 0.375 * c1y + 0.375 * c2y + 0.125 * p2.y,
+  };
+}
+
+/**
+ * Legacy thin wrapper used by the live-draw preview only.
+ * For committed transitions, use computeAllAnchors() instead.
  */
 function getBestPorts(fromNode, toNode) {
-  const fc = nodeCenter(fromNode);
-  const tc = nodeCenter(toNode);
-  const angle = Math.atan2(tc.y - fc.y, tc.x - fc.x) * 180 / Math.PI;
-
-  if (angle >= -45 && angle < 45) {
-    return {
-      from: { x: fromNode.pos_x + NODE_W, y: fromNode.pos_y + NODE_H / 2 }, fromSide: 'right',
-      to:   { x: toNode.pos_x,            y: toNode.pos_y + NODE_H / 2  }, toSide:   'left',
-    };
-  } else if (angle >= 45 && angle < 135) {
-    return {
-      from: { x: fromNode.pos_x + NODE_W / 2, y: fromNode.pos_y + NODE_H }, fromSide: 'bottom',
-      to:   { x: toNode.pos_x + NODE_W / 2,   y: toNode.pos_y            }, toSide:   'top',
-    };
-  } else if (angle < -45 && angle >= -135) {
-    return {
-      from: { x: fromNode.pos_x + NODE_W / 2, y: fromNode.pos_y          }, fromSide: 'top',
-      to:   { x: toNode.pos_x + NODE_W / 2,   y: toNode.pos_y + NODE_H   }, toSide:   'bottom',
-    };
-  } else {
-    return {
-      from: { x: fromNode.pos_x,             y: fromNode.pos_y + NODE_H / 2 }, fromSide: 'left',
-      to:   { x: toNode.pos_x + NODE_W,       y: toNode.pos_y + NODE_H / 2  }, toSide:   'right',
-    };
-  }
+  const { fromSide, toSide } = bestSidePair(fromNode, toNode);
+  return {
+    from: sideCenterOf(fromNode, fromSide), fromSide,
+    to:   sideCenterOf(toNode,   toSide),   toSide,
+  };
 }
 
-/**
- * Get the closest node port (top/right/bottom/left) to an arbitrary cursor point.
- * Used when the cursor is hovering over a target node while drawing.
- */
-function getClosestPort(toNode, cursorX, cursorY) {
-  const ports = [
-    { x: toNode.pos_x,              y: toNode.pos_y + NODE_H / 2,   side: 'left'   },
-    { x: toNode.pos_x + NODE_W,     y: toNode.pos_y + NODE_H / 2,   side: 'right'  },
-    { x: toNode.pos_x + NODE_W / 2, y: toNode.pos_y,                 side: 'top'    },
-    { x: toNode.pos_x + NODE_W / 2, y: toNode.pos_y + NODE_H,        side: 'bottom' },
-  ];
-  return ports.reduce((best, p) => {
-    const d = Math.hypot(p.x - cursorX, p.y - cursorY);
-    return d < best.dist ? { ...p, dist: d } : best;
-  }, { dist: Infinity });
-}
-
-/** Smart bezier path respecting port sides */
+/** Alias kept for the live-draw path builder. */
 function arrowPath(p1, p2, fromSide = 'right', toSide = 'left') {
-  const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-  const tension = Math.max(50, Math.min(dist * 0.45, 180));
-
-  let c1x = p1.x, c1y = p1.y, c2x = p2.x, c2y = p2.y;
-  if (fromSide === 'right')  c1x += tension;
-  else if (fromSide === 'left')   c1x -= tension;
-  else if (fromSide === 'bottom') c1y += tension;
-  else if (fromSide === 'top')    c1y -= tension;
-
-  if (toSide === 'left')   c2x -= tension;
-  else if (toSide === 'right')  c2x += tension;
-  else if (toSide === 'top')    c2y -= tension;
-  else if (toSide === 'bottom') c2y += tension;
-
-  return `M${p1.x},${p1.y} C${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`;
+  return makeBezier(p1, p2, fromSide, toSide).d;
 }
 
 function validateConfig(statuses, transitions) {
   const issues = [];
-  if (!statuses.some(s => s.functional_type === "debut")) issues.push("Aucun statut de début.");
-  if (!statuses.some(s => ["final_confirmation", "final_rejet"].includes(s.functional_type))) issues.push("Aucun statut final.");
-  const FINAL = ["final_confirmation", "final_rejet"];
-  const hasBadFinal = statuses.some(s => FINAL.includes(s.functional_type) && s.outgoing_transitions?.length > 0);
-  if (hasBadFinal) issues.push("Un statut final ne doit pas avoir de transition sortante.");
-  // Check isolated (no transitions at all, and not a sole node)
-  if (statuses.length > 1) {
-    const connected = new Set();
-    transitions.forEach(t => { connected.add(t.from_status_id); connected.add(t.to_status_id); });
-    const isolated = statuses.filter(s => !connected.has(s.id));
-    if (isolated.length > 0) issues.push(`${isolated.length} étape(s) non connectée(s).`);
+  const FINAL_TYPES = ["final_confirmation", "final_rejet"];
+
+  // 1. Exactement un statut de début
+  const startCount = statuses.filter(s => s.functional_type === "debut").length;
+  if (startCount === 0) {
+    issues.push("Aucun statut de début.");
+  } else if (startCount > 1) {
+    issues.push("Plusieurs statuts de début détectés (un seul est autorisé).");
   }
+
+  // 2 & 6. Aucun statut orphelin (tout nœud non-final doit obligatoirement avoir au moins un successeur)
+  statuses.forEach(s => {
+    if (!FINAL_TYPES.includes(s.functional_type)) {
+      const hasOutgoing = transitions.some(t => t.from_status_id === s.id);
+      if (!hasOutgoing) {
+        issues.push(`Statut non-final sans successeur : "${s.title}"`);
+      }
+    }
+  });
+
+  // 3. Pas de statuts évolutifs consécutifs
+  transitions.forEach(t => {
+    const from = statuses.find(s => s.id === t.from_status_id);
+    const to = statuses.find(s => s.id === t.to_status_id);
+    if (from && to && from.temporal_type === "evolutif" && to.temporal_type === "evolutif") {
+      issues.push(`Statuts évolutifs consécutifs interdits : "${from.title}" → "${to.title}"`);
+    }
+  });
+
+  // 4. Au moins un statut final confirmation
+  const hasConfirm = statuses.some(s => s.functional_type === "final_confirmation");
+  if (!hasConfirm) {
+    issues.push("Au moins un statut final de confirmation est requis.");
+  }
+
+  // 5. Au moins un statut final rejet
+  const hasRejet = statuses.some(s => s.functional_type === "final_rejet");
+  if (!hasRejet) {
+    issues.push("Au moins un statut final de rejet est requis.");
+  }
+
+  // Final status cannot have outgoing transitions
+  statuses.forEach(s => {
+    if (FINAL_TYPES.includes(s.functional_type)) {
+      const hasOutgoing = transitions.some(t => t.from_status_id === s.id);
+      if (hasOutgoing) {
+        issues.push(`Le statut final "${s.title}" ne doit pas avoir de transition sortante.`);
+      }
+    }
+  });
+
+  // 7. Chaque transition doit être associée à au moins un rôle
+  transitions.forEach(t => {
+    const roles = t.allowed_roles || [];
+    if (roles.length === 0) {
+      const from = statuses.find(s => s.id === t.from_status_id);
+      const to = statuses.find(s => s.id === t.to_status_id);
+      const label = from && to ? `"${from.title}" → "${to.title}"` : `#${t.id}`;
+      issues.push(`Transition sans rôle associé : ${label}`);
+    }
+  });
+
   return issues;
 }
 
@@ -183,6 +304,23 @@ export default function WorkflowEditor() {
   const canvasRef = useRef(null);
   const [zoom, setZoom] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    return document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark";
+  });
+
+  const toggleTheme = () => {
+    setIsDark(prev => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      }
+      return next;
+    });
+  };
 
 
   const toggleFullscreen = useCallback(() => {
@@ -261,6 +399,23 @@ export default function WorkflowEditor() {
   const prevLayoutRef = useRef(null);
   const [isAutoLayoutApplied, setIsAutoLayoutApplied] = useState(false);
 
+  // Grid snap toggle & Fit to screen
+  const [snapToGrid, setSnapToGrid] = useState(false);
+
+  const handleFitToScreen = useCallback(() => {
+    if (!statuses || statuses.length === 0 || !canvasRef.current) return;
+    const minX = Math.min(...statuses.map(s => s.pos_x));
+    const minY = Math.min(...statuses.map(s => s.pos_y));
+    const parent = canvasRef.current.parentElement;
+    if (parent) {
+      parent.scrollTo({
+        left: Math.max(0, minX - 60),
+        top: Math.max(0, minY - 60),
+        behavior: "smooth",
+      });
+    }
+  }, [statuses]);
+
   // ── Load workflow ─────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
@@ -294,9 +449,9 @@ export default function WorkflowEditor() {
   const configIssues = workflow ? validateConfig(statuses, transitions) : [];
   const configValid = configIssues.length === 0;
 
-  // ── Canvas size (for SVG overlay) ────────────────────────────────────────
-  const canvasWidth = Math.max(1400, ...statuses.map(s => s.pos_x + NODE_W + 100));
-  const canvasHeight = Math.max(900, ...statuses.map(s => s.pos_y + NODE_H + 100));
+  // ── Canvas size (auto-fit with padding) ──────────────────────────────────
+  const canvasWidth = Math.max(1600, ...statuses.map(s => s.pos_x + NODE_W + 200));
+  const canvasHeight = Math.max(1000, ...statuses.map(s => s.pos_y + NODE_H + 200));
 
   const handleAutoLayout = useCallback(() => {
     if (!statuses || statuses.length === 0) return;
@@ -326,13 +481,13 @@ export default function WorkflowEditor() {
       else if (type.startsWith("final")) layers.final.push(s);
       else layers.intermediaire.push(s);
     });
-    const activeLayers = [layers.debut, layers.planification, layers.intermediaire, layers.montage, layers.final].filter(l => l.length > 0);
-    const startX = 140;
-    const startY = 150;
-    const colSpacing = 340;
-    const rowSpacing = 175;
 
-    const updated = statuses.map(s => {
+    const activeLayers = [layers.debut, layers.planification, layers.intermediaire, layers.montage, layers.final].filter(l => l.length > 0);
+    const colSpacing = 300;
+    const rowSpacing = 160;
+
+    // Calculate relative grid positions for each status
+    const relPositions = statuses.map(s => {
       let colIndex = 0;
       let rowIndex = 0;
       activeLayers.forEach((layer, lIdx) => {
@@ -340,11 +495,37 @@ export default function WorkflowEditor() {
         if (idx !== -1) { colIndex = lIdx; rowIndex = idx; }
       });
       const layerSize = activeLayers[colIndex]?.length || 1;
-      const yOffset = startY + rowIndex * rowSpacing - ((layerSize - 1) * rowSpacing) / 3;
-      return { ...s, pos_x: startX + colIndex * colSpacing, pos_y: Math.max(80, yOffset) };
+      const relX = colIndex * colSpacing;
+      const relY = rowIndex * rowSpacing - ((layerSize - 1) * rowSpacing) / 2;
+      return { id: s.id, relX, relY };
+    });
+
+    // Compute bounding dimensions of the entire workflow grid
+    const minX = Math.min(...relPositions.map(r => r.relX));
+    const maxX = Math.max(...relPositions.map(r => r.relX + NODE_W));
+    const minY = Math.min(...relPositions.map(r => r.relY));
+    const maxY = Math.max(...relPositions.map(r => r.relY + NODE_H));
+
+    const graphW = maxX - minX;
+    const graphH = maxY - minY;
+
+    // Center layout dead-center in the middle of the canvas
+    const targetCenterX = Math.max(800, canvasWidth / 2);
+    const targetCenterY = Math.max(500, canvasHeight / 2);
+
+    const startX = Math.max(100, targetCenterX - graphW / 2);
+    const startY = Math.max(100, targetCenterY - graphH / 2);
+
+    const updated = statuses.map(s => {
+      const pos = relPositions.find(r => r.id === s.id);
+      return {
+        ...s,
+        pos_x: Math.round(startX + (pos ? pos.relX - minX : 0)),
+        pos_y: Math.round(startY + (pos ? pos.relY - minY : 0)),
+      };
     });
     setStatuses(updated);
-  }, [statuses, isAutoLayoutApplied]);
+  }, [statuses, isAutoLayoutApplied, canvasWidth, canvasHeight]);
 
 
   // ── Drag node handling ───────────────────────────────────────────────────
@@ -378,8 +559,12 @@ export default function WorkflowEditor() {
 
     if (draggingNode.current !== null) {
       const nodeId = draggingNode.current;
+      const rawX = Math.max(20, cx - dragOffset.current.x);
+      const rawY = Math.max(20, cy - dragOffset.current.y);
+      const finalX = snapToGrid ? Math.round(rawX / 20) * 20 : rawX;
+      const finalY = snapToGrid ? Math.round(rawY / 20) * 20 : rawY;
       setStatuses(prev => prev.map(s =>
-        s.id === nodeId ? { ...s, pos_x: cx - dragOffset.current.x, pos_y: cy - dragOffset.current.y } : s
+        s.id === nodeId ? { ...s, pos_x: finalX, pos_y: finalY } : s
       ));
     }
 
@@ -401,6 +586,7 @@ export default function WorkflowEditor() {
   }
 
   function onCanvasMouseUp(e) {
+    isPanning.current = false;
     draggingNode.current = null;
     setIsDraggingId(null);
 
@@ -425,9 +611,41 @@ export default function WorkflowEditor() {
     }
   }
 
+  // Close properties popup when clicking anywhere outside node/popup/modal
+  useEffect(() => {
+    function handleGlobalPointerDown(e) {
+      if (!propForm) return;
+      const isNode = e.target.closest(".we-node");
+      const isArrow = e.target.closest(".we-arrow-group");
+      const isProps = e.target.closest(".we-props-popup");
+      const isModal = e.target.closest(".modal-backdrop") || e.target.closest(".modal");
+      const isTopbar = e.target.closest(".we-topbar") || e.target.closest(".we-add-status-btn");
+
+      if (!isNode && !isArrow && !isProps && !isModal && !isTopbar) {
+        setSelectedNodeId(null);
+        setPropForm(null);
+        setSelectedTransition(null);
+      }
+    }
+
+    window.addEventListener("pointerdown", handleGlobalPointerDown);
+    return () => window.removeEventListener("pointerdown", handleGlobalPointerDown);
+  }, [propForm]);
+
   // Pan on canvas background drag
   function onCanvasBgMouseDown(e) {
-    if (e.button === 1 || (e.button === 0 && !e.target.closest(".we-node"))) {
+    const isNode = e.target.closest(".we-node");
+    const isArrow = e.target.closest(".we-arrow-group");
+    const isProps = e.target.closest(".we-props-popup");
+    const isTopbarBtn = e.target.closest(".we-topbar") || e.target.closest(".we-icon-action-btn") || e.target.closest(".we-add-status-btn");
+
+    if (!isNode && !isArrow && !isProps && !isTopbarBtn) {
+      setSelectedNodeId(null);
+      setPropForm(null);
+      setSelectedTransition(null);
+    }
+
+    if (e.button === 1 || (e.button === 0 && !isNode && !isProps)) {
       isPanning.current = true;
       panStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
     }
@@ -444,6 +662,49 @@ export default function WorkflowEditor() {
     const cy = (e.clientY - rect.top) / zoom;
     setDrawing({ fromId, curX: cx, curY: cy });
   }
+
+  // ── Save all (positions + name/status) ──────────────────────────────────
+  const savingRef = useRef(false);
+
+  const handleSave = useCallback(async (isAuto = false) => {
+    if (!id || !workflow || savingRef.current) return;
+    savingRef.current = true;
+    if (!isAuto) setSaving(true);
+    try {
+      // Save workflow meta
+      await api.patch(`/task-types/${id}`, {
+        name: wfName.trim() || workflow.name,
+        workflow_status: wfStatus,
+        description: wfDesc,
+      });
+      // Save all node positions
+      await Promise.all(statuses.map(s =>
+        api.patch(`/task-types/statuses/${s.id}`, { pos_x: s.pos_x, pos_y: s.pos_y })
+      ));
+      setSaveMsg(isAuto ? "Auto-enregistré ✓" : "Enregistré ✓");
+      setTimeout(() => setSaveMsg(""), 2200);
+    } catch {
+      if (!isAuto) setSaveMsg("Erreur lors de l'enregistrement.");
+    } finally {
+      savingRef.current = false;
+      if (!isAuto) setSaving(false);
+    }
+  }, [id, workflow, wfName, wfStatus, wfDesc, statuses]);
+
+  // Auto-save every 10 seconds in the background without reloading the page
+  const handleSaveRef = useRef(handleSave);
+  useEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
+
+  useEffect(() => {
+    if (!isAdmin || !workflow) return;
+    const timer = setInterval(() => {
+      if (handleSaveRef.current) {
+        handleSaveRef.current(true);
+      }
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(timer);
+  }, [isAdmin, workflow]);
 
   // ── Create transition ────────────────────────────────────────────────────
   async function createTransition(fromId, toId) {
@@ -462,26 +723,7 @@ export default function WorkflowEditor() {
     }
   }
 
-  // ── Save all (positions + name/status) ──────────────────────────────────
-  async function handleSave() {
-    setSaving(true);
-    setSaveMsg("");
-    try {
-      // Save workflow meta
-      await api.patch(`/task-types/${id}`, { name: wfName.trim() || workflow.name, workflow_status: wfStatus, description: wfDesc });
-      // Save all node positions + properties
-      await Promise.all(statuses.map(s =>
-        api.patch(`/task-types/statuses/${s.id}`, { pos_x: s.pos_x, pos_y: s.pos_y })
-      ));
-      setSaveMsg("Enregistré ✓");
-      setTimeout(() => setSaveMsg(""), 2500);
-      await load();
-    } catch {
-      setSaveMsg("Erreur lors de l'enregistrement.");
-    } finally {
-      setSaving(false);
-    }
-  }
+
 
   // ── Create status from modal ─────────────────────────────────────────────
   function openCreateStatus() {
@@ -644,10 +886,50 @@ export default function WorkflowEditor() {
     <div className={`we-root${fullscreen ? " we-fullscreen" : ""}`}>
       {/* ── Top bar ───────────────────────────────────────────────────── */}
       <div className="we-topbar">
-        <button className="we-back-btn" onClick={() => navigate("/workflows")} title="Retour">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          Retour
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <button className="we-back-btn" onClick={() => navigate("/workflows")} title="Retour">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Retour
+          </button>
+
+          <button
+            type="button"
+            className="we-theme-btn"
+            onClick={toggleTheme}
+            title={isDark ? "Passer en mode clair" : "Passer en mode sombre"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justify: "center",
+              width: "32px",
+              height: "32px",
+              borderRadius: "8px",
+              border: "1px solid var(--line)",
+              background: "var(--card)",
+              color: "var(--text)",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {isDark ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+              </svg>
+            )}
+          </button>
+        </div>
 
         <div className="we-topbar-center">
           {isAdmin ? (
@@ -675,11 +957,31 @@ export default function WorkflowEditor() {
 
         <div className="we-topbar-right">
           {/* Config indicator */}
-          <div className={`we-config-badge${configValid ? " we-config-badge--ok" : " we-config-badge--warn"}`} title={configIssues.join("\n")}>
-            {configValid
-              ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> Config valide</>
-              : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg> {configIssues.length} avertissement{configIssues.length > 1 ? "s" : ""}</>
-            }
+          <div className={`we-config-badge${configValid ? " we-config-badge--ok" : " we-config-badge--warn"}`}>
+            {configValid ? (
+              <><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> Config valide</>
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                {configIssues.length} avertissement{configIssues.length > 1 ? "s" : ""}
+                
+                {/* Floating hover tooltip showing the exact validation issues */}
+                <div className="we-config-tooltip">
+                  <div className="we-config-tooltip-header">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round"/></svg>
+                    Problèmes détectés ({configIssues.length})
+                  </div>
+                  <ul className="we-config-tooltip-list">
+                    {configIssues.map((issue, idx) => (
+                      <li key={idx} className="we-config-tooltip-item">
+                        <span className="we-config-tooltip-dot" />
+                        <span>{issue}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Zoom */}
@@ -756,6 +1058,7 @@ export default function WorkflowEditor() {
           <div
             className="we-canvas-scroll"
             ref={canvasRef}
+            onMouseDown={onCanvasBgMouseDown}
             onMouseMove={onCanvasMouseMove}
             onMouseUp={onCanvasMouseUp}
             onMouseLeave={onCanvasMouseUp}
@@ -792,81 +1095,158 @@ export default function WorkflowEditor() {
                 style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
               >
                 <defs>
-                  <marker id="arrowhead" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-                    <path d="M0,0 L0,6 L8,3 z" fill="#64748b" />
+                  {/* ── Refined filled arrowhead (sharp, clean, Figma-inspired) ── */}
+                  <marker id="arrowhead"     markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto" markerUnits="strokeWidth">
+                    <path d="M1,1 L7,4 L1,7 Z" fill="#6b7fa3" stroke="none" />
                   </marker>
-                  <marker id="arrowhead-sel" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-                    <path d="M0,0 L0,6 L8,3 z" fill="var(--primary)" />
+                  <marker id="arrowhead-sel" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto" markerUnits="strokeWidth">
+                    <path d="M1,1 L7,4 L1,7 Z" fill="var(--primary)" stroke="none" />
                   </marker>
-                  <marker id="arrowhead-drawing" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-                    <path d="M0,0 L0,6 L8,3 z" fill="var(--primary)" />
+                  <marker id="arrowhead-hov" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto" markerUnits="strokeWidth">
+                    <path d="M1,1 L7,4 L1,7 Z" fill="#94a3b8" stroke="none" />
                   </marker>
-                  <filter id="arrowGlow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="3" result="blur"/>
+                  <marker id="arrowhead-drawing" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto" markerUnits="strokeWidth">
+                    <path d="M1,1 L7,4 L1,7 Z" fill="var(--primary)" stroke="none" />
+                  </marker>
+
+                  {/* ── SVG filters ── */}
+                  <filter id="arrowGlow" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="2.5" result="blur"/>
                     <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  <filter id="selGlow" x="-60%" y="-60%" width="220%" height="220%">
+                    <feGaussianBlur stdDeviation="5" result="blur"/>
+                    <feFlood floodColor="var(--primary)" floodOpacity="0.3" result="color"/>
+                    <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+                    <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
                   </filter>
                   <filter id="snapGlow" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="4" result="blur"/>
                     <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
                   </filter>
+
+                  {/* ── Per-edge linear gradient defs (uses pre-computed anchors) ── */}
+                  {(() => {
+                    const aMap = computeAllAnchors(statuses, transitions);
+                    return transitions.map(t => {
+                      const anchor = aMap.get(t.id);
+                      if (!anchor) return null;
+                      const { p1, p2 } = anchor;
+                      const isSelected = selectedTransition?.id === t.id;
+                      if (isSelected) return null; // handled separately
+                      return (
+                        <linearGradient key={`grad-${t.id}`} id={`edge-grad-${t.id}`}
+                          gradientUnits="userSpaceOnUse"
+                          x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+                        >
+                          <stop offset="0%"   stopColor="#3d5070" />
+                          <stop offset="100%" stopColor="#6b7fa3" />
+                        </linearGradient>
+                      );
+                    });
+                  })()}
+                  {selectedTransition && (() => {
+                    const aMap = computeAllAnchors(statuses, transitions);
+                    const anchor = aMap.get(selectedTransition.id);
+                    if (!anchor) return null;
+                    const { p1, p2 } = anchor;
+                    return (
+                      <linearGradient key="grad-sel" id="edge-grad-sel"
+                        gradientUnits="userSpaceOnUse"
+                        x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+                      >
+                        <stop offset="0%"   stopColor="var(--primary)" stopOpacity="0.75" />
+                        <stop offset="100%" stopColor="var(--primary)" />
+                      </linearGradient>
+                    );
+                  })()}
                 </defs>
 
-                {transitions.map(t => {
-                  const from = statuses.find(s => s.id === t.from_status_id);
-                  const to = statuses.find(s => s.id === t.to_status_id);
-                  if (!from || !to) return null;
-                  const { from: p1, fromSide, to: p2, toSide } = getBestPorts(from, to);
-                  const midX = (p1.x + p2.x) / 2;
-                  const midY = (p1.y + p2.y) / 2;
-                  const isSelected = selectedTransition?.id === t.id;
-                  const hasRoles = (t.allowed_roles || []).length > 0;
+                {/* Pre-compute all anchors once for this render */}
+                {(() => {
+                  const anchorMap = computeAllAnchors(statuses, transitions);
+                  return transitions.map(t => {
+                    const anchor = anchorMap.get(t.id);
+                    if (!anchor) return null;
+                    const { p1, fromSide, p2, toSide } = anchor;
+                    const { d: pathData } = makeBezier(p1, p2, fromSide, toSide);
+                    const { x: midX, y: midY } = bezierMid(p1, p2, fromSide, toSide);
+                    const isSelected = selectedTransition?.id === t.id;
+                    const roleCount  = (t.allowed_roles || []).length;
+                    const hasRoles   = roleCount > 0;
+
                   return (
                     <g
                       key={t.id}
-                      className="we-arrow-group"
+                      className={`we-arrow-group${isSelected ? ' we-arrow-selected' : ''}`}
                       style={{ pointerEvents: "auto", cursor: isAdmin ? "pointer" : "default" }}
                       onClick={() => onArrowClick(t)}
                     >
-                      {/* Wide invisible hit area */}
-                      <path
-                        d={arrowPath(p1, p2, fromSide, toSide)}
-                        stroke="transparent"
-                        strokeWidth={20}
-                        fill="none"
-                      />
-                      {/* Arrow body */}
+                      {/* ── Wide invisible hit area ── */}
+                      <path d={pathData} stroke="transparent" strokeWidth={24} fill="none" />
+
+                      {/* ── Glow halo when selected ── */}
+                      {isSelected && (
+                        <path
+                          d={pathData} fill="none"
+                          stroke="var(--primary)" strokeWidth={6}
+                          opacity={0.18} filter="url(#selGlow)"
+                          strokeLinecap="round"
+                        />
+                      )}
+
+                      {/* ── Main edge stroke (gradient) ── */}
                       <path
                         className="we-arrow-path"
-                        d={arrowPath(p1, p2, fromSide, toSide)}
-                        stroke={isSelected ? "var(--primary)" : "#64748b"}
-                        strokeWidth={isSelected ? 2.5 : 1.8}
+                        d={pathData}
+                        stroke={isSelected ? `url(#edge-grad-sel)` : `url(#edge-grad-${t.id})`}
+                        strokeWidth={isSelected ? 2.2 : 1.6}
                         fill="none"
                         markerEnd={isSelected ? "url(#arrowhead-sel)" : "url(#arrowhead)"}
-                        filter={isSelected ? "url(#arrowGlow)" : undefined}
-                        style={{ transition: "stroke 0.2s, stroke-width 0.2s" }}
+                        strokeLinecap="round"
+                        style={{ transition: "stroke-width 0.18s ease" }}
                       />
-                      {/* Mid dot — shows role count if set */}
-                      <circle
-                        className="we-arrow-dot"
-                        cx={midX} cy={midY}
-                        r={hasRoles ? 8 : 6}
-                        fill={isSelected ? "var(--primary)" : "#64748b"}
-                        filter={isSelected ? "url(#arrowGlow)" : undefined}
-                        style={{ transition: "fill 0.2s, r 0.2s" }}
-                      />
-                      {hasRoles && (
-                        <text
-                          x={midX} y={midY + 1}
-                          textAnchor="middle" dominantBaseline="middle"
-                          fontSize="8" fontWeight="700" fill="white"
-                          style={{ pointerEvents: "none", userSelect: "none" }}
-                        >
-                          {t.allowed_roles.length}
-                        </text>
-                      )}
+
+                      {/* ── Midpoint label / badge ── */}
+                      <g className="we-arrow-badge" transform={`translate(${midX}, ${midY})`}>
+                        {hasRoles ? (
+                          <>
+                            {/* pill background */}
+                            <rect
+                              x={-14} y={-9.5}
+                              width={28} height={19}
+                              rx={9.5}
+                              fill={isSelected ? "var(--primary)" : "#1a2235"}
+                              stroke={isSelected ? "rgba(255,255,255,0.45)" : "#4a5a78"}
+                              strokeWidth={1.2}
+                              filter={isSelected ? "url(#arrowGlow)" : undefined}
+                              style={{ transition: "fill 0.18s ease" }}
+                            />
+                            {/* role count number */}
+                            <text
+                              textAnchor="middle" dominantBaseline="middle" y={0.5}
+                              fontSize="9.5" fontWeight="700" fill="white"
+                              style={{ pointerEvents: "none", userSelect: "none", letterSpacing: "0.5px" }}
+                            >
+                              {roleCount}
+                            </text>
+                          </>
+                        ) : (
+                          /* simple dot for open transitions */
+                          <circle
+                            className="we-arrow-dot"
+                            r={4}
+                            fill={isSelected ? "var(--primary)" : "#2a3a55"}
+                            stroke={isSelected ? "rgba(255,255,255,0.6)" : "#4a5a78"}
+                            strokeWidth={1.2}
+                            style={{ transition: "fill 0.18s ease" }}
+                          />
+                        )}
+                      </g>
                     </g>
-                  );
-                })}
+                    );
+                  });
+                })()}
 
                 {/* Live drawing arrow with snap preview */}
                 {drawing && (() => {
@@ -965,11 +1345,6 @@ export default function WorkflowEditor() {
                         }
                         {node.temporal_type === 'fige' ? 'Figé' : 'Évolutif'}
                       </span>
-
-                      <span className="we-node-conn-label">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M15 8l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        {outgoingCount > 0 ? `${outgoingCount} relié${outgoingCount > 1 ? "s" : ""}` : "Libre"}
-                      </span>
                     </div>
 
                     {/* Outgoing anchor */}
@@ -989,334 +1364,181 @@ export default function WorkflowEditor() {
               })}
             </div>
           </div>
-        </div>
 
-        {/* Right sidebar: properties in Normal (non-fullscreen) mode */}
-        {!fullscreen && (
-          <div className="we-props">
-            <div className="we-props-title">PROPRIÉTÉS</div>
+          {/* Floating Side Popup Overlay for status properties */}
+          <AnimatePresence>
+            {propForm && (
+              <motion.div
+                key="props-side-popup"
+                className="we-props-popup"
+                initial={{ opacity: 0, x: 50, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 50, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem", paddingBottom: "0.4rem", borderBottom: "1px solid var(--line)" }}>
+              <span style={{ fontSize: "0.72rem", fontWeight: "700", letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>PROPRIÉTÉS DE L'ÉTAPE</span>
+              <button
+                type="button"
+                onClick={() => { setSelectedNodeId(null); setPropForm(null); }}
+                style={{ background: "transparent", border: "none", fontSize: "1.2rem", color: "var(--text-muted)", cursor: "pointer", lineHeight: 1 }}
+                title="Fermer"
+              >
+                ×
+              </button>
+            </div>
 
-            {!propForm ? (
-              <div className="we-props-empty">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--line)" strokeWidth="1.5"/><path d="M12 8v4M12 16h.01" stroke="var(--text-muted)" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                <p>Sélectionnez une étape pour afficher ses propriétés.</p>
+            <div className="we-props-form" style={{ padding: 0 }}>
+              <div className="we-props-field">
+                <label>Titre</label>
+                <input
+                  className="we-props-input"
+                  value={propForm.title}
+                  onChange={e => setPropForm(f => ({ ...f, title: e.target.value }))}
+                  disabled={!isAdmin}
+                />
               </div>
-            ) : (
-              <div className="we-props-form">
-                <div className="we-props-field">
-                  <label>Titre</label>
-                  <input
-                    className="we-props-input"
-                    value={propForm.title}
-                    onChange={e => setPropForm(f => ({ ...f, title: e.target.value }))}
-                    disabled={!isAdmin}
-                  />
+
+              <div className="we-props-field">
+                <label>Type temporel</label>
+                <select
+                  className="we-props-select"
+                  value={propForm.temporal_type}
+                  onChange={e => setPropForm(f => ({ ...f, temporal_type: e.target.value }))}
+                  disabled={!isAdmin}
+                >
+                  <option value="evolutif">Évolutif</option>
+                  <option value="fige">Figé</option>
+                </select>
+              </div>
+
+              <div className="we-props-field">
+                <label>Type fonctionnel</label>
+                <select
+                  className="we-props-select"
+                  value={propForm.functional_type}
+                  onChange={e => setPropForm(f => ({ ...f, functional_type: e.target.value }))}
+                  disabled={!isAdmin}
+                >
+                  {Object.entries(FUNCTIONAL_META).map(([v, m]) => (
+                    <option key={v} value={v}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {isAdmin && (
+                <div className="we-props-actions">
+                  <button className="btn-danger-sm" onClick={handleDeleteNode}>Supprimer</button>
+                  <button className="btn-primary-sm" onClick={handlePropSave} disabled={propSaving}>
+                    {propSaving ? "…" : "Enregistrer"}
+                  </button>
                 </div>
+              )}
 
-                <div className="we-props-field">
-                  <label>Type temporel</label>
-                  <select
-                    className="we-props-select"
-                    value={propForm.temporal_type}
-                    onChange={e => setPropForm(f => ({ ...f, temporal_type: e.target.value }))}
-                    disabled={!isAdmin}
-                  >
-                    <option value="evolutif">Évolutif</option>
-                    <option value="fige">Figé</option>
-                  </select>
-                </div>
+              {/* Connected Transitions & Allowed Roles section */}
+              {selectedNodeId && (() => {
+                const outgoing = transitions.filter(t => t.from_status_id === selectedNodeId);
+                const incoming = transitions.filter(t => t.to_status_id === selectedNodeId);
+                const ROLE_LABEL_MAP = { admin_sys: "Admin", manager: "Manager", cm: "CM", prod: "Prod", chef_prod: "Chef Prod" };
 
-                <div className="we-props-field">
-                  <label>Type fonctionnel</label>
-                  <select
-                    className="we-props-select"
-                    value={propForm.functional_type}
-                    onChange={e => setPropForm(f => ({ ...f, functional_type: e.target.value }))}
-                    disabled={!isAdmin}
-                  >
-                    {Object.entries(FUNCTIONAL_META).map(([v, m]) => (
-                      <option key={v} value={v}>{m.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {isAdmin && (
-                  <div className="we-props-actions">
-                    <button className="btn-danger-sm" onClick={handleDeleteNode}>Supprimer</button>
-                    <button className="btn-primary-sm" onClick={handlePropSave} disabled={propSaving}>
-                      {propSaving ? "…" : "Enregistrer"}
-                    </button>
-                  </div>
-                )}
-
-                {/* Connected Transitions & Allowed Roles section */}
-                {selectedNodeId && (() => {
-                  const outgoing = transitions.filter(t => t.from_status_id === selectedNodeId);
-                  const incoming = transitions.filter(t => t.to_status_id === selectedNodeId);
-                  const ROLE_LABEL_MAP = { admin_sys: "Admin", manager: "Manager", cm: "CM", prod: "Prod", chef_prod: "Chef Prod" };
-
-                  return (
-                    <div className="we-props-transitions-section" style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--line)" }}>
-                      <div className="we-props-sub-title" style={{ fontSize: "0.72rem", fontWeight: "700", letterSpacing: "0.05em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.5rem" }}>
-                        Qui peut faire évoluer ce statut ?
-                      </div>
-
-                      {/* Outgoing arrows */}
-                      <div style={{ marginBottom: "0.75rem" }}>
-                        <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "var(--ink)", display: "block", marginBottom: "0.3rem" }}>
-                          ➔ Transitions sortantes ({outgoing.length})
-                        </span>
-                        {outgoing.length === 0 ? (
-                          <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Aucune transition sortante.</span>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                            {outgoing.map(t => {
-                              const targetStatus = statuses.find(s => s.id === t.to_status_id);
-                              const roles = t.allowed_roles && t.allowed_roles.length > 0
-                                ? t.allowed_roles.map(r => ROLE_LABEL_MAP[r] || r).join(", ")
-                                : "Manager, Admin Sys (défaut)";
-                              return (
-                                <div
-                                  key={t.id}
-                                  onClick={() => openTransModal(t)}
-                                  style={{
-                                    padding: "0.45rem 0.6rem",
-                                    borderRadius: "8px",
-                                    background: "var(--paper)",
-                                    border: "1px solid var(--line)",
-                                    cursor: "pointer",
-                                    transition: "border-color 0.12s, background 0.12s",
-                                  }}
-                                  className="we-props-trans-item"
-                                  title="Cliquer pour configurer cette transition"
-                                >
-                                  <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--primary)", marginBottom: "0.15rem" }}>
-                                    ➔ {targetStatus?.title || "Statut cible"}
-                                  </div>
-                                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                                    Rôles : <strong>{roles}</strong>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Incoming arrows */}
-                      <div>
-                        <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "var(--ink)", display: "block", marginBottom: "0.3rem" }}>
-                          ← Transitions entrantes ({incoming.length})
-                        </span>
-                        {incoming.length === 0 ? (
-                          <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Aucune transition entrante.</span>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                            {incoming.map(t => {
-                              const sourceStatus = statuses.find(s => s.id === t.from_status_id);
-                              const roles = t.allowed_roles && t.allowed_roles.length > 0
-                                ? t.allowed_roles.map(r => ROLE_LABEL_MAP[r] || r).join(", ")
-                                : "Manager, Admin Sys (défaut)";
-                              return (
-                                <div
-                                  key={t.id}
-                                  onClick={() => openTransModal(t)}
-                                  style={{
-                                    padding: "0.45rem 0.6rem",
-                                    borderRadius: "8px",
-                                    background: "var(--paper)",
-                                    border: "1px solid var(--line)",
-                                    cursor: "pointer",
-                                    transition: "border-color 0.12s, background 0.12s",
-                                  }}
-                                  className="we-props-trans-item"
-                                  title="Cliquer pour configurer cette transition"
-                                >
-                                  <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--ink)", marginBottom: "0.15rem" }}>
-                                    ← {sourceStatus?.title || "Statut source"}
-                                  </div>
-                                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                                    Rôles : <strong>{roles}</strong>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                return (
+                  <div className="we-props-transitions-section" style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--line)" }}>
+                    <div className="we-props-sub-title" style={{ fontSize: "0.72rem", fontWeight: "700", letterSpacing: "0.05em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+                      Qui peut faire évoluer ce statut ?
                     </div>
-                  );
-                })()}
 
-              </div>
-            )}
-          </div>
+                    {/* Outgoing arrows */}
+                    <div style={{ marginBottom: "0.75rem" }}>
+                      <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "var(--ink)", display: "block", marginBottom: "0.3rem" }}>
+                        ➔ Transitions sortantes ({outgoing.length})
+                      </span>
+                      {outgoing.length === 0 ? (
+                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Aucune transition sortante.</span>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                          {outgoing.map(t => {
+                            const targetStatus = statuses.find(s => s.id === t.to_status_id);
+                            const roles = t.allowed_roles && t.allowed_roles.length > 0
+                              ? t.allowed_roles.map(r => ROLE_LABEL_MAP[r] || r).join(", ")
+                              : "Manager, Admin Sys (défaut)";
+                            return (
+                              <div
+                                key={t.id}
+                                onClick={() => openTransModal(t)}
+                                style={{
+                                  padding: "0.45rem 0.6rem",
+                                  borderRadius: "8px",
+                                  background: "var(--paper)",
+                                  border: "1px solid var(--line)",
+                                  cursor: "pointer",
+                                  transition: "border-color 0.12s, background 0.12s",
+                                }}
+                                className="we-props-trans-item"
+                                title="Cliquer pour configurer cette transition"
+                              >
+                                <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--primary)", marginBottom: "0.15rem" }}>
+                                  ➔ {targetStatus?.title || "Statut cible"}
+                                </div>
+                                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                                  Rôles : <strong>{roles}</strong>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Incoming arrows */}
+                    <div>
+                      <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "var(--ink)", display: "block", marginBottom: "0.3rem" }}>
+                        ← Transitions entrantes ({incoming.length})
+                      </span>
+                      {incoming.length === 0 ? (
+                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Aucune transition entrante.</span>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                          {incoming.map(t => {
+                            const sourceStatus = statuses.find(s => s.id === t.from_status_id);
+                            const roles = t.allowed_roles && t.allowed_roles.length > 0
+                              ? t.allowed_roles.map(r => ROLE_LABEL_MAP[r] || r).join(", ")
+                              : "Manager, Admin Sys (défaut)";
+                            return (
+                              <div
+                                key={t.id}
+                                onClick={() => openTransModal(t)}
+                                style={{
+                                  padding: "0.45rem 0.6rem",
+                                  borderRadius: "8px",
+                                  background: "var(--paper)",
+                                  border: "1px solid var(--line)",
+                                  cursor: "pointer",
+                                  transition: "border-color 0.12s, background 0.12s",
+                                }}
+                                className="we-props-trans-item"
+                                title="Cliquer pour configurer cette transition"
+                              >
+                                <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--ink)", marginBottom: "0.15rem" }}>
+                                  ← {sourceStatus?.title || "Statut source"}
+                                </div>
+                                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                                  Rôles : <strong>{roles}</strong>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </motion.div>
         )}
-      </div>
-
-      {/* Floating properties popup overlay in Fullscreen mode */}
-      {fullscreen && propForm && (
-        <div className="we-props-popup">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem", paddingBottom: "0.4rem", borderBottom: "1px solid var(--line)" }}>
-            <span style={{ fontSize: "0.72rem", fontWeight: "700", letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>PROPRIÉTÉS DE L'ÉTAPE</span>
-            <button
-              type="button"
-              onClick={() => { setSelectedNodeId(null); setPropForm(null); }}
-              style={{ background: "transparent", border: "none", fontSize: "1.1rem", color: "var(--text-muted)", cursor: "pointer", lineHeight: 1 }}
-              title="Fermer"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="we-props-form" style={{ padding: 0 }}>
-            <div className="we-props-field">
-              <label>Titre</label>
-              <input
-                className="we-props-input"
-                value={propForm.title}
-                onChange={e => setPropForm(f => ({ ...f, title: e.target.value }))}
-                disabled={!isAdmin}
-              />
-            </div>
-
-            <div className="we-props-field">
-              <label>Type temporel</label>
-              <select
-                className="we-props-select"
-                value={propForm.temporal_type}
-                onChange={e => setPropForm(f => ({ ...f, temporal_type: e.target.value }))}
-                disabled={!isAdmin}
-              >
-                <option value="evolutif">Évolutif</option>
-                <option value="fige">Figé</option>
-              </select>
-            </div>
-
-            <div className="we-props-field">
-              <label>Type fonctionnel</label>
-              <select
-                className="we-props-select"
-                value={propForm.functional_type}
-                onChange={e => setPropForm(f => ({ ...f, functional_type: e.target.value }))}
-                disabled={!isAdmin}
-              >
-                {Object.entries(FUNCTIONAL_META).map(([v, m]) => (
-                  <option key={v} value={v}>{m.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {isAdmin && (
-              <div className="we-props-actions">
-                <button className="btn-danger-sm" onClick={handleDeleteNode}>Supprimer</button>
-                <button className="btn-primary-sm" onClick={handlePropSave} disabled={propSaving}>
-                  {propSaving ? "…" : "Enregistrer"}
-                </button>
-              </div>
-            )}
-
-            {/* Connected Transitions & Allowed Roles section */}
-            {selectedNodeId && (() => {
-              const outgoing = transitions.filter(t => t.from_status_id === selectedNodeId);
-              const incoming = transitions.filter(t => t.to_status_id === selectedNodeId);
-              const ROLE_LABEL_MAP = { admin_sys: "Admin", manager: "Manager", cm: "CM", prod: "Prod", chef_prod: "Chef Prod" };
-
-              return (
-                <div className="we-props-transitions-section" style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--line)" }}>
-                  <div className="we-props-sub-title" style={{ fontSize: "0.72rem", fontWeight: "700", letterSpacing: "0.05em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.5rem" }}>
-                    Qui peut faire évoluer ce statut ?
-                  </div>
-
-                  {/* Outgoing arrows */}
-                  <div style={{ marginBottom: "0.75rem" }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "var(--ink)", display: "block", marginBottom: "0.3rem" }}>
-                      ➔ Transitions sortantes ({outgoing.length})
-                    </span>
-                    {outgoing.length === 0 ? (
-                      <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Aucune transition sortante.</span>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                        {outgoing.map(t => {
-                          const targetStatus = statuses.find(s => s.id === t.to_status_id);
-                          const roles = t.allowed_roles && t.allowed_roles.length > 0
-                            ? t.allowed_roles.map(r => ROLE_LABEL_MAP[r] || r).join(", ")
-                            : "Manager, Admin Sys (défaut)";
-                          return (
-                            <div
-                              key={t.id}
-                              onClick={() => openTransModal(t)}
-                              style={{
-                                padding: "0.45rem 0.6rem",
-                                borderRadius: "8px",
-                                background: "var(--paper)",
-                                border: "1px solid var(--line)",
-                                cursor: "pointer",
-                                transition: "border-color 0.12s, background 0.12s",
-                              }}
-                              className="we-props-trans-item"
-                              title="Cliquer pour configurer cette transition"
-                            >
-                              <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--primary)", marginBottom: "0.15rem" }}>
-                                ➔ {targetStatus?.title || "Statut cible"}
-                              </div>
-                              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                                Rôles : <strong>{roles}</strong>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Incoming arrows */}
-                  <div>
-                    <span style={{ fontSize: "0.75rem", fontWeight: "600", color: "var(--ink)", display: "block", marginBottom: "0.3rem" }}>
-                      ← Transitions entrantes ({incoming.length})
-                    </span>
-                    {incoming.length === 0 ? (
-                      <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Aucune transition entrante.</span>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                        {incoming.map(t => {
-                          const sourceStatus = statuses.find(s => s.id === t.from_status_id);
-                          const roles = t.allowed_roles && t.allowed_roles.length > 0
-                            ? t.allowed_roles.map(r => ROLE_LABEL_MAP[r] || r).join(", ")
-                            : "Manager, Admin Sys (défaut)";
-                          return (
-                            <div
-                              key={t.id}
-                              onClick={() => openTransModal(t)}
-                              style={{
-                                padding: "0.45rem 0.6rem",
-                                borderRadius: "8px",
-                                background: "var(--paper)",
-                                border: "1px solid var(--line)",
-                                cursor: "pointer",
-                                transition: "border-color 0.12s, background 0.12s",
-                              }}
-                              className="we-props-trans-item"
-                              title="Cliquer pour configurer cette transition"
-                            >
-                              <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--ink)", marginBottom: "0.15rem" }}>
-                                ← {sourceStatus?.title || "Statut source"}
-                              </div>
-                              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                                Rôles : <strong>{roles}</strong>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
+      </AnimatePresence>
         </div>
-      )}
+      </div>
 
       {/* ── Transition Modal ──────────────────────────────────────────── */}
 

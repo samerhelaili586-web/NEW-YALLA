@@ -184,12 +184,13 @@ def change_status(task_id):
     user = current_user()
     new_status = Status.query.get_or_404(new_status_id)
 
+    # Find the explicit Transition row between current and target status
+    transition = Transition.query.filter_by(
+        from_status_id=task.status_id,
+        to_status_id=new_status.id,
+    ).first()
+
     if user.effective_role not in ("manager", "admin_sys"):
-        # Find the explicit Transition row between current and target status
-        transition = Transition.query.filter_by(
-            from_status_id=task.status_id,
-            to_status_id=new_status.id,
-        ).first()
         if not transition:
             return jsonify({"error": "transition_not_allowed"}), 403
 
@@ -200,10 +201,21 @@ def change_status(task_id):
         if user.effective_role not in transition_roles:
             return jsonify({"error": "role_not_allowed_for_transition"}), 403
 
+    # Validate required transition form fields if configured
+    form_values = data.get("form_values") or {}
+    if transition and transition.form_fields:
+        required_fields = [f for f in transition.form_fields if f.get("required") or f.get("is_required")]
+        missing_fields = []
+        for rf in required_fields:
+            field_key = rf.get("name") or rf.get("id") or rf.get("label")
+            if not form_values.get(field_key):
+                missing_fields.append(rf.get("label") or field_key)
+        if missing_fields:
+            return jsonify({"error": "missing_required_form_fields", "fields": missing_fields}), 400
+
     task.status_id = new_status.id
 
     # If form_values were provided, log them as a comment
-    form_values = data.get("form_values")
     if form_values and isinstance(form_values, dict):
         formatted_fields = "\n".join([f"• **{k}**: {v}" for k, v in form_values.items() if v])
         if formatted_fields:

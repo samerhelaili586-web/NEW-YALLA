@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 from flask_cors import CORS
@@ -34,7 +34,41 @@ def create_app(config_object="config.DevConfig"):
 
     db.init_app(app)
     sess.init_app(app)
-    CORS(app, supports_credentials=True, origins=[app.config.get("FRONTEND_ORIGIN", "http://localhost:5173")])
+    import re
+    allowed_origin_patterns = [
+        r"^http://localhost(:\d+)?$",
+        r"^http://127\.0\.0\.1(:\d+)?$",
+    ]
+    CORS(
+        app,
+        supports_credentials=True,
+        origins=allowed_origin_patterns,
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    )
+
+    @app.after_request
+    def add_cors_headers(response):
+        origin = request.headers.get("Origin")
+        if origin:
+            for pattern in allowed_origin_patterns:
+                if re.match(pattern, origin):
+                    response.headers["Access-Control-Allow-Origin"] = origin
+                    response.headers["Access-Control-Allow-Credentials"] = "true"
+                    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept"
+                    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                    break
+        return response
+
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        return jsonify({"error": "internal_server_error", "detail": str(e)}), 500
+
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        import traceback
+        app.logger.error(f"Unhandled exception: {e}\n{traceback.format_exc()}")
+        return jsonify({"error": "internal_server_error", "detail": str(e)}), 500
 
     from app.models import (  # noqa: F401  (register models with SQLAlchemy)
         user, task_type, project, task, equipment, shoot,
