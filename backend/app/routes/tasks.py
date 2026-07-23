@@ -362,9 +362,9 @@ def update_time_entry(task_id, entry_id):
     Task.query.get_or_404(task_id)
     entry = TimeEntry.query.get_or_404(entry_id)
     user = current_user()
-    # Only owner or admin/manager can edit
-    if entry.user_id != user.id and user.effective_role not in ("admin_sys", "manager"):
-        return jsonify({"error": "forbidden"}), 403
+    # Only the owner of the time entry can edit
+    if entry.user_id != user.id:
+        return jsonify({"error": "forbidden", "detail": "Vous ne pouvez modifier que vos propres saisies."}), 403
     data = request.get_json(force=True) or {}
     if "entry_date" in data:
         try:
@@ -391,9 +391,9 @@ def delete_time_entry(task_id, entry_id):
     Task.query.get_or_404(task_id)
     entry = TimeEntry.query.get_or_404(entry_id)
     user = current_user()
-    # Only owner or admin/manager can delete
-    if entry.user_id != user.id and user.effective_role not in ("admin_sys", "manager"):
-        return jsonify({"error": "forbidden"}), 403
+    # Only the owner of the time entry can delete
+    if entry.user_id != user.id:
+        return jsonify({"error": "forbidden", "detail": "Vous ne pouvez supprimer que vos propres saisies."}), 403
     db.session.delete(entry)
     db.session.commit()
     return jsonify({"ok": True})

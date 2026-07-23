@@ -112,6 +112,53 @@ export default function Login() {
             <button type="submit" className="btn-primary" disabled={submitting}>
               {submitting ? "Connexion…" : "Se connecter"}
             </button>
+
+            {/* Quick Demo Account Selector */}
+            <div className="login-demo-section">
+              <span className="login-demo-title">Comptes Démo (Accès rapide) :</span>
+              <div className="login-demo-chips">
+                <button
+                  type="button"
+                  className="login-demo-chip"
+                  onClick={() => { setEmail("admin@yalla.local"); setPassword("password123"); }}
+                  title="Connecter en tant qu'Admin Système"
+                >
+                  👑 Admin
+                </button>
+                <button
+                  type="button"
+                  className="login-demo-chip"
+                  onClick={() => { setEmail("manager@yalla.local"); setPassword("password123"); }}
+                  title="Connecter en tant que Manager"
+                >
+                  💼 Manager
+                </button>
+                <button
+                  type="button"
+                  className="login-demo-chip"
+                  onClick={() => { setEmail("chefprod@yalla.local"); setPassword("password123"); }}
+                  title="Connecter en tant que Chef de Production"
+                >
+                  🎬 Chef Prod
+                </button>
+                <button
+                  type="button"
+                  className="login-demo-chip"
+                  onClick={() => { setEmail("cm@yalla.local"); setPassword("password123"); }}
+                  title="Connecter en tant que Community Manager"
+                >
+                  📱 CM
+                </button>
+                <button
+                  type="button"
+                  className="login-demo-chip"
+                  onClick={() => { setEmail("prod@yalla.local"); setPassword("password123"); }}
+                  title="Connecter en tant que Monteur / Production"
+                >
+                  ✂️ Monteur
+                </button>
+              </div>
+            </div>
           </form>
         </main>
       </div>

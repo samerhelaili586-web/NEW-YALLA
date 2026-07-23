@@ -449,6 +449,13 @@ export default function WorkflowEditor() {
   const configIssues = workflow ? validateConfig(statuses, transitions) : [];
   const configValid = configIssues.length === 0;
 
+  // ── Auto-switch status to "brouillon" (draft) if config has warnings ──────
+  useEffect(() => {
+    if (!configValid && wfStatus === "active") {
+      setWfStatus("draft");
+    }
+  }, [configValid, wfStatus]);
+
   // ── Canvas size (auto-fit with padding) ──────────────────────────────────
   const canvasWidth = Math.max(1600, ...statuses.map(s => s.pos_x + NODE_W + 200));
   const canvasHeight = Math.max(1000, ...statuses.map(s => s.pos_y + NODE_H + 200));
@@ -549,6 +556,26 @@ export default function WorkflowEditor() {
       functional_type: node.functional_type,
     });
     setSelectedTransition(null);
+  }
+
+  function getClosestPort(node, cx, cy) {
+    if (!node) return "left";
+    const ports = [
+      { name: "top", x: node.pos_x + NODE_W / 2, y: node.pos_y },
+      { name: "bottom", x: node.pos_x + NODE_W / 2, y: node.pos_y + NODE_H },
+      { name: "left", x: node.pos_x, y: node.pos_y + NODE_H / 2 },
+      { name: "right", x: node.pos_x + NODE_W, y: node.pos_y + NODE_H / 2 },
+    ];
+    let minD = Infinity;
+    let best = "left";
+    for (const p of ports) {
+      const d = (cx - p.x) ** 2 + (cy - p.y) ** 2;
+      if (d < minD) {
+        minD = d;
+        best = p.name;
+      }
+    }
+    return best;
   }
 
   function onCanvasMouseMove(e) {
@@ -946,11 +973,23 @@ export default function WorkflowEditor() {
             <select
               className="we-status-select"
               value={wfStatus}
-              onChange={e => setWfStatus(e.target.value)}
+              onChange={e => {
+                const nextVal = e.target.value;
+                if (nextVal === "active" && !configValid) {
+                  alert("Impossible d'activer ce workflow : la configuration comporte des avertissements.");
+                  return;
+                }
+                setWfStatus(nextVal);
+              }}
             >
-              {WORKFLOW_STATUS_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
+              {WORKFLOW_STATUS_OPTIONS.map(o => {
+                const isOptionDisabled = o.value === "active" && !configValid;
+                return (
+                  <option key={o.value} value={o.value} disabled={isOptionDisabled}>
+                    {o.label}{isOptionDisabled ? " (Invalide)" : ""}
+                  </option>
+                );
+              })}
             </select>
           )}
         </div>

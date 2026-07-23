@@ -22,6 +22,7 @@ import LeaveApproval from "./pages/leave/LeaveApproval";
 import Annuaire from "./pages/Annuaire";
 import Workflows from "./pages/workflows/Workflows";
 import WorkflowEditor from "./pages/workflows/WorkflowEditor";
+import Salaires from "./pages/admin/Salaires";
 
 export default function App() {
   return (
@@ -134,6 +135,15 @@ export default function App() {
         />
 
         <Route
+          path="/salaires"
+          element={
+            <RoleRoute roles={["admin_sys"]}>
+              <Salaires />
+            </RoleRoute>
+          }
+        />
+
+        <Route
           path="/admin"
           element={
             <RoleRoute roles={["admin_sys"]}>
@@ -143,6 +153,7 @@ export default function App() {
         >
           <Route index element={<AdminUsers />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="salaires" element={<Salaires />} />
           <Route path="task-types" element={<Workflows />} />
           <Route path="equipment" element={<AdminEquipment />} />
           <Route path="holidays" element={<AdminHolidays />} />

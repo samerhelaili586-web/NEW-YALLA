@@ -111,6 +111,29 @@
   font-weight: 600;
 }
 
+/* Clickable Time Breakdown Cells */
+.att-cell--clickable {
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.att-cell--clickable:hover {
+  background: var(--sidebar-accent) !important;
+  color: var(--primary) !important;
+}
+
+.att-cell-hint {
+  font-size: 0.72rem;
+  opacity: 0.4;
+  margin-left: 0.2rem;
+  transition: opacity 0.15s ease;
+}
+
+.att-cell--clickable:hover .att-cell-hint {
+  opacity: 1;
+}
+
 .att-legend {
   display: flex;
   align-items: center;

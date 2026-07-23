@@ -36,7 +36,8 @@ const ICONS = {
   users:        "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75",
   equipment:    "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
   holidays:     "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
-  history:      "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+  history:      "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+  salaires:     "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 };
 
 // ── Nav items grouped by section ───────────────────────────────────────────
@@ -71,6 +72,7 @@ const NAV_SECTIONS = [
     title: "ADMINISTRATION",
     items: [
       { to: "/admin/users",         label: "Utilisateurs",       icon: "users",      roles: ["admin_sys"] },
+      { to: "/salaires",            label: "Salaires & Paie",    icon: "salaires",   roles: ["admin_sys"] },
       { to: "/admin/equipment",     label: "Matériel",           icon: "equipment",  roles: ["admin_sys"] },
       { to: "/admin/holidays",      label: "Jours Fériés",       icon: "holidays",   roles: ["admin_sys"] },
       { to: "/admin/login-history", label: "Historique Connexions", icon: "history", roles: ["admin_sys"] },
@@ -240,6 +242,9 @@ export default function AppShell({ children }) {
           </div>
           <div className="shell-sidebar-actions">
             <NotificationBell />
+            <button className="shell-theme-toggle" type="button" onClick={toggleTheme} title={isDark ? "Passer au thème clair" : "Passer au thème sombre"}>
+              <Icon d={isDark ? ICONS.sun : ICONS.moon} size={17} />
+            </button>
             <button className="shell-logout" type="button" onClick={handleLogout} title="Déconnexion">
               <Icon d={ICONS.logout} size={17} />
             </button>
@@ -252,11 +257,6 @@ export default function AppShell({ children }) {
         <MissingTimeAlert />
         {children}
       </main>
-
-      {/* Floating Theme Toggle (less prominent) */}
-      <button className="shell-theme-toggle-floating" type="button" onClick={toggleTheme} title="Basculer le thème">
-        <Icon d={isDark ? ICONS.sun : ICONS.moon} size={16} />
-      </button>
     </div>
   );
 }

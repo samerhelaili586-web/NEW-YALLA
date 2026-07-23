@@ -4,6 +4,7 @@ import "./AdminLayout.css";
 
 const NAV_ITEMS = [
   { to: "/admin/users", label: "Utilisateurs" },
+  { to: "/salaires", label: "Salaires & Paie" },
   { to: "/workflows", label: "Workflows (Types de tâches)" },
   { to: "/admin/equipment", label: "Matériel" },
   { to: "/admin/holidays", label: "Jours Fériés" },

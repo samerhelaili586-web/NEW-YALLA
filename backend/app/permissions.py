@@ -17,6 +17,7 @@ MENU_ACCESS = {
     "conges_absences": {"admin_sys", "manager", "cm", "prod", "chef_prod"},
     "approbation_conges": {"manager"},
     "annuaire": {"admin_sys", "manager", "cm", "prod", "chef_prod"},
+    "salaires_paie": {"admin_sys"},
 }
 
 # --- Project/task action matrix (spec section 10.2) ---
@@ -28,8 +29,9 @@ ACTION_ACCESS = {
     "changer_statut_standard": {"admin_sys", "manager", "cm"},
     "forcer_statut": {"admin_sys", "manager"},
     "changer_statut_planification": {"admin_sys", "manager", "chef_prod"},
-    "reporter_temps": {"cm", "prod", "chef_prod"},
+    "reporter_temps": {"admin_sys", "manager", "cm", "prod", "chef_prod"},
     "ajouter_commentaire": {"admin_sys", "manager", "cm", "prod", "chef_prod"},
+    "gerer_salaires": {"admin_sys"},
 }
 
 

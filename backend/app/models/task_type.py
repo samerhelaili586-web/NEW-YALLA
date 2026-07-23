@@ -114,7 +114,7 @@ class Transition(db.Model):
     # Each item: {"id": str, "type": "text"|"number"|"date"|"select", "label": str}
     form_fields = db.Column(db.JSON, nullable=False, default=list)
 
-    from_status = db.relationship("Status", foreign_keys=[from_status_id])
+    from_status = db.relationship("Status", foreign_keys=[from_status_id], overlaps="outgoing_transitions")
     to_status = db.relationship("Status", foreign_keys=[to_status_id])
 
     def to_dict(self):

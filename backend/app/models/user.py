@@ -22,6 +22,9 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     is_archived = db.Column(db.Boolean, default=False, nullable=False)
 
+    hourly_rate = db.Column(db.Float, nullable=False, default=25.0)
+    monthly_hours_goal = db.Column(db.Integer, nullable=False, default=180)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, raw):
@@ -38,6 +41,8 @@ class User(db.Model):
         return self.role
 
     def to_dict(self, minimal=False):
+        rate = self.hourly_rate if self.hourly_rate is not None else 25.0
+        goal = self.monthly_hours_goal if self.monthly_hours_goal is not None else 180
         base = {
             "id": self.id,
             "first_name": self.first_name,
@@ -48,6 +53,9 @@ class User(db.Model):
             "role": self.role,
             "is_chef_prod": self.is_chef_prod,
             "effective_role": self.effective_role,
+            "hourly_rate": rate,
+            "monthly_hours_goal": goal,
+            "monthly_base_salary": round(rate * goal, 2),
         }
         if not minimal:
             base.update({

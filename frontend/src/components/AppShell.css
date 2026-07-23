@@ -255,7 +255,8 @@
   pointer-events: none;
 }
 
-.shell-logout {
+.shell-logout,
+.shell-theme-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -271,7 +272,8 @@
   flex-shrink: 0;
 }
 
-.shell-logout:hover {
+.shell-logout:hover,
+.shell-theme-toggle:hover {
   background: var(--sidebar-accent);
   color: var(--sidebar-accent-foreground);
   opacity: 1;

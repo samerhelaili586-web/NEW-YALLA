@@ -16,6 +16,8 @@ def _run_migrations(db):
         "ALTER TABLE task_types ADD COLUMN updated_at DATETIME",
         "ALTER TABLE transitions ADD COLUMN allowed_roles JSON NOT NULL DEFAULT '[]'",
         "ALTER TABLE transitions ADD COLUMN form_fields JSON NOT NULL DEFAULT '[]'",
+        "ALTER TABLE users ADD COLUMN hourly_rate FLOAT NOT NULL DEFAULT 25.0",
+        "ALTER TABLE users ADD COLUMN monthly_hours_goal INTEGER NOT NULL DEFAULT 160",
     ]
     with db.engine.connect() as conn:
         for stmt in migrations:

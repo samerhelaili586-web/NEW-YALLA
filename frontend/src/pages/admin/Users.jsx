@@ -21,6 +21,7 @@ const EMPTY_FORM = {
   email: "",
   phone: "",
   role: "cm",
+  hourly_rate: "25.00",
   password: "",
 };
 
@@ -100,6 +101,7 @@ export default function AdminUsers() {
       email: user.email,
       phone: user.phone || "",
       role: user.role,
+      hourly_rate: String(user.hourly_rate ?? 25.0),
       password: "",
     });
     setFormErrors(emptyErrors());
@@ -141,6 +143,7 @@ export default function AdminUsers() {
         email: form.email.trim(),
         phone: form.phone.trim() || null,
         role: form.role,
+        hourly_rate: parseFloat(form.hourly_rate) || 25.0,
       };
       if (form.password) payload.password = form.password;
 
@@ -224,7 +227,7 @@ export default function AdminUsers() {
       <div className="users-header">
         <div>
           <h1>Utilisateurs</h1>
-          <p className="users-subtitle">Gérez les comptes et les rôles de l&rsquo;équipe.</p>
+          <p className="users-subtitle">Gérez les comptes, les tarifs et les rôles de l&rsquo;équipe.</p>
         </div>
         <button type="button" className="btn-primary" onClick={openCreateModal}>
           + Nouvel utilisateur
@@ -272,6 +275,7 @@ export default function AdminUsers() {
                 <th>Utilisateur</th>
                 <th>Email</th>
                 <th>Rôle</th>
+                <th>Taux Horaire</th>
                 <th>Chef Prod</th>
                 <th>Statut</th>
                 <th aria-label="Actions" />
@@ -280,7 +284,7 @@ export default function AdminUsers() {
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="users-empty">
+                  <td colSpan={7} className="users-empty">
                     Aucun utilisateur ne correspond à ces critères.
                   </td>
                 </tr>
@@ -297,6 +301,12 @@ export default function AdminUsers() {
                   </td>
                   <td className="users-email-cell">{u.email}</td>
                   <td>{ROLE_LABELS[u.role] || u.role}</td>
+                  <td>
+                    <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--ink)" }}>
+                      {(u.hourly_rate ?? 25.0).toFixed(2)}
+                    </span>{" "}
+                    <span style={{ fontSize: "0.76rem", color: "var(--text-muted)", fontWeight: 600 }}>TND/h</span>
+                  </td>
                   <td>
                     {u.role === "prod" ? (
                       <button
@@ -475,6 +485,19 @@ export default function AdminUsers() {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="hourly_rate">Taux Horaire (TND / heure)</label>
+            <input
+              id="hourly_rate"
+              type="number"
+              step="0.5"
+              min="0"
+              value={form.hourly_rate}
+              onChange={(e) => updateField("hourly_rate", e.target.value)}
+              placeholder="25.00"
+            />
           </div>
 
           <div className="field">
