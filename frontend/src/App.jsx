@@ -23,6 +23,7 @@ import Annuaire from "./pages/Annuaire";
 import Workflows from "./pages/workflows/Workflows";
 import WorkflowEditor from "./pages/workflows/WorkflowEditor";
 import Salaires from "./pages/admin/Salaires";
+import Announcements from "./pages/Announcements";
 
 export default function App() {
   return (
@@ -42,6 +43,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Annuaire />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/announcements"
+          element={
+            <ProtectedRoute>
+              <Announcements />
             </ProtectedRoute>
           }
         />

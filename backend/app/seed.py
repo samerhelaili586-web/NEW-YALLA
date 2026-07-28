@@ -12,6 +12,9 @@ DEMO_PASSWORD = "password123"
 
 
 def run_seed():
+    if User.query.first():
+        print("Database already seeded — skipping run_seed.")
+        return
     # ── 1. USERS ─────────────────────────────────────────────────────────────
     # Standard company roster across all departments
     demo_users = [
@@ -331,13 +334,18 @@ def run_seed():
     current_d = july_start
     while current_d <= july_end:
         w = current_d.weekday()
-        if w < 5:  # Mon - Fri (8 hours)
-            h, m = 8, 0
-        elif w == 5:  # Saturday (5 hours)
-            h, m = 5, 0
-        else:  # Sunday (Off)
+        if w == 6:  # Sunday (Off)
             current_d += timedelta(days=1)
             continue
+
+        if current_d == date.today():
+            from app.routes.tasks import get_max_elapsed_minutes
+            max_m = get_max_elapsed_minutes(current_d)
+            h, m = max_m // 60, max_m % 60
+        elif w < 5:  # Mon - Fri (8 hours)
+            h, m = 8, 0
+        else:  # Saturday (5 hours)
+            h, m = 5, 0
 
         for idx, user_obj in enumerate(all_users_list):
             user_tasks = [

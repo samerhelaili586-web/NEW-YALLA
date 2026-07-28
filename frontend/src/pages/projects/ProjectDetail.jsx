@@ -123,7 +123,7 @@ export default function ProjectDetail() {
     let cancelled = false;
     (async () => {
       try {
-        const data = await api.get("/task-types");
+        const data = await api.get("/task-types", { only_active: 1 });
         if (!cancelled) setTaskTypes(data);
       } catch {
         // silently ignore — the create-task button will just show no options
@@ -594,12 +594,12 @@ export default function ProjectDetail() {
       >
         <form id="create-task-form" className="lv-form" onSubmit={handleCreateTask} noValidate>
           <label className="field">
-            <span className="field-label">Type de tâche</span>
+            <span className="field-label">Workflow (Type de tâche)</span>
             <select
               value={createForm.task_type_id}
               onChange={(e) => setCreateForm((f) => ({ ...f, task_type_id: e.target.value }))}
             >
-              {taskTypes.length === 0 && <option value="">Aucun type disponible</option>}
+              {taskTypes.length === 0 && <option value="">Aucun workflow actif disponible</option>}
               {taskTypes.map((tt) => (
                 <option key={tt.id} value={tt.id}>{tt.name}</option>
               ))}
@@ -634,6 +634,102 @@ export default function ProjectDetail() {
           {createError && (
             <p className="field-error" role="alert">
               {createError}
+            </p>
+          )}
+        </form>
+      </Modal>
+
+      {/* ── Edit Project Modal ───────────────────────────────────────── */}
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Modifier le projet"
+        footer={
+          <>
+            <button type="button" className="btn-secondary" onClick={() => setEditOpen(false)}>
+              Annuler
+            </button>
+            <button type="submit" form="edit-project-form" className="btn-primary btn-primary--compact" disabled={savingEdit}>
+              {savingEdit ? "Enregistrement…" : "Enregistrer"}
+            </button>
+          </>
+        }
+      >
+        <form id="edit-project-form" className="lv-form" onSubmit={handleSaveProject}>
+          <label className="field">
+            <span className="field-label">Titre du projet *</span>
+            <input
+              type="text"
+              required
+              value={editForm.title}
+              onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+            />
+          </label>
+
+          <div className="field-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <label className="field">
+              <span className="field-label">Community Manager</span>
+              <select
+                value={editForm.cm_id}
+                onChange={(e) => setEditForm((f) => ({ ...f, cm_id: e.target.value }))}
+              >
+                {cmUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.first_name} {u.last_name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span className="field-label">Statut du projet</span>
+              <select
+                value={editForm.status}
+                onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
+              >
+                <option value="actif">Actif</option>
+                <option value="on_hold">En pause</option>
+                <option value="termine">Terminé</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="field">
+            <span className="field-label">Objectifs mensuels par type de tâche</span>
+            <div className="pl-targets-grid" style={{ marginTop: "0.4rem" }}>
+              {taskTypes.filter((tt) => !tt.is_archived).map((tt) => (
+                <div key={tt.id} className="pl-target-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                  <span style={{ fontSize: "0.88rem", fontWeight: 500 }}>{tt.name}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    style={{ width: "90px" }}
+                    value={editForm.monthly_targets[tt.id] ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditForm((f) => ({
+                        ...f,
+                        monthly_targets: { ...f.monthly_targets, [tt.id]: val },
+                      }));
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <label className="field">
+            <span className="field-label">Remarques (optionnel)</span>
+            <textarea
+              rows={3}
+              value={editForm.remarks}
+              onChange={(e) => setEditForm((f) => ({ ...f, remarks: e.target.value }))}
+            />
+          </label>
+
+          {editError && (
+            <p className="field-error" role="alert">
+              {editError}
             </p>
           )}
         </form>

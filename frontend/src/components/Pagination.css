@@ -1,0 +1,83 @@
+/* ── Pagination Component Styling ────────────────────────────────────────── */
+.pg-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0 0.5rem;
+}
+
+.pg-info {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.pg-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pg-btn {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pg-btn:hover:not(:disabled) {
+  border-color: var(--amber);
+  background: var(--muted);
+}
+
+.pg-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pg-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pg-num {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pg-num:hover {
+  border-color: var(--amber);
+  color: var(--ink);
+}
+
+.pg-num.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.dark .pg-num.is-active {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #000;
+}

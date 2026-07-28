@@ -32,20 +32,86 @@ def _is_day_off(d: date, user_id: int):
     return None
 
 
+from app import db
+from app.models.notification import Notification
+
+def check_and_notify_penalties():
+    """
+    Checks past workdays where grace period expired (today >= d + 2 days).
+    Sends high-priority penalty notifications to employee, managers, and admin sys.
+    """
+    today = date.today()
+    users = User.query.filter_by(is_archived=False, is_active=True).filter(
+        User.role.in_(["cm", "prod"])
+    ).all()
+    managers_and_admins = User.query.filter_by(is_archived=False, is_active=True).filter(
+        User.role.in_(["admin_sys", "manager"])
+    ).all()
+
+    for delta in range(2, 30):
+        past_date = today - timedelta(days=delta)
+        d_str = past_date.strftime("%d/%m/%Y")
+
+        for u in users:
+            if _is_day_off(past_date, u.id):
+                continue
+
+            min_req = 240 if past_date.weekday() == 5 else MIN_DAILY_MINUTES
+            entries = TimeEntry.query.filter_by(user_id=u.id, entry_date=past_date).all()
+            total_mins = sum(e.hours * 60 + e.minutes for e in entries)
+
+            if total_mins < min_req:
+                # Check if notification already sent for this user + date
+                msg_employee = f"⚠️ Pénalité : Votre feuille de présence du {d_str} n'a pas été soumise avant la limite (J+1 à 23h59). Journée marquée pénalisée et non payée."
+                exists = Notification.query.filter(
+                    Notification.user_id == u.id,
+                    Notification.message == msg_employee,
+                ).first()
+
+                if not exists:
+                    # Notify Employee
+                    db.session.add(Notification(
+                        user_id=u.id,
+                        type="penalty_alert",
+                        message=msg_employee,
+                        link_url="/presence",
+                    ))
+                    # Notify Managers and Admins
+                    for m in managers_and_admins:
+                        db.session.add(Notification(
+                            user_id=m.id,
+                            type="penalty_alert",
+                            message=f"⚠️ Alerte Pénalité : {u.first_name} {u.last_name} n'a pas soumis son temps du {d_str} avant la limite. Journée marquée pénalisée.",
+                            link_url="/presence",
+                        ))
+                    db.session.commit()
+
+
 def _build_week(user_id: int, week_start: date):
+    today = date.today()
     days = []
     for i in range(7):
         d = week_start + timedelta(days=i)
         entries = TimeEntry.query.filter_by(user_id=user_id, entry_date=d).all()
         total_minutes = sum(e.hours * 60 + e.minutes for e in entries)
         day_off = _is_day_off(d, user_id)
+        min_req = 240 if d.weekday() == 5 else MIN_DAILY_MINUTES
+
+        # Grace period logic:
+        # If d is in the past and today >= d + 2 days (grace period J+1 23:59 expired),
+        # and total_minutes < min_req and day_off is None, day_off becomes 'penalized'!
+        if day_off is None and today >= d + timedelta(days=2) and total_minutes < min_req:
+            day_off = "penalized"
+
+        is_grace_period = (d < today and today == d + timedelta(days=1) and total_minutes < min_req and day_off is None)
+
         days.append({
             "date": d.isoformat(),
             "day_off_reason": day_off,
-            "total_minutes": total_minutes,
+            "total_minutes": 0 if day_off == "penalized" else total_minutes,
             "entries": [e.to_dict() for e in entries],
-            # spec §6.2: flag if a past/today workday has less than 6h reported
-            "missing_report": day_off is None and d <= date.today() and total_minutes < MIN_DAILY_MINUTES,
+            "missing_report": day_off is None and (d == today or is_grace_period) and total_minutes < min_req,
+            "is_grace_period": is_grace_period,
         })
     return days
 
@@ -54,6 +120,7 @@ def _build_week(user_id: int, week_start: date):
 @attendance_bp.get("/me")
 @require_menu("feuille_presence_perso")
 def my_week():
+    check_and_notify_penalties()
     user = current_user()
     ref = request.args.get("ref_date")
     ref_date = date.fromisoformat(ref) if ref else date.today()
@@ -69,11 +136,14 @@ def my_week():
 @attendance_bp.get("/team")
 @require_menu("feuille_presence_equipe")
 def team_week():
+    check_and_notify_penalties()
     ref = request.args.get("ref_date")
     ref_date = date.fromisoformat(ref) if ref else date.today()
     week_start, _ = _week_bounds(ref_date)
 
-    users = User.query.filter_by(is_archived=False, is_active=True).all()
+    users = User.query.filter_by(is_archived=False, is_active=True).filter(
+        User.role.in_(["cm", "prod"])
+    ).all()
     return jsonify([
         {
             "user_id": u.id,
@@ -86,7 +156,6 @@ def team_week():
 
 
 # ---------- Alerts: users with missing reports today ----------
-# spec §6.2: minimum is 6h (360 min), not just zero
 @attendance_bp.get("/alerts/missing-today")
 @require_menu("feuille_presence_equipe")
 def missing_today():
@@ -96,6 +165,7 @@ def missing_today():
     ).all()
 
     flagged = []
+    min_req = 240 if today.weekday() == 5 else MIN_DAILY_MINUTES
     for u in users:
         if _is_day_off(today, u.id):
             continue
@@ -103,7 +173,7 @@ def missing_today():
             e.hours * 60 + e.minutes
             for e in TimeEntry.query.filter_by(user_id=u.id, entry_date=today).all()
         )
-        if total < MIN_DAILY_MINUTES:
+        if total < min_req:
             flagged.append({
                 "user_id": u.id,
                 "user_name": f"{u.first_name} {u.last_name}",
@@ -114,7 +184,6 @@ def missing_today():
 
 
 # ---------- Personal alert: check yesterday's reporting for the logged-in user ----------
-# spec §6.2: shown at login if previous workday < 6h
 @attendance_bp.get("/alerts/me-yesterday")
 @login_required
 def my_yesterday_alert():
@@ -130,8 +199,9 @@ def my_yesterday_alert():
         e.hours * 60 + e.minutes
         for e in TimeEntry.query.filter_by(user_id=user.id, entry_date=yesterday).all()
     )
+    min_req = 240 if yesterday.weekday() == 5 else MIN_DAILY_MINUTES
     return jsonify({
-        "missing": total < MIN_DAILY_MINUTES,
+        "missing": total < min_req,
         "date": yesterday.isoformat(),
         "total_minutes": total,
     })

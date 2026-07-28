@@ -37,7 +37,7 @@ export default function NotificationBell() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch on mount
     refreshUnreadCount();
-    const interval = setInterval(refreshUnreadCount, 60000);
+    const interval = setInterval(refreshUnreadCount, 10000);
     return () => clearInterval(interval);
   }, []);
 

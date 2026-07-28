@@ -4,7 +4,8 @@ from flask import session, jsonify
 # --- Menu access matrix (spec section 10.1) ---
 MENU_ACCESS = {
     "gestion_utilisateurs": {"admin_sys"},
-    "gestion_workflows": {"admin_sys"},
+    "gestion_workflows": {"admin_sys", "manager"},
+    "consulter_workflows": {"admin_sys", "manager", "cm", "prod", "chef_prod"},
     "gestion_materiel": {"admin_sys"},
     "projets_tous": {"admin_sys", "manager", "chef_prod"},
     "projets_affectes": {"cm"},

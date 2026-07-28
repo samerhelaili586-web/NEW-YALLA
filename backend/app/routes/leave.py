@@ -10,7 +10,11 @@ leave_bp = Blueprint("leave", __name__)
 
 
 def _notify_managers(message, link_url=None):
-    managers = User.query.filter_by(role="manager", is_archived=False, is_active=True).all()
+    managers = User.query.filter(
+        User.role.in_(["manager", "admin_sys"]),
+        User.is_archived == False,
+        User.is_active == True,
+    ).all()
     for m in managers:
         db.session.add(Notification(user_id=m.id, type="leave_new", message=message, link_url=link_url))
 
@@ -79,7 +83,10 @@ def create_request():
     db.session.add(leave)
     db.session.flush()
 
-    _notify_managers(f"{user.first_name} {user.last_name} a soumis une demande de congé.")
+    _notify_managers(
+        f"🌴 Demande de congé — {user.first_name} {user.last_name} a soumis une demande (du {start_date.strftime('%d/%m')} au {end_date.strftime('%d/%m')}).",
+        link_url="/conges/validation",
+    )
     db.session.commit()
     return jsonify(leave.to_dict()), 201
 
@@ -92,6 +99,14 @@ def approve_request(request_id):
         return jsonify({"error": "already_decided"}), 409
     leave.status = "approved"
     leave.decided_at = datetime.utcnow()
+
+    # Notify employee of approval
+    db.session.add(Notification(
+        user_id=leave.user_id,
+        type="leave_approved",
+        message=f"✅ Votre demande de congé (du {leave.start_date.strftime('%d/%m')} au {leave.end_date.strftime('%d/%m')}) a été approuvée.",
+        link_url="/conges",
+    ))
     db.session.commit()
     return jsonify(leave.to_dict())
 
@@ -104,6 +119,14 @@ def reject_request(request_id):
         return jsonify({"error": "already_decided"}), 409
     leave.status = "rejected"
     leave.decided_at = datetime.utcnow()
+
+    # Notify employee of rejection
+    db.session.add(Notification(
+        user_id=leave.user_id,
+        type="leave_rejected",
+        message=f"❌ Votre demande de congé (du {leave.start_date.strftime('%d/%m')} au {leave.end_date.strftime('%d/%m')}) a été refusée.",
+        link_url="/conges",
+    ))
     db.session.commit()
     return jsonify(leave.to_dict())
 

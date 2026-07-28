@@ -284,7 +284,8 @@ export default function WorkflowEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin_sys";
+  const canManage = ["admin_sys", "manager"].includes(user?.effective_role);
+  const isAdmin = canManage;
 
   // Workflow data
   const [workflow, setWorkflow] = useState(null);
@@ -537,18 +538,10 @@ export default function WorkflowEditor() {
 
   // ── Drag node handling ───────────────────────────────────────────────────
   function onNodeMouseDown(e, nodeId) {
-    if (!isAdmin) return;
-    if (e.button !== 0) return;
     e.stopPropagation();
     const node = statuses.find(s => s.id === nodeId);
     if (!node) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    draggingNode.current = nodeId;
-    setIsDraggingId(nodeId);
-    dragOffset.current = {
-      x: (e.clientX - rect.left) / zoom - node.pos_x,
-      y: (e.clientY - rect.top) / zoom - node.pos_y,
-    };
+
     setSelectedNodeId(nodeId);
     setPropForm({
       title: node.title,
@@ -556,6 +549,16 @@ export default function WorkflowEditor() {
       functional_type: node.functional_type,
     });
     setSelectedTransition(null);
+
+    if (!canManage || e.button !== 0) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    draggingNode.current = nodeId;
+    setIsDraggingId(nodeId);
+    dragOffset.current = {
+      x: (e.clientX - rect.left) / zoom - node.pos_x,
+      y: (e.clientY - rect.top) / zoom - node.pos_y,
+    };
   }
 
   function getClosestPort(node, cx, cy) {
@@ -799,8 +802,18 @@ export default function WorkflowEditor() {
         functional_type: propForm.functional_type,
       });
       setStatuses(prev => prev.map(s => s.id === selectedNodeId ? { ...s, ...updated } : s));
-    } catch {
-      // silently log
+      setTransitions(prev => prev.map(t => {
+        let copy = { ...t };
+        if (t.from_status_id === selectedNodeId) copy.from_status_title = updated.title;
+        if (t.to_status_id === selectedNodeId) copy.to_status_title = updated.title;
+        return copy;
+      }));
+      setSaveMsg("Étape modifiée !");
+      setTimeout(() => setSaveMsg(""), 2500);
+      setPropForm(null);
+      setSelectedNodeId(null);
+    } catch (err) {
+      alert(err?.data?.error || "Erreur lors de la modification de l'étape.");
     } finally {
       setPropSaving(false);
     }
@@ -881,7 +894,6 @@ export default function WorkflowEditor() {
 
   // ── Arrow click detection (midpoint) ────────────────────────────────────
   function onArrowClick(t) {
-    if (!isAdmin) return;
     openTransModal(t);
   }
 
@@ -1053,7 +1065,7 @@ export default function WorkflowEditor() {
           </button>
 
 
-          {isAdmin && (
+          {canManage ? (
             <>
               <button className="we-add-status-btn" onClick={openCreateStatus}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>
@@ -1063,6 +1075,10 @@ export default function WorkflowEditor() {
                 {saving ? "Enregistrement…" : saveMsg || "Enregistrer"}
               </button>
             </>
+          ) : (
+            <span style={{ fontSize: "0.78rem", fontWeight: 700, padding: "0.35rem 0.75rem", borderRadius: "8px", background: "var(--sidebar-accent)", color: "var(--text-muted)", border: "1px solid var(--line)" }}>
+              🔒 Mode Lecture (Consultation)
+            </span>
           )}
         </div>
       </div>

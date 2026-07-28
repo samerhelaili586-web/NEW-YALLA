@@ -116,6 +116,14 @@ def create_task():
             "detail": f"Ce projet est '{project.status}' — aucune tâche ne peut être ajoutée.",
         }), 409
 
+    from app.models.task_type import TaskType
+    tt = TaskType.query.get_or_404(data["task_type_id"])
+    if tt.is_archived or tt.workflow_status != "active":
+        return jsonify({
+            "error": "workflow_not_active",
+            "detail": "Ce workflow n'est pas actif (statut 'brouillon' ou 'désactivé').",
+        }), 400
+
     status_id = data.get("status_id")
     if not status_id:
         start_status = Status.query.filter_by(task_type_id=data["task_type_id"], functional_type="debut").first()
@@ -311,16 +319,73 @@ def list_time_entries(task_id):
     return jsonify([e.to_dict() for e in entries])
 
 
+
+def get_max_elapsed_minutes(target_date, now_dt=None):
+    """
+    Work Schedule:
+    - Mon-Fri: 08:30 to 17:30 with 13:00-14:00 lunch break excluded = 8 hours net (480 mins).
+    - Sat: 08:30 to 13:30 = 5 hours net (300 mins).
+    - Sun: 0 mins (Day off).
+    """
+    if now_dt is None:
+        now_dt = datetime.now()
+
+    today = now_dt.date()
+    if target_date > today:
+        return 0  # future date
+
+    if target_date < today:
+        weekday = target_date.weekday()
+        if weekday < 5:  # Mon-Fri
+            return 8 * 60
+        elif weekday == 5:  # Sat
+            return 5 * 60
+        else:
+            return 0  # Sun
+
+    # Target date IS today
+    weekday = today.weekday()
+    if weekday == 6:  # Sunday
+        return 0
+
+    cur_mins = now_dt.hour * 60 + now_dt.minute
+
+    if weekday == 5:  # Saturday (08:30 to 13:30 = 300 mins)
+        start = 8 * 60 + 30  # 08:30
+        end = 13 * 60 + 30   # 13:30
+        if cur_mins <= start:
+            return 0
+        if cur_mins >= end:
+            return 300
+        return cur_mins - start
+
+    # Mon-Fri (08:30 to 17:30 with 13:00-14:00 lunch break excluded)
+    start = 8 * 60 + 30    # 08:30 (510)
+    lunch_s = 13 * 60      # 13:00 (780)
+    lunch_e = 14 * 60      # 14:00 (840)
+    end = 17 * 60 + 30     # 17:30 (1050)
+
+    if cur_mins <= start:
+        return 0
+    if cur_mins >= end:
+        return 480
+
+    if cur_mins <= lunch_s:
+        return cur_mins - start
+    elif cur_mins <= lunch_e:
+        return lunch_s - start  # 270 mins (4.5h)
+    else:
+        return (lunch_s - start) + (cur_mins - lunch_e)
+
+
 @tasks_bp.post("/<int:task_id>/time-entries")
 @require_action("reporter_temps")
-def add_time_entry(task_id):
+def create_time_entry(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.get_json(force=True) or {}
 
-    required = ["entry_date", "hours", "minutes"]
-    missing = [f for f in required if data.get(f) is None]
-    if missing:
-        return jsonify({"error": "missing_fields", "fields": missing}), 400
+    if not data.get("entry_date"):
+        return jsonify({"error": "entry_date_required"}), 400
 
     try:
         entry_date = datetime.strptime(data["entry_date"], "%Y-%m-%d").date()
@@ -328,8 +393,8 @@ def add_time_entry(task_id):
         return jsonify({"error": "invalid_date"}), 400
 
     try:
-        hours = int(data["hours"])
-        minutes = int(data["minutes"])
+        hours = int(data.get("hours", 0))
+        minutes = int(data.get("minutes", 0))
     except (TypeError, ValueError):
         return jsonify({"error": "invalid_time_values"}), 400
 
@@ -341,6 +406,28 @@ def add_time_entry(task_id):
         return jsonify({"error": "invalid_hours", "detail": "Les heures ne peuvent pas dépasser 24."}), 400
 
     user = current_user()
+
+    if entry_date > datetime.now().date():
+        return jsonify({
+            "error": "future_date_not_allowed",
+            "detail": "Impossible de déclarer du temps pour une date future."
+        }), 400
+
+    max_mins = get_max_elapsed_minutes(entry_date)
+    requested_mins = hours * 60 + minutes
+
+    existing_entries = TimeEntry.query.filter_by(user_id=user.id, entry_date=entry_date).all()
+    existing_mins = sum(e.hours * 60 + e.minutes for e in existing_entries)
+
+    if existing_mins + requested_mins > max_mins:
+        rem_mins = max(0, max_mins - existing_mins)
+        rem_h, rem_m = rem_mins // 60, rem_mins % 60
+        elapsed_h, elapsed_m = max_mins // 60, max_mins % 60
+        if entry_date == datetime.now().date():
+            detail_msg = f"Seules {elapsed_h}h{elapsed_m:02d} min se sont écoulées aujourd'hui (début à 08h30, pause 13h-14h non comptée). Temps restant déclarable pour aujourd'hui : {rem_h}h{rem_m:02d} min."
+        else:
+            detail_msg = f"Le temps déclaré dépasse le maximum autorisé pour cette journée ({elapsed_h}h{elapsed_m:02d} min). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
+        return jsonify({"error": "exceeds_max_workable_hours", "detail": detail_msg}), 400
 
     entry = TimeEntry(
         task_id=task.id,
@@ -355,32 +442,56 @@ def add_time_entry(task_id):
     return jsonify(entry.to_dict()), 201
 
 
-
 @tasks_bp.patch("/<int:task_id>/time-entries/<int:entry_id>")
 @require_action("reporter_temps")
 def update_time_entry(task_id, entry_id):
     Task.query.get_or_404(task_id)
     entry = TimeEntry.query.get_or_404(entry_id)
     user = current_user()
-    # Only the owner of the time entry can edit
+
     if entry.user_id != user.id:
         return jsonify({"error": "forbidden", "detail": "Vous ne pouvez modifier que vos propres saisies."}), 403
+
     data = request.get_json(force=True) or {}
+    t_date = entry.entry_date
     if "entry_date" in data:
         try:
-            entry.entry_date = datetime.strptime(data["entry_date"], "%Y-%m-%d").date()
+            t_date = datetime.strptime(data["entry_date"], "%Y-%m-%d").date()
         except ValueError:
             return jsonify({"error": "invalid_date"}), 400
-    if "hours" in data:
-        h = int(data["hours"])
-        if h < 0 or h > 24:
-            return jsonify({"error": "invalid_hours"}), 400
-        entry.hours = h
-    if "minutes" in data:
-        m = int(data["minutes"])
-        if m < 0 or m > 59:
-            return jsonify({"error": "invalid_minutes"}), 400
-        entry.minutes = m
+
+    if t_date > datetime.now().date():
+        return jsonify({
+            "error": "future_date_not_allowed",
+            "detail": "Impossible de déclarer du temps pour une date future."
+        }), 400
+
+    new_h = int(data.get("hours", entry.hours))
+    new_m = int(data.get("minutes", entry.minutes))
+
+    max_mins = get_max_elapsed_minutes(t_date)
+    requested_mins = new_h * 60 + new_m
+
+    other_entries = TimeEntry.query.filter(
+        TimeEntry.user_id == user.id,
+        TimeEntry.entry_date == t_date,
+        TimeEntry.id != entry.id,
+    ).all()
+    existing_mins = sum(e.hours * 60 + e.minutes for e in other_entries)
+
+    if existing_mins + requested_mins > max_mins:
+        rem_mins = max(0, max_mins - existing_mins)
+        rem_h, rem_m = rem_mins // 60, rem_mins % 60
+        elapsed_h, elapsed_m = max_mins // 60, max_mins % 60
+        if t_date == datetime.now().date():
+            detail_msg = f"Seules {elapsed_h}h{elapsed_m:02d} min se sont écoulées aujourd'hui (début à 08h30, pause 13h-14h non comptée). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
+        else:
+            detail_msg = f"Le temps déclaré dépasse le maximum autorisé pour cette journée ({elapsed_h}h{elapsed_m:02d} min). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
+        return jsonify({"error": "exceeds_max_workable_hours", "detail": detail_msg}), 400
+
+    entry.entry_date = t_date
+    entry.hours = new_h
+    entry.minutes = new_m
     db.session.commit()
     return jsonify(entry.to_dict())
 

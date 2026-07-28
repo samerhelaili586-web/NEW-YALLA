@@ -15,16 +15,8 @@ from app.models.task import Task
 @pytest.fixture
 def app():
     """Create application configured for testing with in-memory SQLite database."""
-    app = create_app("config.DevConfig")
-    app.config.update({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        "SECRET_KEY": "test_secret_key",
-        "WTF_CSRF_ENABLED": False,
-    })
-
+    app = create_app("config.TestConfig")
     with app.app_context():
-        db.create_all()
         yield app
         db.session.remove()
         db.drop_all()

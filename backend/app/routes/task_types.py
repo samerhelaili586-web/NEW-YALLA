@@ -15,9 +15,12 @@ FINAL_TYPES = ("final_confirmation", "final_rejet")
 @login_required
 def list_task_types():
     include_archived = request.args.get("include_archived") == "1"
+    only_active = request.args.get("only_active") == "1"
     q = TaskType.query
     if not include_archived:
         q = q.filter_by(is_archived=False)
+    if only_active:
+        q = q.filter_by(workflow_status="active")
     return jsonify([tt.to_dict(include_statuses=False) for tt in q.all()])
 
 

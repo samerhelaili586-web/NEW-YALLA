@@ -17,3 +17,8 @@ class DevConfig:
 
     FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+
+
+class TestConfig(DevConfig):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"

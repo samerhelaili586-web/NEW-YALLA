@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
+import Avatar from "../../components/Avatar";
+import Modal from "../../components/Modal";
 import "../../styles/shared.css";
 import "./AttendanceSheet.css";
 
@@ -13,6 +15,7 @@ const DAY_OFF_LABELS = {
   holiday: "Férié",
   leave: "Congé",
   sick: "Maladie",
+  penalized: "Pénalisé",
 };
 
 function fmtMinutes(total) {
@@ -41,9 +44,13 @@ function toISODate(d) {
 
 function DayCell({ day, userName, onSelect }) {
   if (day.day_off_reason) {
+    const isPenalized = day.day_off_reason === "penalized";
     return (
-      <td className="att-cell att-cell--off">
-        <span className="att-off-label">{DAY_OFF_LABELS[day.day_off_reason] || day.day_off_reason}</span>
+      <td className={`att-cell ${isPenalized ? "att-cell--penalized" : "att-cell--off"}`}>
+        <span className={`att-off-label ${isPenalized ? "att-off-label--penalized" : ""}`}>
+          {isPenalized && "⚠️ "}
+          {DAY_OFF_LABELS[day.day_off_reason] || day.day_off_reason}
+        </span>
       </td>
     );
   }
@@ -52,17 +59,16 @@ function DayCell({ day, userName, onSelect }) {
 
   return (
     <td
-      className={`att-cell ${day.missing_report ? "att-cell--missing" : ""} ${isClickable ? "att-cell--clickable" : ""}`}
+      className={`att-cell ${day.missing_report ? "att-cell--missing" : ""} ${day.is_grace_period ? "att-cell--grace" : ""} ${isClickable ? "att-cell--clickable" : ""}`}
       onClick={() => isClickable && onSelect && onSelect(userName, day)}
-      title={isClickable ? "Cliquer pour voir le détail des tâches de cette journée" : ""}
+      title={day.is_grace_period ? "Délai de grâce (J+1) : à déclarer avant 23h59" : isClickable ? "Cliquer pour voir le détail des tâches" : ""}
     >
       <span className="att-time-value">{fmtMinutes(day.total_minutes)}</span>
+      {day.is_grace_period && <span className="att-grace-tag">⏳ J+1</span>}
       {isClickable && <span className="att-cell-hint" aria-hidden="true"> 🔍</span>}
     </td>
   );
 }
-
-import Modal from "../../components/Modal";
 
 export default function AttendanceSheet() {
   const { user } = useAuth();
@@ -73,6 +79,10 @@ export default function AttendanceSheet() {
   const [teamWeeks, setTeamWeeks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
 
   // Time Entry Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,6 +101,7 @@ export default function AttendanceSheet() {
   const [editMinutes, setEditMinutes] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
+  const [selectedDayDetails, setSelectedDayDetails] = useState(null);
 
   function startEditingEntry(entry) {
     setEditingEntryId(entry.id);
@@ -144,9 +155,6 @@ export default function AttendanceSheet() {
     }
   }
 
-  // Selected Day Breakdown Modal State
-  const [selectedDayDetails, setSelectedDayDetails] = useState(null);
-
   function handleOpenDayDetails(userName, dayObj) {
     if (!dayObj || !dayObj.entries || dayObj.entries.length === 0) return;
     setSelectedDayDetails({
@@ -180,7 +188,6 @@ export default function AttendanceSheet() {
     refreshData();
   }, [refDate, isTeamView]);
 
-  // Load available tasks for the modal dropdown
   useEffect(() => {
     async function fetchTasks() {
       try {
@@ -238,7 +245,6 @@ export default function AttendanceSheet() {
       setIsModalOpen(false);
       setHours("7");
       setMinutes("0");
-      setOtherActivityName("");
       refreshData();
     } catch (err) {
       setFormError(err?.data?.detail || err?.data?.error || "Erreur lors de la déclaration des heures.");
@@ -249,12 +255,9 @@ export default function AttendanceSheet() {
 
   const weekRangeLabel = useMemo(() => {
     const start = new Date(refDate);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    return `${start.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} — ${end.toLocaleDateString(
-      "fr-FR",
-      { day: "numeric", month: "long", year: "numeric" }
-    )}`;
+    const end = new Date(refDate);
+    end.setDate(end.getDate() + 6);
+    return `${start.getDate()} ${start.toLocaleDateString("fr-FR", { month: "short" })} – ${end.getDate()} ${end.toLocaleDateString("fr-FR", { month: "short" })} ${end.getFullYear()}`;
   }, [refDate]);
 
   function shiftWeek(deltaDays) {
@@ -263,138 +266,264 @@ export default function AttendanceSheet() {
     setRefDate(toISODate(d));
   }
 
-  const days = personalWeek?.days || [];
+  function resetToToday() {
+    setRefDate(toISODate(mondayOf(new Date())));
+  }
+
+  // Filtered rows for team view
+  const filteredTeamWeeks = useMemo(() => {
+    return teamWeeks.filter((row) => {
+      const nameMatch = row.user_name.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!nameMatch) return false;
+
+      if (roleFilter === "cm") return row.role === "cm";
+      if (roleFilter === "prod") return row.role === "prod";
+      if (roleFilter === "penalized") {
+        return row.days.some((d) => d.day_off_reason === "penalized");
+      }
+      return true;
+    });
+  }, [teamWeeks, searchQuery, roleFilter]);
+
+  // Analytics Metrics
+  const stats = useMemo(() => {
+    if (!isTeamView) {
+      const daysList = personalWeek?.days || [];
+      const totalMins = daysList.reduce((acc, d) => acc + (d.day_off_reason ? 0 : d.total_minutes), 0);
+      const penalizedCount = daysList.filter((d) => d.day_off_reason === "penalized").length;
+      const graceCount = daysList.filter((d) => d.is_grace_period).length;
+      return { totalMins, penalizedCount, graceCount, userCount: 1 };
+    }
+
+    let totalMins = 0;
+    let penalizedCount = 0;
+    let graceCount = 0;
+
+    teamWeeks.forEach((row) => {
+      row.days.forEach((d) => {
+        if (d.day_off_reason === "penalized") penalizedCount++;
+        if (d.is_grace_period) graceCount++;
+        if (!d.day_off_reason) totalMins += d.total_minutes;
+      });
+    });
+
+    return { totalMins, penalizedCount, graceCount, userCount: teamWeeks.length };
+  }, [teamWeeks, personalWeek, isTeamView]);
+
+  function exportCSV() {
+    if (!teamWeeks || teamWeeks.length === 0) return;
+    const headers = ["Utilisateur", "Rôle", ...teamWeeks[0].days.map((d) => fmtDayHeader(d.date)), "Total semaine"];
+    const rows = teamWeeks.map((row) => {
+      const weekTotal = row.days.reduce((s, d) => s + (d.day_off_reason ? 0 : d.total_minutes), 0);
+      const dayCells = row.days.map((d) => {
+        if (d.day_off_reason) return DAY_OFF_LABELS[d.day_off_reason] || d.day_off_reason;
+        return fmtMinutes(d.total_minutes);
+      });
+      return [row.user_name, row.role, ...dayCells, fmtMinutes(weekTotal)];
+    });
+
+    const csvContent = [headers, ...rows].map((e) => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Feuille_Presence_${refDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  const todayIso = toISODate(new Date());
 
   return (
     <AppShell>
-      <div className="att-header">
-        <div>
-          <h1>Feuille de présence</h1>
-          <p className="att-subtitle">
-            {isTeamView ? "Vue équipe — heures déclarées par jour." : "Vos heures déclarées par jour."}
-          </p>
-        </div>
-        <div className="att-week-nav" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <button type="button" className="btn-primary" onClick={() => setIsModalOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-            Saisir mon temps de travail
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <button type="button" className="btn-secondary" onClick={() => shiftWeek(-7)}>
-              ← Semaine préc.
-            </button>
-            <span className="att-week-label">{weekRangeLabel}</span>
-            <button type="button" className="btn-secondary" onClick={() => shiftWeek(7)}>
-              Semaine suiv. →
-            </button>
+      <div className="att-container">
+        {/* ── Top Header ───────────────────────────────────────── */}
+        <div className="att-header">
+          <div>
+            <h1 className="att-title">Feuille de présence</h1>
+            <p className="att-subtitle">
+              {isTeamView
+                ? "Suivi analytique et temps de travail de l'équipe par journée."
+                : "Consultez vos heures déclarées et votre relevé de présence."}
+            </p>
+          </div>
+
+          <div className="att-week-nav">
+            {!isTeamView && (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setIsModalOpen(true)}
+                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Saisir mon temps
+              </button>
+            )}
+
+            {isTeamView && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={exportCSV}
+                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Exporter CSV
+              </button>
+            )}
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <button type="button" className="btn-secondary" onClick={() => shiftWeek(-7)}>
+                ← Préc.
+              </button>
+              <button type="button" className="btn-secondary" onClick={resetToToday}>
+                Aujourd'hui
+              </button>
+              <button type="button" className="btn-secondary" onClick={() => shiftWeek(7)}>
+                Suiv. →
+              </button>
+              <span className="att-week-badge">{weekRangeLabel}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {loading && <p className="att-status">Chargement…</p>}
-      {loadError && <p className="att-status att-status--error">{loadError}</p>}
+        {/* ── KPI Analytics Header Cards ────────────────────────── */}
+        <div className="att-kpi-grid">
+          <div className="att-kpi-card">
+            <span className="att-kpi-label">Volume total déclaré</span>
+            <div className="att-kpi-val-row">
+              <span className="att-kpi-value">{fmtMinutes(stats.totalMins)}</span>
+              <span className="att-kpi-tag att-kpi-tag--blue">⚡ Semaine</span>
+            </div>
+          </div>
 
-      {!loading && !loadError && !isTeamView && personalWeek && (() => {
-        // Collect all unique tasks with time logged this week
-        const taskMap = new Map();
-        days.forEach(d => {
-          (d.entries || []).forEach(e => {
-            if (e.task_id && e.task_title) {
-              taskMap.set(e.task_id, { title: e.task_title, project_id: e.project_id });
-            }
-          });
-        });
-        const taskList = Array.from(taskMap.entries()).map(([id, info]) => ({ id, ...info }));
+          <div className="att-kpi-card">
+            <span className="att-kpi-label">Collaborateurs actifs</span>
+            <div className="att-kpi-val-row">
+              <span className="att-kpi-value">{stats.userCount}</span>
+              <span className="att-kpi-tag att-kpi-tag--green">👥 Membres</span>
+            </div>
+          </div>
 
-        // Get minutes spent on a specific task on a specific day
-        const getTaskMinutesForDay = (taskId, dayEntries) => {
-          return (dayEntries || [])
-            .filter(e => e.task_id === taskId)
-            .reduce((s, e) => s + e.hours * 60 + e.minutes, 0);
-        };
+          <div className="att-kpi-card">
+            <span className="att-kpi-label">Pénalités cette semaine</span>
+            <div className="att-kpi-val-row">
+              <span className="att-kpi-value" style={{ color: stats.penalizedCount > 0 ? "#ef4444" : "var(--ink)" }}>
+                {stats.penalizedCount}
+              </span>
+              <span className={`att-kpi-tag ${stats.penalizedCount > 0 ? "att-kpi-tag--red" : "att-kpi-tag--gray"}`}>
+                {stats.penalizedCount > 0 ? "⚠️ Alerte" : "0 Réclamations"}
+              </span>
+            </div>
+          </div>
 
-        return (
+          <div className="att-kpi-card">
+            <span className="att-kpi-label">Délais de grâce (J+1)</span>
+            <div className="att-kpi-val-row">
+              <span className="att-kpi-value" style={{ color: stats.graceCount > 0 ? "#f59e0b" : "var(--ink)" }}>
+                {stats.graceCount}
+              </span>
+              <span className={`att-kpi-tag ${stats.graceCount > 0 ? "att-kpi-tag--amber" : "att-kpi-tag--gray"}`}>
+                {stats.graceCount > 0 ? "⏳ En attente" : "À jour"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Toolbar & Filters (Team View) ────────────────────── */}
+        {isTeamView && (
+          <div className="att-toolbar">
+            <input
+              type="text"
+              className="users-search"
+              placeholder="Rechercher un collaborateur…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: "260px" }}
+            />
+
+            <div className="users-filters">
+              <button
+                type="button"
+                className={`chip-toggle ${roleFilter === "all" ? "is-selected" : ""}`}
+                onClick={() => setRoleFilter("all")}
+              >
+                Tous les membres
+              </button>
+              <button
+                type="button"
+                className={`chip-toggle ${roleFilter === "cm" ? "is-selected" : ""}`}
+                onClick={() => setRoleFilter("cm")}
+              >
+                Community Managers
+              </button>
+              <button
+                type="button"
+                className={`chip-toggle ${roleFilter === "prod" ? "is-selected" : ""}`}
+                onClick={() => setRoleFilter("prod")}
+              >
+                Équipe Prod
+              </button>
+              <button
+                type="button"
+                className={`chip-toggle ${roleFilter === "penalized" ? "is-selected" : ""}`}
+                onClick={() => setRoleFilter("penalized")}
+              >
+                ⚠️ Pénalités seulement
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading && <p className="att-status">Chargement de la feuille de présence…</p>}
+        {loadError && <p className="att-status att-status--error">{loadError}</p>}
+
+        {/* ── Personal View Table ───────────────────────────────── */}
+        {!loading && !loadError && !isTeamView && personalWeek && (
           <div className="att-table-wrap">
             <table className="att-table att-table--personal">
               <thead>
                 <tr>
-                  <th className="att-th-name">Tâche</th>
-                  {days.map((d) => (
-                    <th key={d.date}>
-                      {DAY_LABELS[new Date(d.date).getDay() === 0 ? 6 : new Date(d.date).getDay() - 1]}
-                      <span className="att-th-date">{fmtDayHeader(d.date)}</span>
-                    </th>
-                  ))}
-                  <th className="att-th-name">Total tâche</th>
+                  <th className="att-th-name">Collaborateur</th>
+                  {(personalWeek.days || []).map((d) => {
+                    const isToday = d.date === todayIso;
+                    return (
+                      <th key={d.date} className={isToday ? "att-th--today" : ""}>
+                        {DAY_LABELS[new Date(d.date).getDay() === 0 ? 6 : new Date(d.date).getDay() - 1]}
+                        <span className="att-th-date">{fmtDayHeader(d.date)}</span>
+                        {isToday && <span className="att-today-pill">Aujourd'hui</span>}
+                      </th>
+                    );
+                  })}
+                  <th className="att-th-name">Total semaine</th>
                 </tr>
               </thead>
               <tbody>
-                {taskList.map((task) => {
-                  const taskWeekTotal = days.reduce((s, d) => s + getTaskMinutesForDay(task.id, d.entries), 0);
-                  return (
-                    <tr key={task.id}>
-                      <td className="att-th-name">
-                        {task.project_id ? (
-                          <Link
-                            to={`/projects/${task.project_id}?task=${task.id}`}
-                            className="att-task-link"
-                            style={{ color: "var(--primary)", textDecoration: "underline" }}
-                          >
-                            {task.title}
-                          </Link>
-                        ) : (
-                          <span>{task.title}</span>
-                        )}
-                      </td>
-                      {days.map((d) => {
-                        const taskEntries = (d.entries || []).filter(e => e.task_id === task.id);
-                        const mins = getTaskMinutesForDay(task.id, d.entries);
-                        const isClickable = mins > 0 && taskEntries.length > 0;
-                        return (
-                          <td
-                            key={d.date}
-                            className={`att-cell ${isClickable ? "att-cell--clickable" : ""}`}
-                            onClick={() => {
-                              if (isClickable) {
-                                setSelectedDayDetails({
-                                  userName: `${user?.first_name} ${user?.last_name}`,
-                                  date: fmtDayHeader(d.date),
-                                  isoDate: d.date,
-                                  entries: taskEntries,
-                                  total_minutes: mins,
-                                });
-                              }
-                            }}
-                            title={isClickable ? "Cliquer pour voir le détail de cette saisie" : ""}
-                          >
-                            <span className="att-time-value">{mins > 0 ? fmtMinutes(mins) : "—"}</span>
-                            {isClickable && <span className="att-cell-hint" aria-hidden="true"> 🔍</span>}
-                          </td>
-                        );
-                      })}
-                      <td className="att-totals-cell" style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.85rem" }}>
-                        {fmtMinutes(taskWeekTotal)}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {taskList.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="att-status" style={{ textAlign: "center", padding: "2rem" }}>
-                      Aucun temps déclaré cette semaine.
-                    </td>
-                  </tr>
-                )}
-
-                {/* Daily totals row */}
-                <tr className="att-totals-row" style={{ borderTop: "2px solid var(--line)" }}>
-                  <td className="att-th-name" style={{ fontWeight: 700 }}>Totaux</td>
-                  {days.map((d) => {
+                <tr>
+                  <td className="att-th-name" style={{ fontWeight: 700 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                      <Avatar firstName={user?.first_name} lastName={user?.last_name} size={32} />
+                      <div>
+                        <div>{user?.first_name} {user?.last_name}</div>
+                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }}>{user?.effective_role}</span>
+                      </div>
+                    </div>
+                  </td>
+                  {(personalWeek.days || []).map((d) => {
                     if (d.day_off_reason && d.total_minutes === 0) {
+                      const isPenalized = d.day_off_reason === "penalized";
                       return (
-                        <td key={d.date} className="att-cell att-cell--off">
-                          <span className="att-off-label">{DAY_OFF_LABELS[d.day_off_reason] || d.day_off_reason}</span>
+                        <td key={d.date} className={`att-cell ${isPenalized ? "att-cell--penalized" : "att-cell--off"}`}>
+                          <span className={`att-off-label ${isPenalized ? "att-off-label--penalized" : ""}`}>
+                            {isPenalized && "⚠️ "}
+                            {DAY_OFF_LABELS[d.day_off_reason] || d.day_off_reason}
+                          </span>
                         </td>
                       );
                     }
@@ -402,380 +531,321 @@ export default function AttendanceSheet() {
                     return (
                       <td
                         key={d.date}
-                        className={`att-cell att-totals-cell ${d.missing_report ? "att-cell--missing" : ""} ${isClickable ? "att-cell--clickable" : ""}`}
-                        style={{ fontWeight: 700 }}
+                        className={`att-cell ${d.missing_report ? "att-cell--missing" : ""} ${d.is_grace_period ? "att-cell--grace" : ""} ${isClickable ? "att-cell--clickable" : ""}`}
                         onClick={() => isClickable && handleOpenDayDetails(null, d)}
-                        title={isClickable ? "Cliquer pour voir le détail des tâches de cette journée" : ""}
+                        title={d.is_grace_period ? "Délai de grâce (J+1) : à déclarer avant 23h59" : isClickable ? "Cliquer pour voir le détail des tâches" : ""}
                       >
                         <span className="att-time-value">{fmtMinutes(d.total_minutes)}</span>
+                        {d.is_grace_period && <span className="att-grace-tag">⏳ J+1</span>}
                         {isClickable && <span className="att-cell-hint" aria-hidden="true"> 🔍</span>}
                       </td>
                     );
                   })}
-                  <td className="att-totals-cell" style={{ fontWeight: 700, textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.85rem" }}>
-                    {fmtMinutes(days.reduce((s, d) => s + d.total_minutes, 0))}
+                  <td className="att-totals-cell" style={{ fontWeight: 700, textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.95rem" }}>
+                    {fmtMinutes((personalWeek.days || []).reduce((s, d) => s + (d.day_off_reason ? 0 : d.total_minutes), 0))}
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        );
-      })()}
+        )}
 
-      {!loading && !loadError && isTeamView && (
-        <div className="att-table-wrap">
-          <table className="att-table att-table--team">
-            <thead>
-              <tr>
-                <th className="att-th-name">Utilisateur</th>
-                {teamWeeks[0]?.days.map((d) => (
-                  <th key={d.date}>
-                    {DAY_LABELS[new Date(d.date).getDay() === 0 ? 6 : new Date(d.date).getDay() - 1]}
-                    <span className="att-th-date">{fmtDayHeader(d.date)}</span>
-                  </th>
-                ))}
-                <th className="att-th-name">Total semaine</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teamWeeks.map((row) => {
-                const weekTotal = row.days.reduce((s, d) => s + (d.day_off_reason ? 0 : d.total_minutes), 0);
-                return (
-                  <tr key={row.user_id}>
-                    <td className="att-th-name">{row.user_name}</td>
-                    {row.days.map((d) => (
-                      <DayCell key={d.date} day={d} userName={row.user_name} onSelect={handleOpenDayDetails} />
-                    ))}
-                    <td className="att-totals-cell">{fmtMinutes(weekTotal)}</td>
-                  </tr>
-                );
-              })}
-              {teamWeeks.length === 0 && (
+        {/* ── Team View Table ──────────────────────────────────── */}
+        {!loading && !loadError && isTeamView && (
+          <div className="att-table-wrap">
+            <table className="att-table att-table--team">
+              <thead>
                 <tr>
-                  <td colSpan={9} className="att-status">
-                    Aucun utilisateur actif à afficher.
-                  </td>
+                  <th className="att-th-name">Collaborateur</th>
+                  {teamWeeks[0]?.days.map((d) => {
+                    const isToday = d.date === todayIso;
+                    return (
+                      <th key={d.date} className={isToday ? "att-th--today" : ""}>
+                        {DAY_LABELS[new Date(d.date).getDay() === 0 ? 6 : new Date(d.date).getDay() - 1]}
+                        <span className="att-th-date">{fmtDayHeader(d.date)}</span>
+                        {isToday && <span className="att-today-pill">Aujourd'hui</span>}
+                      </th>
+                    );
+                  })}
+                  <th className="att-th-name">Total semaine</th>
                 </tr>
-              )}
-              {teamWeeks.length > 0 && (() => {
-                const dayTotals = (teamWeeks[0]?.days || []).map((_, di) =>
-                  teamWeeks.reduce((s, row) => s + (row.days[di]?.day_off_reason ? 0 : row.days[di]?.total_minutes || 0), 0)
-                );
-                return (
-                  <tr className="att-totals-row">
-                    <td className="att-th-name" style={{ fontWeight: 700 }}>Totaux</td>
-                    {dayTotals.map((total, i) => (
-                      <td key={i} className="att-totals-cell">{fmtMinutes(total)}</td>
-                    ))}
-                    <td className="att-totals-cell" style={{ fontWeight: 700 }}>
-                      {fmtMinutes(dayTotals.reduce((a, b) => a + b, 0))}
-                    </td>
-                  </tr>
-                );
-              })()}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <p className="att-legend">
-        <span className="att-legend-swatch att-legend-swatch--missing" /> Journée sans temps déclaré
-      </p>
-
-      {/* ── Modal Popup: Saisir mon temps de travail ── */}
-      <Modal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Saisir mon temps de travail"
-        width={480}
-      >
-        <form onSubmit={handleTimeSubmit}>
-          <div className="field">
-            <label>Date du jour travaillé</label>
-            <input
-              type="date"
-              required
-              value={entryDate}
-              onChange={(e) => setEntryDate(e.target.value)}
-            />
-          </div>
-
-          <div className="field">
-            <label>Tâche ou Activité</label>
-            <select
-              value={selectedTaskId}
-              onChange={(e) => setSelectedTaskId(e.target.value)}
-              required
-            >
-              <option value="">-- Sélectionner une tâche ou activité --</option>
-              {userTasks.map((t) => (
-                <option key={t.id} value={t.id}>
-                  [{t.project_title || "Projet"}] {t.title}
-                </option>
-              ))}
-              <option value="other">💡 Autre / Activité générale (Réunion, Formation...)</option>
-            </select>
-          </div>
-
-          {selectedTaskId === "other" && (
-            <div className="field">
-              <label>Description / Intitulé de l'activité (optionnel)</label>
-              <input
-                type="text"
-                placeholder="ex: Réunion d'équipe, Formation interne..."
-                value={otherActivityName}
-                onChange={(e) => setOtherActivityName(e.target.value)}
-              />
-            </div>
-          )}
-
-          <div className="field-row">
-            <div className="field">
-              <label>Heures</label>
-              <input
-                type="number"
-                min="0"
-                max="24"
-                required
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-                placeholder="7"
-              />
-            </div>
-
-            <div className="field">
-              <label>Minutes</label>
-              <input
-                type="number"
-                min="0"
-                max="59"
-                required
-                value={minutes}
-                onChange={(e) => setMinutes(e.target.value)}
-                placeholder="30"
-              />
-            </div>
-          </div>
-
-          {formError && <p className="field-error">{formError}</p>}
-
-          <div className="form-actions">
-            <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
-              Annuler
-            </button>
-            <button type="submit" className="btn-primary" disabled={formSubmitting}>
-              {formSubmitting ? "Enregistrement…" : "Enregistrer la saisie"}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* ── Modal Popup: Détail du temps passé sur la journée ── */}
-      <Modal
-        open={!!selectedDayDetails}
-        onClose={() => setSelectedDayDetails(null)}
-        title={`Détail du temps passé (${selectedDayDetails?.date || ""})`}
-        width={520}
-      >
-        {selectedDayDetails && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {selectedDayDetails.userName && (
-              <div style={{ fontSize: "0.88rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                Collaborateur : <span style={{ color: "var(--ink)", fontWeight: 700 }}>{selectedDayDetails.userName}</span>
-              </div>
-            )}
-
-            {(!selectedDayDetails.entries || selectedDayDetails.entries.length === 0) ? (
-              <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "1.5rem 0" }}>
-                Aucune tâche détaillée enregistrée pour cette journée.
-              </p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                {selectedDayDetails.entries.map((entry) => {
-                  const canEditOrDelete = entry.user_id === user?.id;
-                  const isEditing = editingEntryId === entry.id;
+              </thead>
+              <tbody>
+                {filteredTeamWeeks.map((row) => {
+                  const weekTotal = row.days.reduce((s, d) => s + (d.day_off_reason ? 0 : d.total_minutes), 0);
+                  const nameParts = row.user_name.split(" ");
+                  const firstName = nameParts[0] || "";
+                  const lastName = nameParts.slice(1).join(" ") || "";
 
                   return (
-                    <div
-                      key={entry.id}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "0.5rem",
-                        padding: "0.75rem 0.9rem",
-                        borderRadius: "10px",
-                        background: "var(--paper)",
-                        border: "1px solid var(--line)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem", minWidth: 0, flex: 1, paddingRight: "0.5rem" }}>
-                          <span style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--ink)" }}>
-                            {entry.task_title || "Activité générale"}
-                          </span>
-                          {entry.project_id && (
-                            <Link
-                              to={`/projects/${entry.project_id}?task=${entry.task_id}`}
-                              style={{ fontSize: "0.78rem", color: "var(--primary)", textDecoration: "underline" }}
-                              onClick={() => setSelectedDayDetails(null)}
-                            >
-                              Accéder à la tâche →
-                            </Link>
-                          )}
-                        </div>
-
-                        {!isEditing && (
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                            <span
-                              style={{
-                                fontFamily: "var(--font-mono)",
-                                fontWeight: 700,
-                                fontSize: "0.88rem",
-                                padding: "0.25rem 0.55rem",
-                                borderRadius: "6px",
-                                background: "var(--sidebar-accent)",
-                                color: "var(--ink)",
-                              }}
-                            >
-                              {fmtMinutes(entry.hours * 60 + entry.minutes)}
-                            </span>
-
-                            {canEditOrDelete && (
-                              <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                                <button
-                                  type="button"
-                                  onClick={() => startEditingEntry(entry)}
-                                  title="Modifier cette saisie"
-                                  style={{
-                                    background: "transparent",
-                                    border: "1px solid var(--line)",
-                                    borderRadius: "6px",
-                                    padding: "0.22rem 0.5rem",
-                                    fontSize: "0.75rem",
-                                    cursor: "pointer",
-                                    color: "var(--ink)",
-                                  }}
-                                >
-                                  ✏️ Modifier
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteEntry(entry)}
-                                  title="Supprimer cette saisie"
-                                  style={{
-                                    background: "rgba(185, 28, 28, 0.08)",
-                                    border: "1px solid rgba(185, 28, 28, 0.2)",
-                                    borderRadius: "6px",
-                                    padding: "0.22rem 0.5rem",
-                                    fontSize: "0.75rem",
-                                    cursor: "pointer",
-                                    color: "#b91c1c",
-                                  }}
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-                            )}
+                    <tr key={row.user_id}>
+                      <td className="att-th-name">
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                          <Avatar firstName={firstName} lastName={lastName} size={30} />
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{row.user_name}</div>
+                            <span className="att-role-badge">{row.role}</span>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Inline Edit Form */}
-                      {isEditing && (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "0.4rem",
-                            marginTop: "0.3rem",
-                            paddingTop: "0.5rem",
-                            borderTop: "1px dashed var(--line)",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                              <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Heures:</span>
-                              <input
-                                type="number"
-                                min="0"
-                                max="24"
-                                value={editHours}
-                                onChange={(e) => setEditHours(e.target.value)}
-                                style={{ width: "60px", padding: "0.25rem 0.4rem", fontSize: "0.85rem", borderRadius: "6px", border: "1px solid var(--border)" }}
-                              />
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                              <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Min:</span>
-                              <input
-                                type="number"
-                                min="0"
-                                max="59"
-                                value={editMinutes}
-                                onChange={(e) => setEditMinutes(e.target.value)}
-                                style={{ width: "60px", padding: "0.25rem 0.4rem", fontSize: "0.85rem", borderRadius: "6px", border: "1px solid var(--border)" }}
-                              />
-                            </div>
-
-                            <button
-                              type="button"
-                              className="btn-primary"
-                              disabled={editSaving}
-                              onClick={() => saveEditingEntry(entry)}
-                              style={{ padding: "0.25rem 0.65rem", fontSize: "0.78rem" }}
-                            >
-                              {editSaving ? "..." : "Valider"}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-secondary"
-                              onClick={() => setEditingEntryId(null)}
-                              style={{ padding: "0.25rem 0.65rem", fontSize: "0.78rem" }}
-                            >
-                              Annuler
-                            </button>
-                          </div>
-                          {editError && <p className="field-error" style={{ margin: 0 }}>{editError}</p>}
                         </div>
-                      )}
-                    </div>
+                      </td>
+                      {row.days.map((d) => (
+                        <DayCell key={d.date} day={d} userName={row.user_name} onSelect={handleOpenDayDetails} />
+                      ))}
+                      <td className="att-totals-cell" style={{ fontWeight: 700 }}>
+                        {fmtMinutes(weekTotal)}
+                      </td>
+                    </tr>
                   );
                 })}
+
+                {filteredTeamWeeks.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="att-status">
+                      Aucun collaborateur ne correspond à votre recherche.
+                    </td>
+                  </tr>
+                )}
+
+                {filteredTeamWeeks.length > 0 && (() => {
+                  const dayTotals = (filteredTeamWeeks[0]?.days || []).map((_, di) =>
+                    filteredTeamWeeks.reduce((s, row) => s + (row.days[di]?.day_off_reason ? 0 : row.days[di]?.total_minutes || 0), 0)
+                  );
+                  return (
+                    <tr className="att-totals-row">
+                      <td className="att-th-name" style={{ fontWeight: 700 }}>
+                        Totaux Équipe
+                      </td>
+                      {dayTotals.map((total, i) => (
+                        <td key={i} className="att-totals-cell" style={{ fontWeight: 700 }}>
+                          {fmtMinutes(total)}
+                        </td>
+                      ))}
+                      <td className="att-totals-cell" style={{ fontWeight: 800, fontSize: "0.95rem" }}>
+                        {fmtMinutes(dayTotals.reduce((a, b) => a + b, 0))}
+                      </td>
+                    </tr>
+                  );
+                })()}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── Legend Bar ───────────────────────────────────────── */}
+        <div className="att-legend-bar">
+          <div className="att-legend-item">
+            <span className="att-legend-swatch att-legend-swatch--ok" /> Présence normale (8h Mon-Fri / 5h Sat)
+          </div>
+          <div className="att-legend-item">
+            <span className="att-legend-swatch att-legend-swatch--grace" /> ⏳ Délai de grâce (J+1 avant 23h59)
+          </div>
+          <div className="att-legend-item">
+            <span className="att-legend-swatch att-legend-swatch--penalized" /> ⚠️ Pénalisé (non payé)
+          </div>
+          <div className="att-legend-item">
+            <span className="att-legend-swatch att-legend-swatch--off" /> 🌴 Congé / Maladie / Férié
+          </div>
+        </div>
+
+        {/* ── Modal Popup: Saisir mon temps de travail ── */}
+        <Modal
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Saisir mon temps de travail"
+          width={480}
+        >
+          <form onSubmit={handleTimeSubmit}>
+            <div className="field">
+              <label>Date du jour travaillé</label>
+              <input
+                type="date"
+                required
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
+              />
+            </div>
+
+            <div className="field">
+              <label>Tâche ou Activité</label>
+              <select
+                value={selectedTaskId}
+                onChange={(e) => setSelectedTaskId(e.target.value)}
+                required
+              >
+                <option value="">-- Sélectionner une tâche ou activité --</option>
+                {userTasks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    [{t.project_title || "Projet"}] {t.title}
+                  </option>
+                ))}
+                <option value="other">💡 Autre / Activité générale (Réunion, Formation...)</option>
+              </select>
+            </div>
+
+            {selectedTaskId === "other" && (
+              <div className="field">
+                <label>Description / Intitulé de l'activité (optionnel)</label>
+                <input
+                  type="text"
+                  placeholder="ex: Réunion d'équipe, Formation Meta Blueprint..."
+                  value={otherActivityName}
+                  onChange={(e) => setOtherActivityName(e.target.value)}
+                />
               </div>
             )}
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                paddingTop: "0.8rem",
-                marginTop: "0.4rem",
-                borderTop: "2px solid var(--line)",
-                fontWeight: 700,
-                fontSize: "0.9rem",
-              }}
-            >
-              <span>Durée totale sur cette sélection :</span>
-              <span style={{ fontFamily: "var(--font-mono)", color: "var(--primary)", fontSize: "1.05rem" }}>
-                {fmtMinutes(selectedDayDetails.total_minutes)}
-              </span>
+            <div className="field-row">
+              <div className="field">
+                <label>Heures</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="24"
+                  required
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label>Minutes</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  required
+                  value={minutes}
+                  onChange={(e) => setMinutes(e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="form-actions" style={{ marginTop: "0.5rem" }}>
-              <button type="button" className="btn-secondary" onClick={() => setSelectedDayDetails(null)}>
-                Fermer
+            {formError && <p className="field-error" role="alert">{formError}</p>}
+
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={formSubmitting}
+              >
+                {formSubmitting ? "Enregistrement…" : "Enregistrer la saisie"}
               </button>
             </div>
-          </div>
-        )}
-      </Modal>
+          </form>
+        </Modal>
+
+        {/* ── Modal Popup: Breakdown Details for Day Cell ── */}
+        <Modal
+          open={!!selectedDayDetails}
+          onClose={() => {
+            setSelectedDayDetails(null);
+            setEditingEntryId(null);
+          }}
+          title={
+            selectedDayDetails
+              ? `Détail de présence — ${selectedDayDetails.userName} (${selectedDayDetails.date})`
+              : "Détail de présence"
+          }
+          width={520}
+        >
+          {selectedDayDetails && (
+            <div className="att-breakdown-modal">
+              <p className="att-breakdown-total">
+                Total déclaré pour cette journée : <strong>{fmtMinutes(selectedDayDetails.total_minutes)}</strong>
+              </p>
+
+              <div className="att-breakdown-list">
+                {selectedDayDetails.entries.map((te) => (
+                  <div key={te.id} className="att-breakdown-item">
+                    {editingEntryId === te.id ? (
+                      <div style={{ width: "100%" }}>
+                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                          <input
+                            type="number"
+                            min="0"
+                            max="24"
+                            style={{ width: "70px" }}
+                            value={editHours}
+                            onChange={(e) => setEditHours(e.target.value)}
+                            placeholder="Heures"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            style={{ width: "70px" }}
+                            value={editMinutes}
+                            onChange={(e) => setEditMinutes(e.target.value)}
+                            placeholder="Minutes"
+                          />
+                        </div>
+                        {editError && <p className="field-error">{editError}</p>}
+                        <div style={{ display: "flex", gap: "0.4rem" }}>
+                          <button
+                            type="button"
+                            className="btn-primary btn-primary--compact"
+                            onClick={() => saveEditingEntry(te)}
+                            disabled={editSaving}
+                          >
+                            {editSaving ? "…" : "Enregistrer"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setEditingEntryId(null)}
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="att-breakdown-info">
+                          <span className="att-breakdown-task">
+                            [{te.project_title || "Projet"}] {te.task_title || "Activité"}
+                          </span>
+                          {te.status_title && (
+                            <span className="att-breakdown-status">{te.status_title}</span>
+                          )}
+                        </div>
+                        <div className="att-breakdown-right">
+                          <span className="att-breakdown-duration">{fmtMinutes(te.hours * 60 + te.minutes)}</span>
+                          {te.user_id === user?.id && (
+                            <div className="att-breakdown-actions">
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem" }}
+                                onClick={() => startEditingEntry(te)}
+                              >
+                                Modifier
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-danger"
+                                style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem" }}
+                                onClick={() => deleteEntry(te)}
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Modal>
+      </div>
     </AppShell>
   );
 }

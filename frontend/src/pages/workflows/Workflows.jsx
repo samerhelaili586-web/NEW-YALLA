@@ -33,7 +33,8 @@ function StatusBadge({ status }) {
 export default function Workflows() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = user?.role === "admin_sys";
+  const canManage = ["admin_sys", "manager"].includes(user?.effective_role);
+  const isAdmin = canManage;
 
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);

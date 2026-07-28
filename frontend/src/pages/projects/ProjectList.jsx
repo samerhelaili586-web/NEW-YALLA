@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
+import Pagination from "../../components/Pagination";
 import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./ProjectList.css";
@@ -14,6 +15,7 @@ const STATUS_LABELS = {
   termine: "Terminé",
 };
 
+const PAGE_SIZE = 6;
 const EMPTY_FORM = { title: "", start_date: "", remarks: "", cm_id: "", monthly_targets: {} };
 
 export default function ProjectList() {
@@ -27,6 +29,7 @@ export default function ProjectList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
+  const [page, setPage] = useState(1);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);

@@ -1,0 +1,362 @@
+/* ── Communiqués & Notes Internes Styling ───────────────────────────────── */
+.ann-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ann-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ann-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 0.3rem;
+  color: var(--ink);
+}
+
+.ann-subtitle {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+/* KPI Stat Summary Cards */
+.ann-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.ann-kpi-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ann-kpi-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ann-kpi-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.ann-kpi-value {
+  font-family: var(--font-mono);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ann-kpi-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.ann-kpi-tag--blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.ann-kpi-tag--amber {
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+}
+
+.ann-kpi-tag--red {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+}
+
+.ann-kpi-tag--gray {
+  background: rgba(107, 104, 116, 0.12);
+  color: var(--text-muted);
+}
+
+/* Toolbar & Filter Bar */
+.ann-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+/* Announcement Cards Grid */
+.ann-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+.ann-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ann-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--amber);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.ann-card--unread {
+  border-left: 4px solid var(--amber);
+}
+
+.ann-card--urgent {
+  border-top: 3px solid #ef4444;
+}
+
+.ann-card--important {
+  border-top: 3px solid #f59e0b;
+}
+
+.ann-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ann-card-badges {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ann-priority-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ann-priority--info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.ann-priority--important {
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+}
+
+.ann-priority--urgent {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+}
+
+.ann-unread-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: #10b981;
+  color: #000;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+
+.ann-author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ann-author-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.ann-author-role {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--muted);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.ann-card-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.ann-card-content {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.ann-card-footer {
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ann-card-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ann-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-secondary--compact {
+  padding: 0.25rem 0.6rem !important;
+  font-size: 0.78rem !important;
+}
+
+.btn-primary--compact {
+  padding: 0.25rem 0.6rem !important;
+  font-size: 0.78rem !important;
+}
+
+.ann-read-tag {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.ann-status {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem 0;
+}
+
+.ann-status--error {
+  color: #ef4444;
+}
+
+.ann-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  color: var(--text-muted);
+}
+
+/* Read Receipts Modal Styles */
+.ann-receipts-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ann-receipts-summary {
+  font-size: 0.88rem;
+  color: var(--ink);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.ann-receipts-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.5rem;
+}
+
+.ann-tab {
+  background: transparent;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ann-tab:hover {
+  color: var(--ink);
+  background: var(--muted);
+}
+
+.ann-tab.is-active {
+  color: var(--amber);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.ann-receipts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.ann-receipt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+  background: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.ann-read-time {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.ann-unread-time {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: #f59e0b;
+  font-weight: 600;
+}

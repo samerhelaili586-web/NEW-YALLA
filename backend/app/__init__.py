@@ -74,7 +74,7 @@ def create_app(config_object="config.DevConfig"):
 
     from app.models import (  # noqa: F401  (register models with SQLAlchemy)
         user, task_type, project, task, equipment, shoot,
-        leave, notification,
+        leave, notification, announcement,
     )
 
     from app.routes.auth import auth_bp
@@ -110,6 +110,9 @@ def create_app(config_object="config.DevConfig"):
     from app.routes.login_history import login_history_bp
     app.register_blueprint(login_history_bp, url_prefix="/api/login-history")
 
+    from app.routes.announcements import announcements_bp
+    app.register_blueprint(announcements_bp, url_prefix="/api/announcements")
+
     @app.get("/api/health")
     def health():
         return {"status": "ok"}
@@ -117,7 +120,9 @@ def create_app(config_object="config.DevConfig"):
     with app.app_context():
         _run_migrations(db)
         db.create_all()
-        from app.seed import run_seed
-        run_seed()
+        from app.models.user import User
+        if not User.query.first():
+            from app.seed import run_seed
+            run_seed()
 
     return app
