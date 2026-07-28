@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
@@ -24,6 +24,7 @@ import Workflows from "./pages/workflows/Workflows";
 import WorkflowEditor from "./pages/workflows/WorkflowEditor";
 import Salaires from "./pages/admin/Salaires";
 import Announcements from "./pages/Announcements";
+import Guide from "./pages/Guide";
 
 export default function App() {
   return (
@@ -35,6 +36,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/guide"
+          element={
+            <ProtectedRoute>
+              <Guide />
             </ProtectedRoute>
           }
         />
@@ -126,6 +135,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/presence" element={<Navigate to="/attendance" replace />} />
         <Route
           path="/leave"
           element={

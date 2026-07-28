@@ -227,3 +227,19 @@
   margin: 0 0 0.5rem;
 }
 
+/* ─── Subtle Table Footnote ───────────────────────────────────────────── */
+.users-table-footnote {
+  margin-top: 0.65rem;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.users-table-footnote span {
+  font-weight: 600;
+  color: var(--ink);
+}
+

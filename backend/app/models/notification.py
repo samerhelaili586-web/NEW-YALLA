@@ -16,6 +16,7 @@ class Notification(db.Model):
     message = db.Column(db.String(255), nullable=False)
     link_url = db.Column(db.String(255))  # e.g. deep link to a task's comment thread
     is_read = db.Column(db.Boolean, default=False, nullable=False)
+    is_locked = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -25,5 +26,6 @@ class Notification(db.Model):
             "message": self.message,
             "link_url": self.link_url,
             "is_read": self.is_read,
+            "is_locked": getattr(self, "is_locked", False),
             "created_at": self.created_at.isoformat(),
         }

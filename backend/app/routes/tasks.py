@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.task import Task, TaskAssignee, Comment, CommentMention, TimeEntry, TASK_TITLE_MAX_LEN
@@ -407,10 +407,19 @@ def create_time_entry(task_id):
 
     user = current_user()
 
-    if entry_date > datetime.now().date():
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
+
+    if entry_date > today:
         return jsonify({
             "error": "future_date_not_allowed",
             "detail": "Impossible de déclarer du temps pour une date future."
+        }), 400
+
+    if entry_date < yesterday:
+        return jsonify({
+            "error": "date_too_old",
+            "detail": "La saisie de temps n'est autorisée que pour aujourd'hui (J) ou hier (J-1)."
         }), 400
 
     max_mins = get_max_elapsed_minutes(entry_date)

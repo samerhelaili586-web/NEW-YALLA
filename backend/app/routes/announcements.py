@@ -136,6 +136,15 @@ def update_announcement(id):
         return jsonify({"error": "forbidden"}), 403
 
     announcement = Announcement.query.get_or_404(id)
+
+    # Permission rule: Manager cannot modify an Admin Sys note
+    if user.effective_role == "manager":
+        if announcement.author and announcement.author.effective_role == "admin_sys":
+            return jsonify({
+                "error": "forbidden",
+                "detail": "Un manager ne peut pas modifier un communiqué publié par l'Admin Sys."
+            }), 403
+
     data = request.get_json(force=True) or {}
 
     if "title" in data:
@@ -157,6 +166,15 @@ def delete_announcement(id):
         return jsonify({"error": "forbidden"}), 403
 
     announcement = Announcement.query.get_or_404(id)
+
+    # Permission rule: Manager cannot delete an Admin Sys note
+    if user.effective_role == "manager":
+        if announcement.author and announcement.author.effective_role == "admin_sys":
+            return jsonify({
+                "error": "forbidden",
+                "detail": "Un manager ne peut pas supprimer un communiqué publié par l'Admin Sys."
+            }), 403
+
     db.session.delete(announcement)
     db.session.commit()
 

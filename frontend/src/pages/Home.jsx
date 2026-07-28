@@ -297,16 +297,32 @@ export default function Home() {
             {!loading && unavailable.length === 0 && (
               <p className="unavailable-empty">✓ Tout le monde est disponible.</p>
             )}
-            <ul className="unavailable-list">
-              {unavailable.map((u) => (
-                <li key={`${u.user_id}-${u.reason}`} className="unavailable-item">
-                  <span className="unavailable-name">{u.user_name}</span>
-                  <span className={`unavailable-reason unavailable-reason--${u.reason}`}>
-                    {u.reason === "conge" ? "Congé" : "Maladie"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {unavailable.length > 0 && (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", padding: "0.3rem 0.5rem", borderBottom: "1px solid var(--line)", fontWeight: 600, color: "var(--text-muted)", fontSize: "0.75rem" }}>Collaborateur</th>
+                    <th style={{ textAlign: "left", padding: "0.3rem 0.5rem", borderBottom: "1px solid var(--line)", fontWeight: 600, color: "var(--text-muted)", fontSize: "0.75rem" }}>Statut</th>
+                    <th style={{ textAlign: "left", padding: "0.3rem 0.5rem", borderBottom: "1px solid var(--line)", fontWeight: 600, color: "var(--text-muted)", fontSize: "0.75rem" }}>Période</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {unavailable.map((u) => (
+                    <tr key={`${u.user_id}-${u.reason}`}>
+                      <td style={{ padding: "0.4rem 0.5rem", borderBottom: "1px solid var(--line)" }} className="unavailable-name">{u.user_name}</td>
+                      <td style={{ padding: "0.4rem 0.5rem", borderBottom: "1px solid var(--line)" }}>
+                        <span className={`unavailable-reason unavailable-reason--${u.reason}`}>
+                          Indisponible
+                        </span>
+                      </td>
+                      <td style={{ padding: "0.4rem 0.5rem", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap", color: "var(--text-muted)", fontSize: "0.75rem" }}>
+                        {u.start ? `${new Date(u.start).toLocaleDateString("fr-FR")} → ${new Date(u.end).toLocaleDateString("fr-FR")}` : "Aujourd'hui"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </aside>
 
           {/* Agency Projects Stats */}

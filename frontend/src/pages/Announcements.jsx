@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import AppShell from "../components/AppShell";
 import Avatar from "../components/Avatar";
 import Modal from "../components/Modal";
+import { GlowingEffect } from "../components/GlowingEffect";
 import "../styles/shared.css";
 import "./Announcements.css";
 
@@ -12,6 +13,17 @@ const PRIORITY_LABELS = {
   important: { label: "Important", icon: "⚠️", badgeClass: "ann-priority--important" },
   urgent: { label: "Urgent", icon: "🚨", badgeClass: "ann-priority--urgent" },
 };
+
+function canManageAnnouncement(item, currentUser) {
+  if (!currentUser) return false;
+  const role = currentUser.effective_role;
+  if (role === "admin_sys") return true; // Admin Sys can modify & delete ALL notes
+  if (role === "manager") {
+    // Manager can only modify & delete non-admin notes (their own or CM notes)
+    return item.author_role !== "admin_sys";
+  }
+  return false;
+}
 
 export default function Announcements() {
   const { user } = useAuth();
@@ -183,6 +195,7 @@ export default function Announcements() {
         {/* ── KPI Stat Summary Cards ────────────────────────────── */}
         <div className="ann-kpi-grid">
           <div className="ann-kpi-card">
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <span className="ann-kpi-label">Total Communiqués</span>
             <div className="ann-kpi-val-row">
               <span className="ann-kpi-value">{announcements.length}</span>
@@ -191,6 +204,7 @@ export default function Announcements() {
           </div>
 
           <div className="ann-kpi-card">
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <span className="ann-kpi-label">Non Lus Pour Vous</span>
             <div className="ann-kpi-val-row">
               <span className="ann-kpi-value" style={{ color: unreadCount > 0 ? "#f59e0b" : "var(--ink)" }}>
@@ -203,6 +217,7 @@ export default function Announcements() {
           </div>
 
           <div className="ann-kpi-card">
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <span className="ann-kpi-label">Communiqués Urgents</span>
             <div className="ann-kpi-val-row">
               <span className="ann-kpi-value">
@@ -283,6 +298,7 @@ export default function Announcements() {
                   className={`ann-card ${!item.is_read_by_me ? "ann-card--unread" : ""} ann-card--${item.priority}`}
                   onClick={() => !item.is_read_by_me && handleMarkAsRead(item)}
                 >
+                  <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                   <div className="ann-card-header">
                     <div className="ann-card-badges">
                       <span className={`ann-priority-badge ${priorityInfo.badgeClass}`}>
@@ -321,7 +337,7 @@ export default function Announcements() {
                         </button>
                       )}
 
-                      {isManagerOrAdmin && (
+                      {canManageAnnouncement(item, user) && (
                         <>
                           <button
                             type="button"

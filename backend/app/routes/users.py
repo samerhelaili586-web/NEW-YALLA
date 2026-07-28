@@ -88,10 +88,6 @@ def update_user(user_id):
         if data["is_chef_prod"]:
             if user.role != "prod":
                 return jsonify({"error": "chef_prod_requires_prod_role"}), 400
-            # Unset any previous holder without committing yet
-            User.query.filter(User.id != user.id, User.is_chef_prod.is_(True)).update(
-                {"is_chef_prod": False}
-            )
             user.is_chef_prod = True
         else:
             user.is_chef_prod = False
@@ -255,11 +251,8 @@ def update_user_salary(user_id):
 
 
 def _set_chef_prod(user_id):
-    """Enforce: exactly one Prod user can hold the Chef Prod flag at a time.
-    Setting it on user_id automatically unsets it from any previous holder."""
-    User.query.filter(User.id != user_id, User.is_chef_prod.is_(True)).update(
-        {"is_chef_prod": False}
-    )
+    """Set Chef Prod flag for user_id (multiple Chef Prods allowed)."""
     target = User.query.get(user_id)
-    target.is_chef_prod = True
-    db.session.commit()
+    if target and target.role == "prod":
+        target.is_chef_prod = True
+        db.session.commit()

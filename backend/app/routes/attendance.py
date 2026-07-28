@@ -74,7 +74,7 @@ def check_and_notify_penalties():
                         user_id=u.id,
                         type="penalty_alert",
                         message=msg_employee,
-                        link_url="/presence",
+                        link_url=f"/attendance?date={past_date.isoformat()}",
                     ))
                     # Notify Managers and Admins
                     for m in managers_and_admins:
@@ -82,7 +82,7 @@ def check_and_notify_penalties():
                             user_id=m.id,
                             type="penalty_alert",
                             message=f"⚠️ Alerte Pénalité : {u.first_name} {u.last_name} n'a pas soumis son temps du {d_str} avant la limite. Journée marquée pénalisée.",
-                            link_url="/presence",
+                            link_url=f"/attendance?date={past_date.isoformat()}&search={u.first_name} {u.last_name}",
                         ))
                     db.session.commit()
 

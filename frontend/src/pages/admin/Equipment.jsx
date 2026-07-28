@@ -222,6 +222,15 @@ export default function AdminEquipment() {
               onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
               placeholder="https://…"
             />
+            {form.image_url && (
+              <div className="eq-form-image-preview">
+                <img
+                  src={form.image_url}
+                  alt="Aperçu du matériel"
+                  onError={(e) => { e.target.style.display = "none"; }}
+                />
+              </div>
+            )}
           </div>
 
           {formErrors.form && <p className="field-error">{formErrors.form}</p>}

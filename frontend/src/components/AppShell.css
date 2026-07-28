@@ -4,6 +4,11 @@
   min-height: 100vh;
   background: var(--paper);
   padding-left: 64px;
+  transition: padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shell.is-sidebar-pinned {
+  padding-left: 224px;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
@@ -31,14 +36,49 @@
   box-shadow: 4px 0 32px rgba(14, 13, 18, 0.25);
 }
 
+.shell-sidebar.is-pinned {
+  width: 224px !important;
+  box-shadow: none !important;
+}
+
 /* Brand */
 .shell-brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.6rem;
-  padding: 1.3rem 1.2rem 1.1rem;
+  padding: 1.3rem 0.9rem 1.1rem 1.2rem;
   border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
+}
+
+.shell-lock-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sidebar-foreground);
+  opacity: 0.45;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.shell-lock-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+  color: #38bdf8;
+}
+
+.shell-lock-btn.is-active {
+  opacity: 1;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.3);
 }
 
 .shell-brand-fancy {

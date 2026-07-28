@@ -18,6 +18,7 @@ def _run_migrations(db):
         "ALTER TABLE transitions ADD COLUMN form_fields JSON NOT NULL DEFAULT '[]'",
         "ALTER TABLE users ADD COLUMN hourly_rate FLOAT NOT NULL DEFAULT 25.0",
         "ALTER TABLE users ADD COLUMN monthly_hours_goal INTEGER NOT NULL DEFAULT 160",
+        "ALTER TABLE guide_pages ADD COLUMN steps JSON NOT NULL DEFAULT '[]'",
     ]
     with db.engine.connect() as conn:
         for stmt in migrations:
@@ -74,7 +75,7 @@ def create_app(config_object="config.DevConfig"):
 
     from app.models import (  # noqa: F401  (register models with SQLAlchemy)
         user, task_type, project, task, equipment, shoot,
-        leave, notification, announcement,
+        leave, notification, announcement, guide_page,
     )
 
     from app.routes.auth import auth_bp
@@ -112,6 +113,9 @@ def create_app(config_object="config.DevConfig"):
 
     from app.routes.announcements import announcements_bp
     app.register_blueprint(announcements_bp, url_prefix="/api/announcements")
+
+    from app.routes.guide import guide_bp
+    app.register_blueprint(guide_bp, url_prefix="/api/guide")
 
     @app.get("/api/health")
     def health():

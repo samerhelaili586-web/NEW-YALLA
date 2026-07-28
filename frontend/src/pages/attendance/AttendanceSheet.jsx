@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
@@ -26,8 +26,14 @@ function fmtMinutes(total) {
 }
 
 function fmtDayHeader(iso) {
-  const d = new Date(iso);
+  const d = parseISODate(iso);
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
+function parseISODate(dateStr) {
+  if (!dateStr || typeof dateStr !== "string" || !dateStr.includes("-")) return new Date();
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
 
 function mondayOf(d) {
@@ -39,14 +45,18 @@ function mondayOf(d) {
 }
 
 function toISODate(d) {
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function DayCell({ day, userName, onSelect }) {
+function DayCell({ day, userName, onSelect, targetDate }) {
+  const isTarget = targetDate && day.date === targetDate;
   if (day.day_off_reason) {
     const isPenalized = day.day_off_reason === "penalized";
     return (
-      <td className={`att-cell ${isPenalized ? "att-cell--penalized" : "att-cell--off"}`}>
+      <td className={`att-cell ${isPenalized ? "att-cell--penalized" : "att-cell--off"} ${isTarget ? "att-cell--target" : ""}`}>
         <span className={`att-off-label ${isPenalized ? "att-off-label--penalized" : ""}`}>
           {isPenalized && "⚠️ "}
           {DAY_OFF_LABELS[day.day_off_reason] || day.day_off_reason}
@@ -59,7 +69,7 @@ function DayCell({ day, userName, onSelect }) {
 
   return (
     <td
-      className={`att-cell ${day.missing_report ? "att-cell--missing" : ""} ${day.is_grace_period ? "att-cell--grace" : ""} ${isClickable ? "att-cell--clickable" : ""}`}
+      className={`att-cell ${day.missing_report ? "att-cell--missing" : ""} ${day.is_grace_period ? "att-cell--grace" : ""} ${isClickable ? "att-cell--clickable" : ""} ${isTarget ? "att-cell--target" : ""}`}
       onClick={() => isClickable && onSelect && onSelect(userName, day)}
       title={day.is_grace_period ? "Délai de grâce (J+1) : à déclarer avant 23h59" : isClickable ? "Cliquer pour voir le détail des tâches" : ""}
     >
@@ -73,16 +83,36 @@ function DayCell({ day, userName, onSelect }) {
 export default function AttendanceSheet() {
   const { user } = useAuth();
   const isTeamView = ["admin_sys", "manager"].includes(user?.effective_role);
+  const [searchParams] = useSearchParams();
 
-  const [refDate, setRefDate] = useState(() => toISODate(mondayOf(new Date())));
+  const [refDate, setRefDate] = useState(() => {
+    const dParam = searchParams.get("date");
+    if (dParam) return toISODate(mondayOf(parseISODate(dParam)));
+    return toISODate(mondayOf(new Date()));
+  });
   const [personalWeek, setPersonalWeek] = useState(null);
   const [teamWeeks, setTeamWeeks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
   // Filters & Search
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") || "");
   const [roleFilter, setRoleFilter] = useState("all");
+
+  const targetDateParam = searchParams.get("date");
+
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    const searchParam = searchParams.get("search");
+
+    if (dateParam) {
+      const targetMonday = mondayOf(parseISODate(dateParam));
+      setRefDate(toISODate(targetMonday));
+    }
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
 
   // Time Entry Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -214,6 +244,14 @@ export default function AttendanceSheet() {
 
     if (h === 0 && m === 0) {
       setFormError("Veuillez indiquer une durée supérieure à 0 minute.");
+      return;
+    }
+
+    // Client-side date guard: only today (J) or yesterday (J-1)
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
+    if (entryDate !== today && entryDate !== yesterday) {
+      setFormError("La saisie de temps n'est autorisée que pour aujourd'hui ou hier.");
       return;
     }
 
@@ -493,11 +531,13 @@ export default function AttendanceSheet() {
                   <th className="att-th-name">Collaborateur</th>
                   {(personalWeek.days || []).map((d) => {
                     const isToday = d.date === todayIso;
+                    const isTarget = d.date === targetDateParam;
                     return (
-                      <th key={d.date} className={isToday ? "att-th--today" : ""}>
-                        {DAY_LABELS[new Date(d.date).getDay() === 0 ? 6 : new Date(d.date).getDay() - 1]}
+                      <th key={d.date} className={`${isToday ? "att-th--today" : ""} ${isTarget ? "att-th--target" : ""}`}>
+                        {DAY_LABELS[parseISODate(d.date).getDay() === 0 ? 6 : parseISODate(d.date).getDay() - 1]}
                         <span className="att-th-date">{fmtDayHeader(d.date)}</span>
                         {isToday && <span className="att-today-pill">Aujourd'hui</span>}
+                        {isTarget && <span className="att-target-pill">Cible</span>}
                       </th>
                     );
                   })}
@@ -516,10 +556,11 @@ export default function AttendanceSheet() {
                     </div>
                   </td>
                   {(personalWeek.days || []).map((d) => {
+                    const isTarget = d.date === targetDateParam;
                     if (d.day_off_reason && d.total_minutes === 0) {
                       const isPenalized = d.day_off_reason === "penalized";
                       return (
-                        <td key={d.date} className={`att-cell ${isPenalized ? "att-cell--penalized" : "att-cell--off"}`}>
+                        <td key={d.date} className={`att-cell ${isPenalized ? "att-cell--penalized" : "att-cell--off"} ${isTarget ? "att-cell--target" : ""}`}>
                           <span className={`att-off-label ${isPenalized ? "att-off-label--penalized" : ""}`}>
                             {isPenalized && "⚠️ "}
                             {DAY_OFF_LABELS[d.day_off_reason] || d.day_off_reason}
@@ -531,7 +572,7 @@ export default function AttendanceSheet() {
                     return (
                       <td
                         key={d.date}
-                        className={`att-cell ${d.missing_report ? "att-cell--missing" : ""} ${d.is_grace_period ? "att-cell--grace" : ""} ${isClickable ? "att-cell--clickable" : ""}`}
+                        className={`att-cell ${d.missing_report ? "att-cell--missing" : ""} ${d.is_grace_period ? "att-cell--grace" : ""} ${isClickable ? "att-cell--clickable" : ""} ${isTarget ? "att-cell--target" : ""}`}
                         onClick={() => isClickable && handleOpenDayDetails(null, d)}
                         title={d.is_grace_period ? "Délai de grâce (J+1) : à déclarer avant 23h59" : isClickable ? "Cliquer pour voir le détail des tâches" : ""}
                       >
@@ -559,11 +600,13 @@ export default function AttendanceSheet() {
                   <th className="att-th-name">Collaborateur</th>
                   {teamWeeks[0]?.days.map((d) => {
                     const isToday = d.date === todayIso;
+                    const isTarget = d.date === targetDateParam;
                     return (
-                      <th key={d.date} className={isToday ? "att-th--today" : ""}>
-                        {DAY_LABELS[new Date(d.date).getDay() === 0 ? 6 : new Date(d.date).getDay() - 1]}
+                      <th key={d.date} className={`${isToday ? "att-th--today" : ""} ${isTarget ? "att-th--target" : ""}`}>
+                        {DAY_LABELS[parseISODate(d.date).getDay() === 0 ? 6 : parseISODate(d.date).getDay() - 1]}
                         <span className="att-th-date">{fmtDayHeader(d.date)}</span>
                         {isToday && <span className="att-today-pill">Aujourd'hui</span>}
+                        {isTarget && <span className="att-target-pill">Cible</span>}
                       </th>
                     );
                   })}
@@ -589,7 +632,7 @@ export default function AttendanceSheet() {
                         </div>
                       </td>
                       {row.days.map((d) => (
-                        <DayCell key={d.date} day={d} userName={row.user_name} onSelect={handleOpenDayDetails} />
+                        <DayCell key={d.date} day={d} userName={row.user_name} onSelect={handleOpenDayDetails} targetDate={targetDateParam} />
                       ))}
                       <td className="att-totals-cell" style={{ fontWeight: 700 }}>
                         {fmtMinutes(weekTotal)}
@@ -661,8 +704,13 @@ export default function AttendanceSheet() {
                 type="date"
                 required
                 value={entryDate}
+                min={(() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })()}
+                max={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setEntryDate(e.target.value)}
               />
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem", display: "block" }}>
+                Saisie autorisée uniquement pour <strong>aujourd'hui</strong> et <strong>hier</strong>.
+              </span>
             </div>
 
             <div className="field">

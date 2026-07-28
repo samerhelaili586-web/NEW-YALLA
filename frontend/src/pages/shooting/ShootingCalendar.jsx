@@ -75,6 +75,7 @@ function toLocalInputValue(date) {
 export default function ShootingCalendar() {
   const { user } = useAuth();
   const isChefProd = user?.is_chef_prod;
+  const canEdit = isChefProd || ["admin_sys", "manager"].includes(user?.effective_role);
 
   const [viewMode, setViewMode] = useState("month");
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -98,6 +99,8 @@ export default function ShootingCalendar() {
     return viewMode === "month" ? getMonthDays(currentDate) : getWeekDays(currentDate);
   }, [currentDate, viewMode]);
   
+  const targetMonthIndex = currentDate.getMonth();
+  const todayKey = new Date().toDateString();
   const rangeStart = days[0];
   const rangeEnd = days[days.length - 1];
 
@@ -118,7 +121,6 @@ export default function ShootingCalendar() {
   }
 
   async function loadFormData() {
-    if (!isChefProd) return;
     try {
       const [equipmentData, usersData] = await Promise.all([
         api.get("/equipment"),
@@ -132,15 +134,11 @@ export default function ShootingCalendar() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch on mount
     loadFormData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isChefProd]);
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch on mount/param change
     loadShoots();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate, viewMode]);
 
   const shootsByDay = useMemo(() => {
@@ -185,7 +183,6 @@ export default function ShootingCalendar() {
   }
 
   function openEditModal(shoot) {
-    if (!isChefProd) return;
     setSelectedShoot(shoot);
     setShootError("");
     setConflicts(null);
@@ -298,9 +295,6 @@ export default function ShootingCalendar() {
     return null;
   }
 
-  const todayKey = new Date().toDateString();
-  const targetMonthIndex = currentDate.getMonth();
-
   return (
     <AppShell>
       <div className={`sc-page${viewMode === "week" ? " is-week-view" : ""}`}>
@@ -356,8 +350,8 @@ export default function ShootingCalendar() {
                       {dayShoots.map((shoot) => (
                         <div 
                           key={shoot.id} 
-                          className={`sc-shoot-card ${isChefProd ? "sc-shoot-card--clickable" : ""}`} 
-                          title={`${shoot.equipment_name} - ${shoot.crew.length} membre(s)`}
+                          className="sc-shoot-card sc-shoot-card--clickable"
+                          title={`${shoot.equipment_name} - ${shoot.crew?.length || 0} membre(s)`}
                           onClick={() => openEditModal(shoot)}
                         >
                           {viewMode === "week" && <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={1} />}
@@ -439,73 +433,57 @@ export default function ShootingCalendar() {
       <Modal
         open={modalOpen}
         onClose={closeEditModal}
-        title="Modifier la planification"
-        width={560}
+        title="Informations du shooting"
+        width={540}
       >
-        <form onSubmit={handleSubmitShoot}>
-          <div className="field">
-            <label htmlFor="sc-equipment">Équipement</label>
-            <select
-              id="sc-equipment"
-              value={shootForm.equipment_id}
-              onChange={(e) => setShootForm((f) => ({ ...f, equipment_id: e.target.value }))}
-            >
-              <option value="">Sélectionner…</option>
-              {equipmentList.map((eq) => (
-                <option key={eq.id} value={eq.id}>{eq.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="sc-start">Début</label>
-              <input
-                id="sc-start"
-                type="datetime-local"
-                value={shootForm.start_at}
-                onChange={(e) => setShootForm((f) => ({ ...f, start_at: e.target.value }))}
-              />
+        <div className="sc-details-view" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
+            <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "10px", padding: "0.85rem" }}>
+              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "0.3rem" }}>Projet</span>
+              <strong style={{ fontSize: "0.95rem", color: "var(--ink)" }}>{selectedShoot?.project_name || "Projet non spécifié"}</strong>
             </div>
-            <div className="field">
-              <label htmlFor="sc-end">Fin</label>
-              <input
-                id="sc-end"
-                type="datetime-local"
-                value={shootForm.end_at}
-                onChange={(e) => setShootForm((f) => ({ ...f, end_at: e.target.value }))}
-              />
+            <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "10px", padding: "0.85rem" }}>
+              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "0.3rem" }}>Tâche</span>
+              <strong style={{ fontSize: "0.95rem", color: "var(--ink)" }}>{selectedShoot?.task_title || "Tâche non spécifiée"}</strong>
             </div>
           </div>
 
-          <div className="field">
-            <label>Équipe Prod</label>
-            <div className="sc-role-chips">
-              {prodUsers.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  className={`chip-toggle${shootForm.prod_user_ids.includes(u.id) ? " is-selected" : ""}`}
-                  onClick={() => toggleProdUser(u.id)}
-                >
-                  {u.first_name} {u.last_name}
-                </button>
-              ))}
+          <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "10px", padding: "0.85rem" }}>
+            <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "0.3rem" }}>Matériel réservé</span>
+            <strong style={{ fontSize: "0.95rem", color: "var(--amber)" }}>🎥 {selectedShoot?.equipment_name}</strong>
+          </div>
+
+          <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "10px", padding: "0.85rem" }}>
+            <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "0.3rem" }}>Date & Créneau Horaire</span>
+            <div style={{ fontSize: "0.9rem", color: "var(--ink)", fontWeight: 600 }}>
+              📅 {selectedShoot && new Date(selectedShoot.start_at).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            </div>
+            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.25rem", fontWeight: 600 }}>
+              ⏰ {selectedShoot && fmtTime(selectedShoot.start_at)} – {selectedShoot && fmtTime(selectedShoot.end_at)}
             </div>
           </div>
 
-          {shootError && <p className="field-error">{shootError}</p>}
-          {renderConflicts()}
+          <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "10px", padding: "0.85rem" }}>
+            <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "0.4rem" }}>Équipe Prod assignée</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+              {selectedShoot?.crew_names && selectedShoot.crew_names.length > 0 ? (
+                selectedShoot.crew_names.map((name, i) => (
+                  <span key={i} style={{ background: "rgba(59, 130, 246, 0.15)", color: "#3b82f6", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "0.25rem 0.65rem", borderRadius: "999px", fontSize: "0.8rem", fontWeight: 600 }}>
+                    👤 {name}
+                  </span>
+                ))
+              ) : (
+                <span style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>Aucun membre assigné</span>
+              )}
+            </div>
+          </div>
 
-          <div className="form-actions">
-            <button type="button" className="btn-secondary" onClick={closeEditModal} disabled={savingShoot}>
-              Annuler
-            </button>
-            <button type="submit" className="btn-primary" disabled={savingShoot}>
-              {savingShoot ? "Enregistrement…" : "Enregistrer"}
+          <div className="form-actions" style={{ justifyContent: "flex-end", marginTop: "0.5rem" }}>
+            <button type="button" className="btn-primary" onClick={closeEditModal}>
+              Fermer
             </button>
           </div>
-        </form>
+        </div>
       </Modal>
     </AppShell>
   );

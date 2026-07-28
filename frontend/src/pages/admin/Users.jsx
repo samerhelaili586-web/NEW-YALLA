@@ -420,6 +420,13 @@ export default function AdminUsers() {
         </div>
       )}
 
+      {/* ── Subtle Table Footnote ───────────────────────────────── */}
+      {!loading && (
+        <p className="users-table-footnote">
+          💡 Cliquez sur <span>Définir</span> pour attribuer le rôle Chef Prod, ou <span>Chef Prod ✓</span> pour le retirer.
+        </p>
+      )}
+
       <Modal
         open={modalOpen}
         onClose={closeModal}

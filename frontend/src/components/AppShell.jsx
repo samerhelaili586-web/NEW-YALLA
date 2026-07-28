@@ -39,6 +39,9 @@ const ICONS = {
   history:      "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
   salaires:     "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
   announcement: "M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.684A1.76 1.76 0 014.28 12c0-.624.331-1.182.836-1.503l4.743-3.016A1.76 1.76 0 0111 6h7a2 2 0 012 2v4a2 2 0 01-2 2h-7a1.76 1.76 0 01-1.144-.413z",
+  book:         "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
+  lockClosed:   "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
+  lockOpen:     "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-7.9 0",
 };
 
 // ── Nav items grouped by section ───────────────────────────────────────────
@@ -47,6 +50,7 @@ const NAV_SECTIONS = [
     title: "GÉNÉRAL",
     items: [
       { to: "/",                label: "Accueil",             icon: "home",       roles: null },
+      { to: "/guide",           label: "Guide & Workflow",     icon: "book",       roles: null },
       { to: "/annuaire",        label: "Annuaire",            icon: "directory",  roles: null },
       { to: "/announcements",    label: "Communiqués",         icon: "announcement", roles: null },
     ],
@@ -58,7 +62,7 @@ const NAV_SECTIONS = [
       { to: "/tasks",           label: "Mes tâches",           icon: "tasks",      roles: ["cm", "prod", "chef_prod"] },
       { to: "/tasks-montage",   label: "Tâches Montage",       icon: "montage",    roles: ["prod", "chef_prod"] },
       { to: "/workflows",      label: "Workflows",           icon: "workflows",  roles: null },
-      { to: "/planification",   label: "Planification",        icon: "planif",     roles: ["chef_prod", "admin_sys", "manager"] },
+      { to: "/planification",   label: "Planification",        icon: "planif",     roles: ["chef_prod"] },
       { to: "/shooting-calendar", label: "Calendrier Shooting", icon: "calendar",  roles: null },
     ],
   },
@@ -168,10 +172,17 @@ export default function AppShell({ children }) {
   const { user, logout } = useAuth();
   const planifBadge = usePlanifBadge(user?.effective_role);
   const [isHovered, setIsHovered] = useState(false);
+  const [isSidebarLocked, setIsSidebarLocked] = useState(() => {
+    return localStorage.getItem("yalla_sidebar_locked") === "true";
+  });
   const [isDark, setIsDark] = useState(() => {
     return document.documentElement.classList.contains("dark") || 
            localStorage.getItem("theme") === "dark";
   });
+
+  useEffect(() => {
+    localStorage.setItem("yalla_sidebar_locked", isSidebarLocked ? "true" : "false");
+  }, [isSidebarLocked]);
 
   useEffect(() => {
     if (isDark) {
@@ -184,6 +195,7 @@ export default function AppShell({ children }) {
   }, [isDark]);
 
   const toggleTheme = () => setIsDark(d => !d);
+  const toggleSidebarLock = () => setIsSidebarLocked(l => !l);
 
   const visibleSections = NAV_SECTIONS.map((sec) => ({
     ...sec,
@@ -197,18 +209,28 @@ export default function AppShell({ children }) {
     navigate("/login");
   }
 
+  const isExpanded = isSidebarLocked || isHovered;
+
   return (
-    <div className="shell">
+    <div className={`shell${isSidebarLocked ? " is-sidebar-pinned" : ""}`}>
       {/* ── Sidebar ── */}
       <aside 
-        className={`shell-sidebar ${isHovered ? "is-expanded" : "is-collapsed"}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className={`shell-sidebar ${isExpanded ? "is-expanded" : "is-collapsed"}${isSidebarLocked ? " is-pinned" : ""}`}
+        onMouseEnter={() => !isSidebarLocked && setIsHovered(true)}
+        onMouseLeave={() => !isSidebarLocked && setIsHovered(false)}
       >
         <div className="shell-brand">
           <span className="shell-brand-fancy">
             YALLA<span className="shell-brand-dot">.</span>
           </span>
+          <button
+            className={`shell-lock-btn${isSidebarLocked ? " is-active" : ""}`}
+            type="button"
+            onClick={toggleSidebarLock}
+            title={isSidebarLocked ? "Déverrouiller le menu latéral (mode survol)" : "Verrouiller le menu latéral (garder toujours ouvert)"}
+          >
+            <Icon d={isSidebarLocked ? ICONS.lockClosed : ICONS.lockOpen} size={15} />
+          </button>
         </div>
 
         <nav className="shell-nav" aria-label="Navigation principale">

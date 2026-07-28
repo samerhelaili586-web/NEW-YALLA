@@ -370,7 +370,13 @@ export default function WorkflowEditor() {
 
   // Selection
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState([]); // Multi-select array
   const [selectedTransition, setSelectedTransition] = useState(null);
+
+  // Desktop Rubberband Selection Box (Blue Rectangle)
+  const [selectionBox, setSelectionBox] = useState(null);
+  const isSelectingBox = useRef(false);
+  const nodeStartPositions = useRef({});
 
   // Right panel form (node properties)
   const [propForm, setPropForm] = useState(null);
@@ -536,29 +542,69 @@ export default function WorkflowEditor() {
   }, [statuses, isAutoLayoutApplied, canvasWidth, canvasHeight]);
 
 
-  // ── Drag node handling ───────────────────────────────────────────────────
+  // Helper to calculate mouse position in canvas coordinates accounting for scroll and zoom
+  function getCanvasCoords(e) {
+    if (!canvasRef.current) return { cx: 0, cy: 0 };
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scrollLeft = canvasRef.current.scrollLeft || 0;
+    const scrollTop = canvasRef.current.scrollTop || 0;
+    return {
+      cx: (e.clientX - rect.left + scrollLeft) / zoom,
+      cy: (e.clientY - rect.top + scrollTop) / zoom,
+    };
+  }
+
+  // ── Drag node handling & Multi-selection ──────────────────────────────────
   function onNodeMouseDown(e, nodeId) {
     e.stopPropagation();
-    const node = statuses.find(s => s.id === nodeId);
+    const node = statuses.find(s => String(s.id) === String(nodeId));
     if (!node) return;
 
-    setSelectedNodeId(nodeId);
-    setPropForm({
-      title: node.title,
-      temporal_type: node.temporal_type,
-      functional_type: node.functional_type,
-    });
+    let newSelectedIds = [];
+    const isAlreadySelected = selectedNodeIds.some(sId => String(sId) === String(nodeId));
+
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      newSelectedIds = isAlreadySelected
+        ? selectedNodeIds.filter(id => String(id) !== String(nodeId))
+        : [...selectedNodeIds, nodeId];
+    } else {
+      newSelectedIds = isAlreadySelected ? selectedNodeIds : [nodeId];
+    }
+
+    setSelectedNodeIds(newSelectedIds);
+
+    if (newSelectedIds.length === 1) {
+      setSelectedNodeId(newSelectedIds[0]);
+      const selNode = statuses.find(s => String(s.id) === String(newSelectedIds[0]));
+      if (selNode) {
+        setPropForm({
+          title: selNode.title,
+          temporal_type: selNode.temporal_type,
+          functional_type: selNode.functional_type,
+        });
+      }
+    } else {
+      setSelectedNodeId(null);
+      setPropForm(null);
+    }
     setSelectedTransition(null);
 
     if (!canManage || e.button !== 0) return;
 
-    const rect = canvasRef.current.getBoundingClientRect();
+    const { cx, cy } = getCanvasCoords(e);
     draggingNode.current = nodeId;
     setIsDraggingId(nodeId);
-    dragOffset.current = {
-      x: (e.clientX - rect.left) / zoom - node.pos_x,
-      y: (e.clientY - rect.top) / zoom - node.pos_y,
-    };
+
+    dragOffset.current = { x: cx, y: cy };
+
+    // Store starting positions of all selected nodes for multi-drag
+    const startPos = {};
+    statuses.forEach(s => {
+      if (newSelectedIds.some(selId => String(selId) === String(s.id))) {
+        startPos[s.id] = { x: s.pos_x, y: s.pos_y };
+      }
+    });
+    nodeStartPositions.current = startPos;
   }
 
   function getClosestPort(node, cx, cy) {
@@ -582,25 +628,54 @@ export default function WorkflowEditor() {
   }
 
   function onCanvasMouseMove(e) {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const cx = (e.clientX - rect.left) / zoom;
-    const cy = (e.clientY - rect.top) / zoom;
+    const { cx, cy } = getCanvasCoords(e);
 
+    // 1. Dragging Node(s)
     if (draggingNode.current !== null) {
-      const nodeId = draggingNode.current;
-      const rawX = Math.max(20, cx - dragOffset.current.x);
-      const rawY = Math.max(20, cy - dragOffset.current.y);
-      const finalX = snapToGrid ? Math.round(rawX / 20) * 20 : rawX;
-      const finalY = snapToGrid ? Math.round(rawY / 20) * 20 : rawY;
-      setStatuses(prev => prev.map(s =>
-        s.id === nodeId ? { ...s, pos_x: finalX, pos_y: finalY } : s
-      ));
+      const deltaX = cx - dragOffset.current.x;
+      const deltaY = cy - dragOffset.current.y;
+      const startMap = nodeStartPositions.current;
+
+      setStatuses(prev => prev.map(s => {
+        if (startMap[s.id] !== undefined) {
+          const rawX = Math.max(20, startMap[s.id].x + deltaX);
+          const rawY = Math.max(20, startMap[s.id].y + deltaY);
+          const finalX = snapToGrid ? Math.round(rawX / 20) * 20 : rawX;
+          const finalY = snapToGrid ? Math.round(rawY / 20) * 20 : rawY;
+          return { ...s, pos_x: finalX, pos_y: finalY };
+        }
+        return s;
+      }));
     }
 
+    // 2. Rubberband Selection Box (Desktop Blue Rectangle)
+    if (isSelectingBox.current && selectionBox) {
+      const nextBox = { ...selectionBox, currentX: cx, currentY: cy };
+      setSelectionBox(nextBox);
+
+      const minX = Math.min(nextBox.startX, cx);
+      const maxX = Math.max(nextBox.startX, cx);
+      const minY = Math.min(nextBox.startY, cy);
+      const maxY = Math.max(nextBox.startY, cy);
+
+      // Select all nodes intersecting the selection box
+      const enclosed = statuses.filter(s =>
+        s.pos_x < maxX && s.pos_x + NODE_W > minX &&
+        s.pos_y < maxY && s.pos_y + NODE_H > minY
+      ).map(s => s.id);
+
+      setSelectedNodeIds(enclosed);
+      if (enclosed.length === 1) {
+        setSelectedNodeId(enclosed[0]);
+      } else {
+        setSelectedNodeId(null);
+        setPropForm(null);
+      }
+    }
+
+    // 3. Drawing Transition Arrow
     if (drawing) {
       setDrawing(d => ({ ...d, curX: cx, curY: cy }));
-      // Detect snap target: node the cursor is hovering over while drawing
       const hover = statuses.find(s =>
         s.id !== drawing.fromId &&
         cx >= s.pos_x - 20 && cx <= s.pos_x + NODE_W + 20 &&
@@ -619,13 +694,16 @@ export default function WorkflowEditor() {
     isPanning.current = false;
     draggingNode.current = null;
     setIsDraggingId(null);
+    nodeStartPositions.current = {};
+
+    if (isSelectingBox.current) {
+      isSelectingBox.current = false;
+      setSelectionBox(null);
+    }
 
     if (drawing) {
       const target = snapTarget?.node || (() => {
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return null;
-        const cx = (e.clientX - rect.left) / zoom;
-        const cy = (e.clientY - rect.top) / zoom;
+        const { cx, cy } = getCanvasCoords(e);
         return statuses.find(s =>
           s.id !== drawing.fromId &&
           cx >= s.pos_x && cx <= s.pos_x + NODE_W &&
@@ -641,6 +719,28 @@ export default function WorkflowEditor() {
     }
   }
 
+  // Window-level mouse movement & release handlers for seamless group dragging
+  useEffect(() => {
+    function handleGlobalMouseMove(e) {
+      if (draggingNode.current !== null || isSelectingBox.current || drawing) {
+        onCanvasMouseMove(e);
+      }
+    }
+
+    function handleGlobalMouseUp(e) {
+      if (draggingNode.current !== null || isSelectingBox.current || drawing || isPanning.current) {
+        onCanvasMouseUp(e);
+      }
+    }
+
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleGlobalMouseMove);
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+    };
+  }, [zoom, statuses, selectionBox, drawing, snapToGrid]);
+
   // Close properties popup when clicking anywhere outside node/popup/modal
   useEffect(() => {
     function handleGlobalPointerDown(e) {
@@ -653,6 +753,7 @@ export default function WorkflowEditor() {
 
       if (!isNode && !isArrow && !isProps && !isModal && !isTopbar) {
         setSelectedNodeId(null);
+        setSelectedNodeIds([]);
         setPropForm(null);
         setSelectedTransition(null);
       }
@@ -662,7 +763,33 @@ export default function WorkflowEditor() {
     return () => window.removeEventListener("pointerdown", handleGlobalPointerDown);
   }, [propForm]);
 
-  // Pan on canvas background drag
+  // Bulk Delete keyboard shortcut (Delete / Backspace)
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (selectedNodeIds.length > 0 && canManage) {
+          e.preventDefault();
+          if (window.confirm(`Supprimer les ${selectedNodeIds.length} étapes sélectionnées ?`)) {
+            const idsToDelete = [...selectedNodeIds];
+            setSelectedNodeIds([]);
+            setSelectedNodeId(null);
+            setPropForm(null);
+            idsToDelete.forEach(nid => {
+              api.delete(`/task-types/statuses/${nid}`).catch(() => {});
+            });
+            setStatuses(prev => prev.filter(s => !idsToDelete.includes(s.id)));
+            setTransitions(prev => prev.filter(t => !idsToDelete.includes(t.from_status_id) && !idsToDelete.includes(t.to_status_id)));
+          }
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNodeIds, canManage]);
+
+  // Pan or Start Desktop Selection Box on canvas background drag
   function onCanvasBgMouseDown(e) {
     const isNode = e.target.closest(".we-node");
     const isArrow = e.target.closest(".we-arrow-group");
@@ -670,14 +797,30 @@ export default function WorkflowEditor() {
     const isTopbarBtn = e.target.closest(".we-topbar") || e.target.closest(".we-icon-action-btn") || e.target.closest(".we-add-status-btn");
 
     if (!isNode && !isArrow && !isProps && !isTopbarBtn) {
-      setSelectedNodeId(null);
-      setPropForm(null);
-      setSelectedTransition(null);
+      if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        setSelectedNodeId(null);
+        setSelectedNodeIds([]);
+        setPropForm(null);
+        setSelectedTransition(null);
+      }
     }
 
-    if (e.button === 1 || (e.button === 0 && !isNode && !isProps)) {
+    // Middle click (button 1) OR Alt key + Left click -> Pan canvas
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
       isPanning.current = true;
       panStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+      return;
+    }
+
+    // Left click on empty canvas background -> Start desktop rubberband selection box
+    if (e.button === 0 && !isNode && !isProps && !isArrow && !isTopbarBtn) {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const cx = (e.clientX - rect.left) / zoom;
+      const cy = (e.clientY - rect.top) / zoom;
+
+      isSelectingBox.current = true;
+      setSelectionBox({ startX: cx, startY: cy, currentX: cx, currentY: cy });
     }
   }
 
@@ -1091,6 +1234,123 @@ export default function WorkflowEditor() {
       {/* ── Main body ─────────────────────────────────────────────────── */}
       <div className="we-body">
 
+        {/* ── Left Status Palette (§3.1.4) ──────────────────────────────── */}
+        {canManage && (
+          <aside className="we-palette">
+            <div className="we-palette-title">BIBLIOTHÈQUE DES ÉTAPES</div>
+            <div className="we-palette-hint">Cliquez pour ajouter au canevas</div>
+            <div className="we-palette-list">
+              {/* Group 1: Démarrage */}
+              <div className="we-palette-group-label">DÉMARRAGE</div>
+              {["debut"].map(ft => {
+                const meta = FUNCTIONAL_META[ft];
+                return (
+                  <button
+                    key={ft}
+                    type="button"
+                    className="we-palette-item"
+                    style={{ background: meta.bg, borderColor: meta.border }}
+                    onClick={() => {
+                      const id = uid();
+                      const centerX = (canvasRef.current?.scrollLeft ?? 0) + (canvasRef.current?.clientWidth ?? 600) / 2 - NODE_W / 2;
+                      const centerY = (canvasRef.current?.scrollTop ?? 0) + (canvasRef.current?.clientHeight ?? 400) / 2 - NODE_H / 2;
+                      setStatuses(prev => [...prev, {
+                        id, title: meta.label.replace(/^STATUT DE /, ""), functional_type: ft,
+                        temporal_type: "evolutif", allowed_roles: [],
+                        pos_x: Math.max(20, centerX + (Math.random() - 0.5) * 80),
+                        pos_y: Math.max(20, centerY + (Math.random() - 0.5) * 80),
+                      }]);
+                    }}
+                    title={`Ajouter un statut "${meta.label}"`}
+                  >
+                    <span className="we-palette-dot" style={{ background: meta.color }} />
+                    <span>
+                      <div className="we-palette-item-name" style={{ color: meta.text }}>{meta.label}</div>
+                      <div className="we-palette-item-desc">Point d'entrée du workflow</div>
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* Group 2: Étapes intermédiaires & production */}
+              <div className="we-palette-group-label">ÉTAPES INTERMÉDIAIRES / PRODUCTION</div>
+              {["intermediaire", "planification_shooting", "planification_montage", "montage"].map(ft => {
+                const meta = FUNCTIONAL_META[ft];
+                const desc = {
+                  intermediaire: "Étape de travail classique évolutive",
+                  planification_shooting: "Statut figé — Chef Prod planifie le shooting",
+                  planification_montage: "Statut figé — Chef Prod affecte un monteur",
+                  montage: "Étape de réalisation du montage",
+                }[ft];
+                return (
+                  <button
+                    key={ft}
+                    type="button"
+                    className="we-palette-item"
+                    style={{ background: meta.bg, borderColor: meta.border }}
+                    onClick={() => {
+                      const id = uid();
+                      const centerX = (canvasRef.current?.scrollLeft ?? 0) + (canvasRef.current?.clientWidth ?? 600) / 2 - NODE_W / 2;
+                      const centerY = (canvasRef.current?.scrollTop ?? 0) + (canvasRef.current?.clientHeight ?? 400) / 2 - NODE_H / 2;
+                      setStatuses(prev => [...prev, {
+                        id, title: meta.label, functional_type: ft,
+                        temporal_type: ft.startsWith("planification") ? "fige" : "evolutif",
+                        allowed_roles: [],
+                        pos_x: Math.max(20, centerX + (Math.random() - 0.5) * 80),
+                        pos_y: Math.max(20, centerY + (Math.random() - 0.5) * 80),
+                      }]);
+                    }}
+                    title={`Ajouter "${meta.label}"`}
+                  >
+                    <span className="we-palette-dot" style={{ background: meta.color }} />
+                    <span>
+                      <div className="we-palette-item-name" style={{ color: meta.text }}>{meta.label}</div>
+                      <div className="we-palette-item-desc">{desc}</div>
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* Group 3: Statuts finaux */}
+              <div className="we-palette-group-label">STATUTS FINAUX</div>
+              {["final_confirmation", "final_rejet"].map(ft => {
+                const meta = FUNCTIONAL_META[ft];
+                const desc = ft === "final_confirmation" ? "Tâche terminée avec succès" : "Tâche rejetée";
+                return (
+                  <button
+                    key={ft}
+                    type="button"
+                    className="we-palette-item"
+                    style={{ background: meta.bg, borderColor: meta.border }}
+                    onClick={() => {
+                      const id = uid();
+                      const centerX = (canvasRef.current?.scrollLeft ?? 0) + (canvasRef.current?.clientWidth ?? 600) / 2 - NODE_W / 2;
+                      const centerY = (canvasRef.current?.scrollTop ?? 0) + (canvasRef.current?.clientHeight ?? 400) / 2 - NODE_H / 2;
+                      setStatuses(prev => [...prev, {
+                        id, title: meta.label, functional_type: ft,
+                        temporal_type: "fige", allowed_roles: [],
+                        pos_x: Math.max(20, centerX + (Math.random() - 0.5) * 80),
+                        pos_y: Math.max(20, centerY + (Math.random() - 0.5) * 80),
+                      }]);
+                    }}
+                    title={`Ajouter "${meta.label}"`}
+                  >
+                    <span className="we-palette-dot" style={{ background: meta.color }} />
+                    <span>
+                      <div className="we-palette-item-name" style={{ color: meta.text }}>{meta.label}</div>
+                      <div className="we-palette-item-desc">{desc}</div>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="we-palette-footer">
+              <p>💡 Cliquez sur un statut pour l'ajouter au canevas.</p>
+              <p>⊕ Glissez l'ancre d'un nœud pour créer une transition.</p>
+            </div>
+          </aside>
+        )}
+
         {/* Center canvas */}
         <div className="we-canvas-wrap">
           {/* Footer Stats Bar */}
@@ -1352,7 +1612,7 @@ export default function WorkflowEditor() {
               {/* Nodes */}
               {statuses.map(node => {
                 const meta = FUNCTIONAL_META[node.functional_type] || FUNCTIONAL_META.intermediaire;
-                const isSelected = selectedNodeId === node.id;
+                const isSelected = selectedNodeId === node.id || selectedNodeIds.includes(node.id);
                 const isDragging = isDraggingId === node.id;
                 const isSnapTarget = snapTarget?.node?.id === node.id;
                 const outgoingCount = transitions.filter(t => t.from_status_id === node.id).length;
@@ -1417,8 +1677,61 @@ export default function WorkflowEditor() {
                   </motion.div>
                 );
               })}
+
+              {/* ── Desktop Rubberband Selection Box (Blue Rectangle) ── */}
+              {selectionBox && (
+                <div
+                  className="we-rubberband-box"
+                  style={{
+                    position: "absolute",
+                    left: `${Math.min(selectionBox.startX, selectionBox.currentX)}px`,
+                    top: `${Math.min(selectionBox.startY, selectionBox.currentY)}px`,
+                    width: `${Math.abs(selectionBox.currentX - selectionBox.startX)}px`,
+                    height: `${Math.abs(selectionBox.currentY - selectionBox.startY)}px`,
+                    background: "rgba(59, 130, 246, 0.16)",
+                    border: "1.5px dashed #3b82f6",
+                    borderRadius: "6px",
+                    pointerEvents: "none",
+                    zIndex: 999,
+                    boxShadow: "0 0 16px rgba(59, 130, 246, 0.25)",
+                  }}
+                />
+              )}
             </div>
           </div>
+
+          {/* ── Floating Multi-Selection Badge ── */}
+          {selectedNodeIds.length > 1 && (
+            <div className="we-multi-select-badge">
+              <span className="we-multi-select-count">
+                🟦 {selectedNodeIds.length} étapes sélectionnées
+              </span>
+              <span className="we-multi-select-hint">
+                Glissez pour déplacer l'ensemble · Appuyez sur Suppr pour supprimer
+              </span>
+              {canManage && (
+                <button
+                  type="button"
+                  className="we-multi-delete-btn"
+                  onClick={() => {
+                    if (window.confirm(`Supprimer les ${selectedNodeIds.length} étapes sélectionnées ?`)) {
+                      const idsToDelete = [...selectedNodeIds];
+                      setSelectedNodeIds([]);
+                      setSelectedNodeId(null);
+                      setPropForm(null);
+                      idsToDelete.forEach(nid => {
+                        api.delete(`/task-types/statuses/${nid}`).catch(() => {});
+                      });
+                      setStatuses(prev => prev.filter(s => !idsToDelete.includes(s.id)));
+                      setTransitions(prev => prev.filter(t => !idsToDelete.includes(t.from_status_id) && !idsToDelete.includes(t.to_status_id)));
+                    }
+                  }}
+                >
+                  Supprimer
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Floating Side Popup Overlay for status properties */}
           <AnimatePresence>

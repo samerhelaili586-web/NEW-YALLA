@@ -398,9 +398,11 @@ export default function ProjectDetail() {
                 <table className="tt-table">
                   <thead>
                     <tr>
+                      <th>ID Tâche</th>
+                      <th>Date de création</th>
                       <th>Titre</th>
                       <th>Type</th>
-                      <th>Statut</th>
+                      <th>Statut actuel</th>
                       <th>Publication prévue</th>
                       <th>En retard</th>
                     </tr>
@@ -409,9 +411,17 @@ export default function ProjectDetail() {
                     {tasks.filter(t => {
                       const q = taskSearch.trim().toLowerCase();
                       if (!q) return true;
-                      return t.title.toLowerCase().includes(q) || (t.status_title || "").toLowerCase().includes(q);
+                      return t.title.toLowerCase().includes(q) || (t.status_title || "").toLowerCase().includes(q) || `TK-${String(t.id).padStart(4,"0")}`.includes(q.toUpperCase());
                     }).map((t) => (
                       <tr key={t.id} className="pd-task-row" onClick={() => openTask(t)}>
+                        <td><span className="task-id-badge">TK-{String(t.id).padStart(4, "0")}</span></td>
+                        <td style={{ whiteSpace: "nowrap", fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                          {t.created_at ? new Date(t.created_at).toLocaleDateString("fr-FR") : "—"}
+                          <br />
+                          <span style={{ fontSize: "0.73rem" }}>
+                            {t.created_at ? new Date(t.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : ""}
+                          </span>
+                        </td>
                         <td>{t.title}</td>
                         <td>{t.task_type_name}</td>
                         <td>

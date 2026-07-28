@@ -42,6 +42,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.ann-kpi-card:hover {
+  transform: translateY(-1px);
 }
 
 .ann-kpi-label {
@@ -126,20 +132,17 @@
 
 .ann-card:hover {
   transform: translateY(-2px);
-  border-color: var(--amber);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-.ann-card--unread {
-  border-left: 4px solid var(--amber);
-}
-
-.ann-card--urgent {
-  border-top: 3px solid #ef4444;
-}
-
-.ann-card--important {
-  border-top: 3px solid #f59e0b;
+.ann-card-header,
+.ann-card-title,
+.ann-card-content,
+.ann-card-footer,
+.ann-kpi-label,
+.ann-kpi-val-row {
+  position: relative;
+  z-index: 10;
 }
 
 .ann-card-header {

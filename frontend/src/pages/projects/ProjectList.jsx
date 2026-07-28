@@ -36,7 +36,7 @@ export default function ProjectList() {
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const canCreate = ["manager", "admin_sys"].includes(user?.effective_role);
+  const canCreate = user?.effective_role === "manager"; // §10.2: only Manager can create projects
 
   async function loadAll() {
     setLoading(true);

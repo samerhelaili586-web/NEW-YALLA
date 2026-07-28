@@ -41,3 +41,26 @@ def mark_all_read():
     Notification.query.filter_by(user_id=user.id, is_read=False).update({"is_read": True})
     db.session.commit()
     return jsonify({"ok": True})
+
+
+@notifications_bp.post("/<int:notification_id>/toggle-lock")
+@login_required
+def toggle_lock(notification_id):
+    user = current_user()
+    notif = Notification.query.filter_by(id=notification_id, user_id=user.id).first_or_404()
+    notif.is_locked = not getattr(notif, "is_locked", False)
+    db.session.commit()
+    return jsonify(notif.to_dict())
+
+
+@notifications_bp.delete("/clear-all")
+@login_required
+def clear_all_notifications():
+    """Delete all non-locked notifications for the current user."""
+    user = current_user()
+    Notification.query.filter(
+        Notification.user_id == user.id,
+        Notification.is_locked.is_(False)
+    ).delete(synchronize_session=False)
+    db.session.commit()
+    return jsonify({"ok": True})

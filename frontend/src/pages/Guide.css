@@ -1,0 +1,647 @@
+/* ── Guide & Workflow d'équipe Styling ────────────────────────────────────── */
+.guide-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.guide-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.guide-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.guide-title {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.guide-subtitle {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.guide-admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.guide-visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  transition: all 0.2s ease;
+}
+
+.guide-visibility-toggle.is-public {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.guide-visibility-toggle.is-hidden {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Edit Mode Panel */
+.guide-edit-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.guide-edit-input {
+  width: 100%;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.guide-edit-textarea {
+  width: 100%;
+  min-height: 420px;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  resize: vertical;
+}
+
+/* Overview Diagram Box */
+.guide-diagram-box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+}
+
+.guide-diagram-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.guide-diagram-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ─── Role Filters Bar ─────────────────────────────────────────────────── */
+.guide-role-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 1rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.guide-role-filter-chip {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.guide-role-filter-chip:hover {
+  border-color: var(--amber);
+  color: var(--ink);
+}
+
+.guide-role-filter-chip.is-active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+/* ─── Vertical Flowchart Diagram (Matching Uploaded Image + Glowing Arrows) ── */
+.guide-flow-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 1.5rem 0;
+  max-width: 580px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.guide-flow-card {
+  width: 100%;
+  background: #18181b;
+  border: 1.5px solid #3f3f46;
+  border-radius: 10px;
+  padding: 1.1rem 1.35rem;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.guide-flow-card:hover {
+  border-color: #3b82f6;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(59, 130, 246, 0.25);
+}
+
+.guide-flow-card.is-highlighted {
+  border-color: #3b82f6;
+  background: #1e293b;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.35);
+}
+
+.guide-flow-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.guide-flow-card-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.guide-flow-card-role {
+  font-size: 0.84rem;
+  font-style: italic;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+/* Inline Card Editing Styles */
+.guide-flow-card-edit-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+  padding-bottom: 0.4rem;
+}
+
+.guide-flow-card-edit-btn {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #52525b;
+  background: #27272a;
+  color: #e4e4e7;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.guide-flow-card-edit-btn:hover:not(:disabled) {
+  border-color: #3b82f6;
+  color: #ffffff;
+  background: #3f3f46;
+}
+
+.guide-flow-card-edit-btn.is-delete:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.guide-flow-input-title {
+  width: 100%;
+  background: #09090b;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  margin-bottom: 0.35rem;
+}
+
+.guide-flow-input-title:focus,
+.guide-flow-input-role:focus,
+.guide-flow-input-desc:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.guide-flow-input-role {
+  width: 100%;
+  background: #09090b;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #a1a1aa;
+  font-size: 0.82rem;
+  font-style: italic;
+  padding: 0.3rem 0.5rem;
+  text-align: center;
+  margin-bottom: 0.35rem;
+}
+
+.guide-flow-input-desc {
+  width: 100%;
+  background: #09090b;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #d4d4d8;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+  text-align: center;
+}
+
+.guide-edit-sticky-bar {
+  position: sticky;
+  top: 1rem;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--card);
+  border: 1.5px solid var(--amber);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), 0 4px 16px rgba(245, 158, 11, 0.15);
+  margin-bottom: 1.5rem;
+}
+
+.guide-flow-card-desc {
+  font-size: 0.82rem;
+  color: #d4d4d8;
+  margin-top: 0.4rem;
+  line-height: 1.4;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.guide-flow-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.guide-flow-card-action:hover {
+  background: rgba(59, 130, 246, 0.35);
+  color: #ffffff;
+}
+
+/* Vibrant Connector Arrow (Glowing Blue) */
+.guide-flow-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  margin: 2px 0;
+  position: relative;
+  z-index: 5;
+}
+
+.guide-flow-arrow-line {
+  width: 3px;
+  height: 22px;
+  background: linear-gradient(180deg, #3b82f6, #60a5fa);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+  border-radius: 2px;
+}
+
+.guide-flow-arrow-head {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 10px solid #60a5fa;
+  margin-top: -1px;
+  filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.9));
+}
+
+/* ─── Admin Steps Editor Styling ────────────────────────────────────────── */
+.guide-steps-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.guide-step-edit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.85rem;
+}
+
+.guide-step-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.guide-step-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.guide-flow-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.guide-flow-step {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.guide-flow-step:hover {
+  transform: translateY(-2px);
+  border-color: var(--amber);
+}
+
+.guide-step-number {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--amber-deep);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.guide-step-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.guide-step-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Structured Sections & Collapsible Cards */
+.guide-sections-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.guide-section-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.25rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.guide-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  user-select: none;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--line);
+  transition: opacity 0.15s ease;
+}
+
+.guide-section-header:hover {
+  opacity: 0.85;
+}
+
+.guide-section-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.guide-section-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.guide-section-toggle-btn:hover {
+  border-color: var(--amber);
+}
+
+.guide-section-toggle-btn svg {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.guide-section-toggle-btn.is-collapsed svg {
+  transform: rotate(-90deg);
+}
+
+/* Smooth Accordion Height & Opacity Animation */
+.guide-accordion-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  opacity: 1;
+}
+
+.guide-accordion-wrapper.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.guide-accordion-inner {
+  overflow: hidden;
+}
+
+.guide-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-top: 0.6rem;
+}
+
+.guide-section-card h3 {
+  font-size: 1.02rem;
+  margin-top: 0.4rem;
+}
+
+.guide-section-card p,
+.guide-section-card li {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.guide-section-card ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Roles Matrix Table */
+.guide-roles-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.guide-roles-table th,
+.guide-roles-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+
+.guide-roles-table th {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--paper);
+}
+
+.guide-roles-table td:first-child {
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.guide-badge-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.guide-hidden-notice {
+  background: transparent;
+  border: none;
+  border-left: 3px solid rgba(245, 158, 11, 0.5);
+  border-radius: 0;
+  padding: 0.25rem 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
