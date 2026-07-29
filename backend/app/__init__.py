@@ -36,6 +36,10 @@ def create_app(config_object="config.DevConfig"):
     app.config.from_object(config_object)
 
     db.init_app(app)
+    session_dir = app.config.get("SESSION_FILE_DIR", "/tmp/flask_session")
+    upload_dir = app.config.get("UPLOAD_FOLDER", "/tmp/uploads")
+    os.makedirs(session_dir, exist_ok=True)
+    os.makedirs(upload_dir, exist_ok=True)
     sess.init_app(app)
     import re
     allowed_origin_regexes = [
