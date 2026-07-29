@@ -217,11 +217,11 @@ export default function AdminMonitoring() {
 
       {/* ── Stacktrace Detail Modal ───────────────────────────────────────── */}
       {selectedLog && (
-        <div className="modal-backdrop" onClick={() => setSelectedLog(null)}>
-          <div className="modal mon-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="mon-modal-backdrop" onClick={() => setSelectedLog(null)}>
+          <div className="mon-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mon-modal-header">
               <h3>Détails techniques de l'erreur #{selectedLog.id}</h3>
-              <button className="btn-ghost-sm" onClick={() => setSelectedLog(null)}>
+              <button className="btn-ghost-sm" onClick={() => setSelectedLog(null)} style={{ fontSize: "1.2rem", color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>
                 ✕
               </button>
             </div>
@@ -258,7 +258,7 @@ export default function AdminMonitoring() {
                 </pre>
               </div>
             </div>
-            <div className="modal-footer">
+            <div className="mon-modal-footer" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "0.75rem", marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
               <button className="btn-secondary" onClick={() => setSelectedLog(null)}>
                 Fermer
               </button>

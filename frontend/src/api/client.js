@@ -35,7 +35,7 @@ async function request(path, { method = "GET", body, params } = {}) {
   }
 
   if (!res.ok) {
-    if (!path.includes("/monitoring/client-error") && res.status >= 400) {
+    if (!path.includes("/monitoring/client-error") && res.status >= 400 && res.status !== 401) {
       try {
         fetch(`${API_URL}/monitoring/client-error`, {
           method: "POST",
