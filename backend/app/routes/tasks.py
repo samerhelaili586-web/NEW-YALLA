@@ -18,17 +18,25 @@ def list_tasks():
     project_id = request.args.get("project_id", type=int)
     assigned_to_me = request.args.get("assigned_to_me", type=int)
     montage_only = request.args.get("montage_only", type=int)
+    personal_only = request.args.get("personal_only", type=int)
 
+    user = current_user()
     q = Task.query
     if project_id:
         q = q.filter_by(project_id=project_id)
 
     if assigned_to_me:
-        user = current_user()
         assigned_ids = [
             a.task_id for a in TaskAssignee.query.filter_by(user_id=user.id).all()
         ]
-        q = q.filter(Task.id.in_(assigned_ids))
+        # Also include personal tasks owned by this user (no project)
+        from sqlalchemy import or_
+        personal_task_ids = [
+            t.id for t in Task.query.filter_by(project_id=None)
+            .filter(Task.id.in_([a.task_id for a in TaskAssignee.query.filter_by(user_id=user.id).all()]))
+            .all()
+        ]
+        q = q.filter(Task.id.in_(set(assigned_ids) | set(personal_task_ids)))
 
         # spec §5.2: CM must not see their own projects' tasks in this view
         if user.effective_role == "cm":
@@ -42,8 +50,14 @@ def list_tasks():
     if montage_only:
         q = q.join(Status).filter(Status.functional_type.in_(["montage", "planification_montage"]))
 
+    if personal_only:
+        q = q.filter_by(project_id=None)
+        # Only show personal tasks assigned to the current user
+        assigned_ids = [a.task_id for a in TaskAssignee.query.filter_by(user_id=user.id).all()]
+        q = q.filter(Task.id.in_(assigned_ids))
+
     tasks = q.order_by(Task.planned_publish_date).all()
-    return jsonify([t.to_dict() for t in tasks])
+    return jsonify([t.to_dict(user_id=user.id if user else None) for t in tasks])
 
 
 # spec §5.3 — Montage menu: tasks assigned as monteur persist after status changes
@@ -102,38 +116,60 @@ def next_statuses(task_id):
 @require_action("creer_tache")
 def create_task():
     data = request.get_json(force=True) or {}
-    required = ["project_id", "task_type_id", "title", "planned_publish_date"]
+
+    # Personal task: project_id is optional. If not provided, task is personal (no project).
+    is_personal = not data.get("project_id")
+
+    if is_personal:
+        # Personal task: only requires title, planned_publish_date; task_type_id optional
+        required = ["title", "planned_publish_date"]
+    else:
+        required = ["project_id", "task_type_id", "title", "planned_publish_date"]
+
     missing = [f for f in required if not data.get(f)]
     if missing:
         return jsonify({"error": "missing_fields", "fields": missing}), 400
 
-    project = Project.query.get_or_404(data["project_id"])
+    if not is_personal:
+        project = Project.query.get_or_404(data["project_id"])
 
-    # spec §4.3: no task creation on on_hold or termine projects
-    if project.status in ("on_hold", "termine"):
-        return jsonify({
-            "error": "project_not_active",
-            "detail": f"Ce projet est '{project.status}' — aucune tâche ne peut être ajoutée.",
-        }), 409
+        # spec §4.3: no task creation on on_hold or termine projects
+        if project.status in ("on_hold", "termine"):
+            return jsonify({
+                "error": "project_not_active",
+                "detail": f"Ce projet est '{project.status}' — aucune tâche ne peut être ajoutée.",
+            }), 409
 
     from app.models.task_type import TaskType
-    tt = TaskType.query.get_or_404(data["task_type_id"])
-    if tt.is_archived or tt.workflow_status != "active":
-        return jsonify({
-            "error": "workflow_not_active",
-            "detail": "Ce workflow n'est pas actif (statut 'brouillon' ou 'désactivé').",
-        }), 400
+
+    # For personal tasks, use a generic task type if none provided
+    task_type_id = data.get("task_type_id")
+    if task_type_id:
+        tt = TaskType.query.get_or_404(task_type_id)
+        if not is_personal and (tt.is_archived or tt.workflow_status != "active"):
+            return jsonify({
+                "error": "workflow_not_active",
+                "detail": "Ce workflow n'est pas actif (statut 'brouillon' ou 'désactivé').",
+            }), 400
 
     status_id = data.get("status_id")
-    if not status_id:
-        start_status = Status.query.filter_by(task_type_id=data["task_type_id"], functional_type="debut").first()
+    if task_type_id and not status_id:
+        start_status = Status.query.filter_by(task_type_id=task_type_id, functional_type="debut").first()
         if not start_status:
-            start_status = Status.query.filter_by(task_type_id=data["task_type_id"]).first()
-        if not start_status:
-            return jsonify({"error": "no_start_status", "detail": "Ce type de tâche n'a pas de statut configuré."}), 400
-        status_id = start_status.id
-    else:
+            start_status = Status.query.filter_by(task_type_id=task_type_id).first()
+        if start_status:
+            status_id = start_status.id
+    elif not task_type_id and not status_id:
+        # Personal task with no type: use first available status from any active task type
+        any_status = Status.query.first()
+        if any_status:
+            status_id = any_status.id
+            task_type_id = any_status.task_type_id
+    elif status_id:
         Status.query.get_or_404(status_id)
+
+    if not status_id or not task_type_id:
+        return jsonify({"error": "no_start_status", "detail": "Impossible de trouver un statut de départ."}), 400
 
     if len(data["title"]) > TASK_TITLE_MAX_LEN:
         return jsonify({"error": "title_too_long", "max": TASK_TITLE_MAX_LEN}), 400
@@ -143,23 +179,38 @@ def create_task():
     except ValueError:
         return jsonify({"error": "invalid_date"}), 400
 
+    user = current_user()
     task = Task(
-        project_id=data["project_id"],
-        task_type_id=data["task_type_id"],
+        project_id=data.get("project_id") or None,
+        task_type_id=task_type_id,
         status_id=status_id,
         title=data["title"],
         description=data.get("description"),
         planned_publish_date=publish_date,
     )
     db.session.add(task)
+    db.session.flush()  # get task.id
+
+    # Auto-assign the creator to their own personal/created task
+    from app.models.task import TaskAssignee
+    assignee = TaskAssignee(task_id=task.id, user_id=user.id, role_on_task="owner")
+    db.session.add(assignee)
+
     db.session.commit()
     return jsonify(task.to_dict()), 201
 
 
 @tasks_bp.patch("/<int:task_id>")
-@require_action("modifier_projet")  # spec §10.2: only admin_sys and manager can modify tasks
+@login_required
 def update_task(task_id):
     task = Task.query.get_or_404(task_id)
+    user = current_user()
+    is_assignee = TaskAssignee.query.filter_by(task_id=task.id, user_id=user.id).first() is not None
+    is_manager_or_admin = user.effective_role in ("admin_sys", "manager")
+
+    if not is_manager_or_admin and not is_assignee and task.project_id is not None:
+        return jsonify({"error": "forbidden", "detail": "Vous n'avez pas les droits pour modifier cette tâche."}), 403
+
     data = request.get_json(force=True) or {}
 
     if "title" in data:
@@ -169,6 +220,11 @@ def update_task(task_id):
 
     if "description" in data:
         task.description = data["description"]
+
+    if "status_id" in data:
+        from app.models.task_type import Status
+        Status.query.get_or_404(data["status_id"])
+        task.status_id = data["status_id"]
 
     if "planned_publish_date" in data:
         try:

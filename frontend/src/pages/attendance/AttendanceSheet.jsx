@@ -221,7 +221,7 @@ export default function AttendanceSheet() {
   useEffect(() => {
     async function fetchTasks() {
       try {
-        const data = await api.get("/tasks");
+        const data = await api.get("/tasks", { assigned_to_me: 1 });
         setUserTasks(data || []);
       } catch {
         setUserTasks([]);
@@ -548,7 +548,7 @@ export default function AttendanceSheet() {
                 <tr>
                   <td className="att-th-name" style={{ fontWeight: 700 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                      <Avatar firstName={user?.first_name} lastName={user?.last_name} size={32} />
+                      <Avatar firstName={user?.first_name} lastName={user?.last_name} photoUrl={user?.photo_url} size={32} />
                       <div>
                         <div>{user?.first_name} {user?.last_name}</div>
                         <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }}>{user?.effective_role}</span>
@@ -624,7 +624,7 @@ export default function AttendanceSheet() {
                     <tr key={row.user_id}>
                       <td className="att-th-name">
                         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                          <Avatar firstName={firstName} lastName={lastName} size={30} />
+                          <Avatar firstName={firstName} lastName={lastName} photoUrl={row.photo_url} size={30} />
                           <div>
                             <div style={{ fontWeight: 600 }}>{row.user_name}</div>
                             <span className="att-role-badge">{row.role}</span>

@@ -60,7 +60,7 @@ const NAV_SECTIONS = [
     items: [
       { to: "/projects",        label: "Projets",              icon: "projects",   roles: ["admin_sys", "manager", "chef_prod", "cm"] },
       { to: "/tasks",           label: "Mes tâches",           icon: "tasks",      roles: ["cm", "prod", "chef_prod"] },
-      { to: "/tasks-montage",   label: "Tâches Montage",       icon: "montage",    roles: ["prod", "chef_prod"] },
+      { to: "/tasks-montage",   label: "Tâches Montage",       icon: "montage",    roles: ["chef_prod"] },
       { to: "/workflows",      label: "Workflows",           icon: "workflows",  roles: null },
       { to: "/planification",   label: "Planification",        icon: "planif",     roles: ["chef_prod"] },
       { to: "/shooting-calendar", label: "Calendrier Shooting", icon: "calendar",  roles: null },
@@ -258,7 +258,7 @@ export default function AppShell({ children }) {
 
         <div className="shell-sidebar-footer">
           <div className="shell-user">
-            <Avatar firstName={user?.first_name} lastName={user?.last_name} size={34} />
+            <Avatar firstName={user?.first_name} lastName={user?.last_name} photoUrl={user?.photo_url} size={34} />
             <div className="shell-user-info">
               <span className="shell-user-name">{user?.first_name} {user?.last_name}</span>
               <span className="shell-user-role">{ROLE_LABELS[user?.effective_role] || user?.effective_role}</span>

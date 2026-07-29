@@ -8,29 +8,133 @@ import "../../styles/shared.css";
 import "./TachesAssociees.css";
 
 function fmtDate(d) {
+  if (!d) return "—";
   return new Date(d).toLocaleDateString("fr-FR");
 }
 
-// ── Task Card ─────────────────────────────────────────────────────────────────
-function TaskCard({ task, onClick }) {
+function fmtMinutes(total) {
+  if (!total || total <= 0) return "—";
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${h}h${m.toString().padStart(2, "0")}`;
+}
+
+// ── New Personal Task Modal ───────────────────────────────────────────────────
+function NewTaskModal({ open, onClose, onCreated }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  function handleClose() {
+    setTitle("");
+    setDescription("");
+    setError("");
+    onClose();
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!title.trim()) {
+      setError("Le titre est requis.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      await api.post("/tasks", {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        planned_publish_date: dueDate,
+      });
+      handleClose();
+      onCreated();
+    } catch (err) {
+      setError(err?.data?.detail || err?.data?.error || "Erreur lors de la création.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!open) return null;
+
   return (
-    <button type="button" className="ta-card" onClick={onClick} aria-label={`Ouvrir ${task.title}`}>
-      <div className="ta-card-header">
-        <span className="ta-card-type">{task.task_type_name}</span>
-        <UrgentBadge date={task.planned_publish_date} isCompleted={task.status_functional_type === "validation"} />
+    <div className="ta-modal-overlay" role="dialog" aria-modal="true" aria-label="Nouvelle tâche personnelle">
+      <div className="ta-modal">
+        <div className="ta-modal-header">
+          <h2 className="ta-modal-title">✨ Nouvelle tâche</h2>
+          <button type="button" className="ta-modal-close" onClick={handleClose} aria-label="Fermer">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="ta-modal-form">
+          <div className="field">
+            <label>Titre <span style={{ color: "var(--accent)" }}>*</span></label>
+            <input
+              type="text"
+              required
+              autoFocus
+              placeholder="Nom de la tâche…"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={100}
+            />
+          </div>
+
+          <div className="field">
+            <label>Description <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>(optionnel)</span></label>
+            <textarea
+              placeholder="Détails supplémentaires…"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              style={{ resize: "vertical" }}
+            />
+          </div>
+
+          <div className="field">
+            <label>Date d'échéance</label>
+            <input
+              type="date"
+              required
+              value={dueDate}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+
+          <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.25rem 0 0.5rem" }}>
+            💡 Cette tâche sera <strong>personnelle</strong> et n'apparaîtra pas dans un projet. Vous pourrez la rattacher à un projet ultérieurement.
+          </p>
+
+          {error && <p className="field-error" role="alert">{error}</p>}
+
+          <div className="form-actions">
+            <button type="button" className="btn-secondary" onClick={handleClose}>
+              Annuler
+            </button>
+            <button type="submit" className="btn-primary" disabled={submitting}>
+              {submitting ? "Création…" : "Créer la tâche"}
+            </button>
+          </div>
+        </form>
       </div>
-      <h4 className="ta-card-title">{task.title}</h4>
-      <p className="ta-card-proj">📁 {task.project_title}</p>
-      <div className="ta-card-footer">
-        <span className="ta-card-status">{task.status_title}</span>
-        <span className="ta-card-date">📅 {fmtDate(task.planned_publish_date)}</span>
-      </div>
-    </button>
+    </div>
   );
 }
 
 export default function TachesAssociees() {
   const { user } = useAuth();
+  const canCreateTask = ["prod", "chef_prod", "cm", "manager", "admin_sys"].includes(user?.effective_role);
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +144,7 @@ export default function TachesAssociees() {
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
 
   async function loadTasks() {
     setLoading(true);
@@ -70,7 +175,7 @@ export default function TachesAssociees() {
     const seen = new Set();
     const result = [];
     for (const t of tasks) {
-      if (!seen.has(t.task_type_name)) {
+      if (t.task_type_name && !seen.has(t.task_type_name)) {
         seen.add(t.task_type_name);
         result.push(t.task_type_name);
       }
@@ -78,7 +183,7 @@ export default function TachesAssociees() {
     return result;
   }, [tasks]);
 
-  const filtered = useMemo(() => {
+  const filteredTasks = useMemo(() => {
     const q = search.trim().toLowerCase();
     return tasks.filter((t) => {
       if (typeFilter !== "all" && t.task_type_name !== typeFilter) return false;
@@ -90,17 +195,6 @@ export default function TachesAssociees() {
       );
     });
   }, [tasks, search, typeFilter]);
-
-  const grouped = useMemo(() => {
-    const acc = {};
-    for (const t of filtered) {
-      const key = t.status_title || "Autre";
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(t);
-    }
-    return acc;
-  }, [filtered]);
-
 
   return (
     <AppShell>
@@ -116,6 +210,19 @@ export default function TachesAssociees() {
               }
             </p>
           </div>
+          {canCreateTask && (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setNewTaskOpen(true)}
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Nouvelle tâche
+            </button>
+          )}
         </div>
 
         {/* ── Toolbar ── */}
@@ -123,7 +230,7 @@ export default function TachesAssociees() {
           <input
             type="search"
             className="users-search"
-            placeholder="Rechercher…"
+            placeholder="Rechercher une tâche…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -149,34 +256,78 @@ export default function TachesAssociees() {
         </div>
 
         {loadError && <p className="tt-status tt-status--error">{loadError}</p>}
+
         {loading && (
-          <div className="ta-skeleton-grid">
-            {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="ta-skeleton-card" />)}
+          <div className="ta-skeleton-grid" style={{ flexDirection: "column" }}>
+            {[1, 2, 3, 4].map((i) => <div key={i} className="ta-skeleton-card" style={{ width: "100%", height: "54px" }} />)}
           </div>
         )}
 
         {!loading && !loadError && (
           <>
-            {filtered.length === 0 ? (
+            {filteredTasks.length === 0 ? (
               <div className="ta-empty-state">
-                <span className="ta-empty-icon">✅</span>
+                <span className="ta-empty-icon">📋</span>
                 <p>{tasks.length === 0 ? "Aucune tâche ne vous est assignée pour le moment." : "Aucune tâche ne correspond à votre recherche."}</p>
+                {canCreateTask && tasks.length === 0 && (
+                  <button type="button" className="btn-primary" style={{ marginTop: "0.5rem" }} onClick={() => setNewTaskOpen(true)}>
+                    + Créer ma première tâche
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="ta-kanban">
-                {Object.entries(grouped).map(([statusTitle, statusTasks]) => (
-                  <div key={statusTitle} className="ta-kanban-col">
-                    <div className="ta-kanban-col-header">
-                      <span className="ta-kanban-col-title">{statusTitle}</span>
-                      <span className="ta-kanban-col-count">{statusTasks.length}</span>
-                    </div>
-                    <div className="ta-kanban-col-cards">
-                      {statusTasks.map((t) => (
-                        <TaskCard key={t.id} task={t} onClick={() => openTask(t)} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+              <div className="ta-table-wrap">
+                <table className="ta-list-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "35%" }}>Intitulé de la tâche</th>
+                      <th style={{ width: "22%" }}>Projet / Source</th>
+                      <th style={{ width: "15%" }}>Statut</th>
+                      <th style={{ width: "13%", textAlign: "center" }}>Temps Prod</th>
+                      <th style={{ width: "15%", textAlign: "right" }}>Échéance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTasks.map((t) => {
+                      const isPersonal = !t.project_id;
+                      return (
+                        <tr key={t.id} className="ta-list-row" onClick={() => openTask(t)}>
+                          <td>
+                            <div className="ta-list-title-cell">
+                              <span className="ta-list-title">{t.title}</span>
+                              <span className={`ta-list-badge ${isPersonal ? "ta-list-badge--personal" : ""}`}>
+                                {isPersonal ? "🙋 Perso" : t.task_type_name}
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            {isPersonal ? (
+                              <span className="ta-list-proj ta-list-proj--personal">📌 Tâche personnelle</span>
+                            ) : (
+                              <span className="ta-list-proj">📁 {t.project_title}</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className="ta-card-status">{t.status_title}</span>
+                          </td>
+                          <td style={{ textAlign: "center" }}>
+                            <span className="ta-list-time">
+                              ⏱️ {fmtMinutes(t.my_time_minutes > 0 ? t.my_time_minutes : t.prod_time_minutes)}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", justifyContent: "flex-end" }}>
+                              <span className="ta-card-date">{fmtDate(t.planned_publish_date)}</span>
+                              {!isPersonal && (
+                                <UrgentBadge date={t.planned_publish_date} isCompleted={t.status_functional_type === "validation"} />
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </>
@@ -188,6 +339,12 @@ export default function TachesAssociees() {
         open={detailOpen}
         onClose={() => { setDetailOpen(false); setSelectedTaskId(null); }}
         onChanged={loadTasks}
+      />
+
+      <NewTaskModal
+        open={newTaskOpen}
+        onClose={() => setNewTaskOpen(false)}
+        onCreated={loadTasks}
       />
     </AppShell>
   );

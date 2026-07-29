@@ -8,7 +8,7 @@ class Task(db.Model):
     __tablename__ = "tasks"
 
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True)
     task_type_id = db.Column(db.Integer, db.ForeignKey("task_types.id"), nullable=False)
     status_id = db.Column(db.Integer, db.ForeignKey("statuses.id"), nullable=False)
 
@@ -31,11 +31,31 @@ class Task(db.Model):
             return False
         return date.today() > self.planned_publish_date
 
-    def to_dict(self):
+    @property
+    def total_time_minutes(self):
+        return sum(te.hours * 60 + te.minutes for te in self.time_entries)
+
+    @property
+    def prod_time_minutes(self):
+        total = 0
+        for te in self.time_entries:
+            if not te.user:
+                continue
+            is_prod_user = te.user.role == "prod" or te.user.effective_role in ("prod", "chef_prod")
+            is_prod_status = te.status_at_entry and te.status_at_entry.functional_type in ("planification_shooting", "planification_montage", "montage")
+            if is_prod_user or is_prod_status:
+                total += te.hours * 60 + te.minutes
+        return total
+
+    def to_dict(self, user_id=None):
+        my_mins = 0
+        if user_id:
+            my_mins = sum(te.hours * 60 + te.minutes for te in self.time_entries if te.user_id == user_id)
         return {
             "id": self.id,
             "project_id": self.project_id,
             "project_title": self.project.title if self.project else None,
+            "is_personal": self.project_id is None,
             "task_type_id": self.task_type_id,
             "task_type_name": self.task_type.name if self.task_type else None,
             "status_id": self.status_id,
@@ -46,6 +66,9 @@ class Task(db.Model):
             "planned_publish_date": self.planned_publish_date.isoformat(),
             "created_at": self.created_at.isoformat(),
             "is_late": self.is_late,
+            "total_time_minutes": self.total_time_minutes,
+            "prod_time_minutes": self.prod_time_minutes,
+            "my_time_minutes": my_mins,
             "status_allowed_roles": self.status.allowed_roles if self.status else [],
             "task_type_statuses": [s.to_dict() for s in sorted(self.task_type.statuses, key=lambda x: x.id)] if self.task_type else [],
         }

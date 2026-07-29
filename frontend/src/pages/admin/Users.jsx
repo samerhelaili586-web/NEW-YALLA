@@ -20,6 +20,7 @@ const EMPTY_FORM = {
   last_name: "",
   email: "",
   phone: "",
+  photo_url: "",
   role: "cm",
   hourly_rate: "25.00",
   password: "",
@@ -100,6 +101,7 @@ export default function AdminUsers() {
       last_name: user.last_name,
       email: user.email,
       phone: user.phone || "",
+      photo_url: user.photo_url || "",
       role: user.role,
       hourly_rate: String(user.hourly_rate ?? 25.0),
       password: "",
@@ -142,6 +144,7 @@ export default function AdminUsers() {
         last_name: form.last_name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim() || null,
+        photo_url: form.photo_url.trim() || null,
         role: form.role,
         hourly_rate: parseFloat(form.hourly_rate) || 25.0,
       };
@@ -293,7 +296,7 @@ export default function AdminUsers() {
                 <tr key={u.id} className={u.is_archived ? "is-archived-row" : ""}>
                   <td>
                     <div className="users-name-cell">
-                      <Avatar firstName={u.first_name} lastName={u.last_name} size={32} />
+                      <Avatar firstName={u.first_name} lastName={u.last_name} photoUrl={u.photo_url} size={36} />
                       <span>
                         {u.first_name} {u.last_name}
                       </span>
@@ -466,6 +469,88 @@ export default function AdminUsers() {
               onChange={(e) => updateField("email", e.target.value)}
             />
             {formErrors.email && <span className="field-error">{formErrors.email}</span>}
+          </div>
+
+          <div className="field">
+            <label htmlFor="photo_url">Photo de profil</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+                <input
+                  id="photo_url"
+                  type="text"
+                  value={form.photo_url}
+                  onChange={(e) => updateField("photo_url", e.target.value)}
+                  placeholder="https://... ou collez un lien d'image"
+                  style={{ flex: 1 }}
+                />
+                <Avatar
+                  firstName={form.first_name || "A"}
+                  lastName={form.last_name || "B"}
+                  photoUrl={form.photo_url}
+                  size={42}
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                <span>ou</span>
+                <label
+                  htmlFor="photo_file_upload"
+                  className="btn-secondary"
+                  style={{
+                    cursor: "pointer",
+                    fontSize: "0.78rem",
+                    padding: "0.3rem 0.75rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.35rem"
+                  }}
+                >
+                  📁 Importer depuis votre PC
+                </label>
+                <input
+                  id="photo_file_upload"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                      if (evt.target?.result) {
+                        updateField("photo_url", evt.target.result);
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                {form.photo_url?.startsWith("data:image") && (
+                  <span style={{ color: "#10b981", fontSize: "0.76rem", fontWeight: 600 }}>
+                    ✓ Image importée
+                  </span>
+                )}
+                {form.photo_url && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{
+                      color: "#ef4444",
+                      borderColor: "rgba(239, 68, 68, 0.3)",
+                      background: "rgba(239, 68, 68, 0.05)",
+                      fontSize: "0.78rem",
+                      padding: "0.3rem 0.65rem",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                      marginLeft: "auto",
+                    }}
+                    onClick={() => updateField("photo_url", "")}
+                  >
+                    🗑️ Supprimer l'image
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="field-row">

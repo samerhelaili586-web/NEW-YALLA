@@ -100,7 +100,7 @@ export default function Annuaire() {
                   <li key={person.id} className={`directory-card${unavailableIds.has(person.id) ? " directory-card--absent" : ""}`}>
                     <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                     <div className="directory-card-top">
-                      <Avatar firstName={person.first_name} lastName={person.last_name} size={44} />
+                      <Avatar firstName={person.first_name} lastName={person.last_name} photoUrl={person.photo_url} size={60} />
                       {unavailableIds.has(person.id) && (
                         <span className="badge-unavailable">Absent</span>
                       )}

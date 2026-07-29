@@ -26,7 +26,7 @@ ACTION_ACCESS = {
     "creer_projet": {"manager"},
     "modifier_projet": {"admin_sys", "manager"},
     "on_hold_projet": {"admin_sys", "manager"},
-    "creer_tache": {"admin_sys", "manager", "cm"},
+    "creer_tache": {"admin_sys", "manager", "cm", "prod", "chef_prod"},
     "changer_statut_standard": {"admin_sys", "manager", "cm"},
     "forcer_statut": {"admin_sys", "manager"},
     "changer_statut_planification": {"admin_sys", "manager", "chef_prod"},

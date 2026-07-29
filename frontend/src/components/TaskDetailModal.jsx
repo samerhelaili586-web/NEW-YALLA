@@ -55,6 +55,10 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged, init
   const [assigneeSelect, setAssigneeSelect] = useState("");
   const [addingAssignee, setAddingAssignee] = useState(false);
 
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionText, setDescriptionText] = useState("");
+  const [savingDescription, setSavingDescription] = useState(false);
+
   const [mentionQuery, setMentionQuery] = useState(null);
   const textareaRef = useRef(null);
 
@@ -80,6 +84,7 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged, init
         ]);
         if (!cancelled) {
           setTask(full);
+          setDescriptionText(full.description || "");
           setNextStatuses(statuses);
           setUsers(allUsers);
         }
@@ -102,8 +107,52 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged, init
       api.get(`/tasks/${taskId}/next-statuses`),
     ]);
     setTask(full);
+    setDescriptionText(full.description || "");
     setNextStatuses(statuses);
     onChanged?.(full);
+  }
+
+  async function handleSaveDescription() {
+    if (!taskId) return;
+    setSavingDescription(true);
+    setActionError("");
+    try {
+      await api.patch(`/tasks/${taskId}`, { description: descriptionText.trim() });
+      setEditingDescription(false);
+      await refresh();
+    } catch (err) {
+      setActionError(err?.data?.detail || err?.data?.error || "Erreur lors de l'enregistrement de la description.");
+    } finally {
+      setSavingDescription(false);
+    }
+  }
+
+  async function handleTogglePersonalTaskComplete() {
+    if (!task) return;
+    setChangingStatus(true);
+    setActionError("");
+    try {
+      const allStatuses = task.task_type_statuses || [];
+      const isCompleted = task.status_functional_type === "final_confirmation" || task.status_functional_type === "validation" || (task.status_title || "").toLowerCase().includes("fin") || (task.status_title || "").toLowerCase().includes("term");
+
+      let targetStatusId = null;
+      if (!isCompleted) {
+        const finalStatus = allStatuses.find(s => s.functional_type === "final_confirmation" || s.functional_type === "validation") || allStatuses[allStatuses.length - 1];
+        if (finalStatus) targetStatusId = finalStatus.id;
+      } else {
+        const firstStatus = allStatuses.find(s => s.functional_type === "debut") || allStatuses[0];
+        if (firstStatus) targetStatusId = firstStatus.id;
+      }
+
+      if (targetStatusId) {
+        await api.patch(`/tasks/${task.id}`, { status_id: targetStatusId });
+        await refresh();
+      }
+    } catch (err) {
+      setActionError(err?.data?.detail || err?.data?.error || "Erreur lors du changement de statut.");
+    } finally {
+      setChangingStatus(false);
+    }
   }
 
   const [transitionPromptOpen, setTransitionPromptOpen] = useState(false);
@@ -148,7 +197,7 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged, init
       } else if (err instanceof ApiError && err.data?.error === "transition_not_allowed") {
         setActionError("Cette transition n'est pas autorisée par le workflow.");
       } else {
-        setActionError("Impossible de changer le statut.");
+        setActionError(err?.data?.detail || err?.data?.error || "Impossible de changer le statut.");
       }
     } finally {
       setChangingStatus(false);
@@ -172,8 +221,8 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged, init
       });
       setCommentBody("");
       await refresh();
-    } catch {
-      setActionError("Impossible d'ajouter le commentaire.");
+    } catch (err) {
+      setActionError(err?.data?.detail || err?.data?.error || "Impossible d'ajouter le commentaire.");
     } finally {
       setPostingComment(false);
     }
@@ -192,8 +241,9 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged, init
       });
       setTimeForm((f) => ({ ...f, hours: "0", minutes: "0" }));
       await refresh();
-    } catch {
-      setActionError("Impossible d'enregistrer le temps.");
+    } catch (err) {
+      const msg = err?.data?.detail || err?.data?.error || err?.message || "Impossible d'enregistrer le temps.";
+      setActionError(msg);
     } finally {
       setPostingTime(false);
     }
@@ -352,8 +402,8 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged, init
                 <span className="tdm-detail-date">Publication : {fmtDate(task.planned_publish_date)}</span>
               </div>
 
-              {/* Workflow timeline progress tracker */}
-              {task.task_type_statuses && task.task_type_statuses.length > 0 && (
+              {/* Workflow timeline progress tracker (Only for project tasks) */}
+              {!task.is_personal && task.task_type_statuses && task.task_type_statuses.length > 0 && (
                 <div style={{ margin: "1.25rem 0", padding: "0.75rem", background: "var(--sidebar-accent)", borderRadius: "10px", border: "1px solid var(--line)" }}>
                   <p style={{ margin: "0 0 0.5rem", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)", letterSpacing: "0.03em" }}>Progression du Workflow</p>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -433,49 +483,160 @@ export default function TaskDetailModal({ taskId, open, onClose, onChanged, init
                 )}
               </div>
 
+              {/* Description & Work done section */}
+              <div className="tdm-detail-section">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                  <h4 style={{ margin: 0 }}>Description / Travail effectué</h4>
+                  {!editingDescription && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: "0.78rem", padding: "0.2rem 0.65rem" }}
+                      onClick={() => setEditingDescription(true)}
+                    >
+                      ✏️ {task.description ? "Modifier" : "Ajouter des détails"}
+                    </button>
+                  )}
+                </div>
 
-              {task.description && <p className="tdm-detail-desc">{task.description}</p>}
+                {editingDescription ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                    <textarea
+                      rows={3}
+                      style={{
+                        width: "100%",
+                        padding: "0.6rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid var(--line)",
+                        fontFamily: "var(--font-body)",
+                        fontSize: "0.86rem",
+                        resize: "vertical",
+                        background: "var(--card)",
+                        color: "var(--ink)",
+                      }}
+                      placeholder="Décrivez le travail effectué ou les notes sur cette tâche..."
+                      value={descriptionText}
+                      onChange={(e) => setDescriptionText(e.target.value)}
+                    />
+                    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => {
+                          setEditingDescription(false);
+                          setDescriptionText(task.description || "");
+                        }}
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        disabled={savingDescription}
+                        onClick={handleSaveDescription}
+                      >
+                        {savingDescription ? "Enregistrement..." : "Enregistrer la description"}
+                      </button>
+                    </div>
+                  </div>
+                ) : task.description ? (
+                  <p className="tdm-detail-desc" style={{ whiteSpace: "pre-wrap" }}>{task.description}</p>
+                ) : (
+                  <p style={{ fontSize: "0.84rem", color: "var(--text-muted)", fontStyle: "italic", margin: 0 }}>
+                    Aucune description ou travail renseigné. Cliquez sur « Ajouter des détails » ci-dessus.
+                  </p>
+                )}
+              </div>
 
               {actionError && <p className="field-error">{actionError}</p>}
 
+              {/* Status Section: Terminé button for personal tasks, transitions for project tasks */}
               <div className="tdm-detail-section">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.6rem" }}>
-                  <h4 style={{ margin: 0 }}>Changer de statut</h4>
-                  <span style={{ fontSize: "0.76rem", color: "var(--text-muted)", fontWeight: "500" }}>
-                    Qui peut changer : <strong style={{ color: "var(--ink)" }}>{ROLE_MAPPING[task.status_functional_type] || "CM, Admin, Manager"}</strong>
-                  </span>
-                </div>
-                {nextStatuses.length === 0 ? (
-                  <div style={{ padding: "0.75rem 1rem", background: "rgba(107,104,116,0.06)", borderRadius: "8px", border: "1px solid var(--line)" }}>
-                    <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
-                      {task.status_functional_type === "planification_shooting" ? (
-                        <span>🎥 <strong>Attente de planification :</strong> Cette tâche doit être planifiée pour le shooting par un Chef d'équipe Prod (ou Manager) depuis l'onglet <strong>Planification</strong>.</span>
-                      ) : task.status_functional_type === "planification_montage" ? (
-                        <span>🎬 <strong>Attente d'attribution :</strong> Cette tâche doit être attribuée à un monteur par un Chef d'équipe Prod (ou Manager) depuis l'onglet <strong>Planification</strong>.</span>
-                      ) : ["final_confirmation", "final_rejet"].includes(task.status_functional_type) ? (
-                        <span>✅ Cette tâche est terminée et archivée.</span>
-                      ) : (
-                        <span>🔒 Vous n'avez pas les droits nécessaires (CM, Manager) pour faire avancer cette tâche depuis ce statut.</span>
-                      )}
-                    </p>
+                {task.is_personal ? (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
+                      <h4 style={{ margin: 0 }}>Statut de la tâche</h4>
+                    </div>
+                    {(() => {
+                      const isCompleted = task.status_functional_type === "final_confirmation" ||
+                        task.status_functional_type === "validation" ||
+                        (task.status_title || "").toLowerCase().includes("fin") ||
+                        (task.status_title || "").toLowerCase().includes("term");
+                      return (
+                        <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            disabled={changingStatus}
+                            style={{
+                              padding: "0.6rem 1.2rem",
+                              borderRadius: "8px",
+                              fontWeight: 700,
+                              fontSize: "0.9rem",
+                              cursor: "pointer",
+                              border: "none",
+                              transition: "all 0.2s ease",
+                              background: !isCompleted ? "#10b981" : "var(--muted)",
+                              color: !isCompleted ? "#ffffff" : "var(--ink)",
+                              boxShadow: !isCompleted ? "0 2px 8px rgba(16, 185, 129, 0.3)" : "none",
+                            }}
+                            onClick={handleTogglePersonalTaskComplete}
+                          >
+                            {changingStatus
+                              ? "Mise à jour..."
+                              : isCompleted
+                              ? "🔄 Rouvrir la tâche"
+                              : "✓ Terminer la tâche"}
+                          </button>
+                          {isCompleted && (
+                            <span style={{ color: "#10b981", fontWeight: 700, fontSize: "0.9rem", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                              ✅ Tâche terminée
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
-                  <div className="tdm-status-buttons">
-                    {nextStatuses.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        className="chip-toggle"
-                        disabled={changingStatus}
-                        onClick={() => initiateStatusChange(s)}
-                      >
-                        {s.title}
-                        {s.transition?.form_fields && s.transition.form_fields.length > 0 && (
-                          <span style={{ marginLeft: "0.3rem", opacity: 0.8 }} title="Formulaire requis">📝</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.6rem" }}>
+                      <h4 style={{ margin: 0 }}>Changer de statut</h4>
+                      <span style={{ fontSize: "0.76rem", color: "var(--text-muted)", fontWeight: "500" }}>
+                        Qui peut changer : <strong style={{ color: "var(--ink)" }}>{ROLE_MAPPING[task.status_functional_type] || "CM, Admin, Manager"}</strong>
+                      </span>
+                    </div>
+                    {nextStatuses.length === 0 ? (
+                      <div style={{ padding: "0.75rem 1rem", background: "rgba(107,104,116,0.06)", borderRadius: "8px", border: "1px solid var(--line)" }}>
+                        <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
+                          {task.status_functional_type === "planification_shooting" ? (
+                            <span>🎥 <strong>Attente de planification :</strong> Cette tâche doit être planifiée pour le shooting par un Chef d'équipe Prod (ou Manager) depuis l'onglet <strong>Planification</strong>.</span>
+                          ) : task.status_functional_type === "planification_montage" ? (
+                            <span>🎬 <strong>Attente d'attribution :</strong> Cette tâche doit être attribuée à un monteur par un Chef d'équipe Prod (ou Manager) depuis l'onglet <strong>Planification</strong>.</span>
+                          ) : ["final_confirmation", "final_rejet"].includes(task.status_functional_type) ? (
+                            <span>✅ Cette tâche est terminée et archivée.</span>
+                          ) : (
+                            <span>🔒 Vous n'avez pas les droits nécessaires (CM, Manager) pour faire avancer cette tâche depuis ce statut.</span>
+                          )}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="tdm-status-buttons">
+                        {nextStatuses.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            className="chip-toggle"
+                            disabled={changingStatus}
+                            onClick={() => initiateStatusChange(s)}
+                          >
+                            {s.title}
+                            {s.transition?.form_fields && s.transition.form_fields.length > 0 && (
+                              <span style={{ marginLeft: "0.3rem", opacity: 0.8 }} title="Formulaire requis">📝</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
