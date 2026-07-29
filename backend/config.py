@@ -1,9 +1,20 @@
 import os
+import shutil
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 is_serverless = os.getenv("VERCEL") == "1" or os.getenv("SERVERLESS") == "1" or not os.access(BASE_DIR, os.W_OK)
 tmp_dir = "/tmp" if is_serverless else BASE_DIR
+
+# Copy pre-seeded yalla.db to /tmp if running on serverless
+if is_serverless:
+    src_db = os.path.join(BASE_DIR, "yalla.db")
+    tmp_db = "/tmp/yalla.db"
+    if os.path.exists(src_db) and not os.path.exists(tmp_db):
+        try:
+            shutil.copy2(src_db, tmp_db)
+        except Exception as e:
+            print("Failed to copy database to /tmp:", e)
 
 
 class DevConfig:
@@ -17,8 +28,13 @@ class DevConfig:
     SQLALCHEMY_DATABASE_URI = db_path
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    SESSION_TYPE = "filesystem"
-    SESSION_FILE_DIR = os.path.join(tmp_dir, "flask_session")
+    # Use standard signed cookies in serverless, filesystem in dev
+    if is_serverless:
+        SESSION_TYPE = None
+    else:
+        SESSION_TYPE = "filesystem"
+        SESSION_FILE_DIR = os.path.join(tmp_dir, "flask_session")
+
     SESSION_PERMANENT = True
     PERMANENT_SESSION_LIFETIME = 60 * 60  # 1h inactivity auto-logout
 
