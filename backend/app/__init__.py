@@ -37,18 +37,11 @@ def create_app(config_object="config.DevConfig"):
 
     db.init_app(app)
     sess.init_app(app)
-    import re
     allowed_origin_patterns = [
         r"^http://localhost(:\d+)?$",
         r"^http://127\.0\.0\.1(:\d+)?$",
+        r"^https://.*\.vercel\.app$",
     ]
-    CORS(
-        app,
-        supports_credentials=True,
-        origins=allowed_origin_patterns,
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    )
 
     @app.after_request
     def add_cors_headers(response):
@@ -62,6 +55,14 @@ def create_app(config_object="config.DevConfig"):
                     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
                     break
         return response
+
+    CORS(
+        app,
+        supports_credentials=True,
+        origins=allowed_origin_patterns,
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    )
 
     @app.errorhandler(500)
     def internal_server_error(e):

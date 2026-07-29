@@ -12,7 +12,8 @@ class DevConfig:
     SESSION_PERMANENT = True
     PERMANENT_SESSION_LIFETIME = 60 * 60  # 1h inactivity auto-logout
 
-    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "None")
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True").lower() in ("true", "1")
     SESSION_COOKIE_HTTPONLY = True
 
     FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
