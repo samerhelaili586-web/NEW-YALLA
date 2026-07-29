@@ -13,14 +13,17 @@
       "use": "@vercel/python"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "backend/api/index.py"
+      "src": "/api/(.*)",
+      "dest": "backend/api/index.py"
     },
     {
-      "source": "/:path*",
-      "destination": "frontend/index.html"
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
