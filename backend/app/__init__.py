@@ -87,17 +87,21 @@ def create_app(config_object="config.DevConfig"):
 
     @app.errorhandler(500)
     def internal_server_error(e):
+        from app.routes.monitoring import log_backend_error
+        log_backend_error(app, e, 500)
         return jsonify({"error": "internal_server_error", "detail": str(e)}), 500
 
     @app.errorhandler(Exception)
     def handle_exception(e):
         import traceback
         app.logger.error(f"Unhandled exception: {e}\n{traceback.format_exc()}")
+        from app.routes.monitoring import log_backend_error
+        log_backend_error(app, e, 500)
         return jsonify({"error": "internal_server_error", "detail": str(e)}), 500
 
     from app.models import (  # noqa: F401  (register models with SQLAlchemy)
         user, task_type, project, task, equipment, shoot,
-        leave, notification, announcement, guide_page,
+        leave, notification, announcement, guide_page, error_log,
     )
 
     from app.routes.auth import auth_bp
@@ -138,6 +142,9 @@ def create_app(config_object="config.DevConfig"):
 
     from app.routes.guide import guide_bp
     app.register_blueprint(guide_bp, url_prefix="/api/guide")
+
+    from app.routes.monitoring import monitoring_bp
+    app.register_blueprint(monitoring_bp, url_prefix="/api/monitoring")
 
     @app.get("/api/health")
     def health():

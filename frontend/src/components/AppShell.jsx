@@ -82,6 +82,7 @@ const NAV_SECTIONS = [
       { to: "/admin/equipment",     label: "Matériel",           icon: "equipment",  roles: ["admin_sys"] },
       { to: "/admin/holidays",      label: "Jours Fériés",       icon: "holidays",   roles: ["admin_sys"] },
       { to: "/admin/login-history", label: "Historique Connexions", icon: "history", roles: ["admin_sys"] },
+      { to: "/admin/monitoring",    label: "Monitoring System",  icon: "activity",   roles: ["admin_sys"] },
     ],
   },
 ];

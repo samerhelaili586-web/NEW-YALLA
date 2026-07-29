@@ -10,6 +10,7 @@ import AdminTaskTypes from "./pages/admin/TaskTypes";
 import AdminEquipment from "./pages/admin/Equipment";
 import AdminHolidays from "./pages/admin/Holidays";
 import AdminLoginHistory from "./pages/admin/LoginHistory";
+import AdminMonitoring from "./pages/admin/Monitoring";
 import ProjectList from "./pages/projects/ProjectList";
 import ProjectDetail from "./pages/projects/ProjectDetail";
 import TachesAssociees from "./pages/tasks/TachesAssociees";
@@ -177,6 +178,7 @@ export default function App() {
           <Route path="equipment" element={<AdminEquipment />} />
           <Route path="holidays" element={<AdminHolidays />} />
           <Route path="login-history" element={<AdminLoginHistory />} />
+          <Route path="monitoring" element={<AdminMonitoring />} />
         </Route>
       </Routes>
     </AuthProvider>

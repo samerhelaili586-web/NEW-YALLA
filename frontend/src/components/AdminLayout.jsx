@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: "/admin/equipment", label: "Matériel" },
   { to: "/admin/holidays", label: "Jours Fériés" },
   { to: "/admin/login-history", label: "Historique de connexions" },
+  { to: "/admin/monitoring", label: "📊 Monitoring System" },
 ];
 
 export default function AdminLayout() {

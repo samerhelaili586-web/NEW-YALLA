@@ -23,6 +23,41 @@ document.addEventListener("click", (e) => {
   setTimeout(() => ripple.remove(), 600);
 });
 
+// ── Global Error Reporter for System Monitoring ──────────────────────────
+window.onerror = (message, source, lineno, colno, error) => {
+  try {
+    fetch("/api/monitoring/client-error", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: window.location.href,
+        method: "JS_ERROR",
+        status_code: 500,
+        message: String(message),
+        stack: error?.stack || `${source}:${lineno}:${colno}`,
+      }),
+    }).catch(() => {});
+  } catch {}
+};
+
+window.onunhandledrejection = (e) => {
+  try {
+    fetch("/api/monitoring/client-error", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: window.location.href,
+        method: "PROMISE_REJECTION",
+        status_code: 500,
+        message: String(e.reason?.message || e.reason || "Unhandled Promise Rejection"),
+        stack: e.reason?.stack || "",
+      }),
+    }).catch(() => {});
+  } catch {}
+};
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>

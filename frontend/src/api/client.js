@@ -35,6 +35,22 @@ async function request(path, { method = "GET", body, params } = {}) {
   }
 
   if (!res.ok) {
+    if (!path.includes("/monitoring/client-error") && res.status >= 400) {
+      try {
+        fetch(`${API_URL}/monitoring/client-error`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url,
+            method,
+            status_code: res.status,
+            message: data?.error || data?.detail || `HTTP Error ${res.status}`,
+            detail: text ? text.substring(0, 1000) : "",
+          }),
+        }).catch(() => {});
+      } catch {}
+    }
     throw new ApiError(res.status, data);
   }
   return data;
