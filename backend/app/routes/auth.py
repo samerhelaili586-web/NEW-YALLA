@@ -9,23 +9,31 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.post("/login")
 def login():
-    data = request.get_json(force=True) or {}
-    email = data.get("email", "").strip().lower()
-    password = data.get("password", "")
+    try:
+        data = request.get_json(force=True) or {}
+        email = data.get("email", "").strip().lower()
+        password = data.get("password", "")
 
-    user = User.query.filter_by(email=email).first()
-    if not user or not user.check_password(password):
-        return jsonify({"error": "invalid_credentials"}), 401
-    if user.is_archived or not user.is_active:
-        return jsonify({"error": "account_disabled"}), 403
+        user = User.query.filter_by(email=email).first()
+        if not user or not user.check_password(password):
+            return jsonify({"error": "invalid_credentials"}), 401
+        if user.is_archived or not user.is_active:
+            return jsonify({"error": "account_disabled"}), 403
 
-    session.permanent = True
-    session["user_id"] = user.id
+        session.permanent = True
+        session["user_id"] = user.id
 
-    db.session.add(LoginHistory(user_id=user.id, event="login"))
-    db.session.commit()
+        try:
+            db.session.add(LoginHistory(user_id=user.id, event="login"))
+            db.session.commit()
+        except Exception as err:
+            db.session.rollback()
+            print("LoginHistory write non-fatal error:", err)
 
-    return jsonify({"user": user.to_dict()})
+        return jsonify({"user": user.to_dict()})
+    except Exception as e:
+        import traceback
+        return jsonify({"error": "login_failed", "detail": str(e), "traceback": traceback.format_exc()}), 500
 
 
 @auth_bp.post("/logout")
