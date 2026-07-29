@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify, session
 from app import db
 from app.models.error_log import ErrorLog
 from app.models.user import User
-from app.routes.auth import require_menu
+from app.permissions import require_menu
 
 monitoring_bp = Blueprint("monitoring", __name__)
 
