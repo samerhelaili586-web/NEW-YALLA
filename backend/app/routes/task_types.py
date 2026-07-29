@@ -216,13 +216,26 @@ def update_status(status_id):
     return jsonify(status.to_dict())
 
 
-@task_types_bp.delete("/statuses/<int:status_id>")
+@task_types_bp.delete("/statuses/<status_id>")
 @require_menu("gestion_workflows")
 def delete_status(status_id):
-    status = Status.query.get_or_404(status_id)
+    try:
+        numeric_id = int(status_id)
+    except (ValueError, TypeError):
+        return jsonify({"ok": True})
+
+    status = Status.query.get(numeric_id)
+    if not status:
+        return jsonify({"ok": True})
+
     in_use = Task.query.filter_by(status_id=status.id).first() is not None
     if in_use:
         return jsonify({"error": "status_in_use"}), 409
+
+    Transition.query.filter(
+        (Transition.from_status_id == status.id) | (Transition.to_status_id == status.id)
+    ).delete(synchronize_session=False)
+
     db.session.delete(status)
     db.session.commit()
     return jsonify({"ok": True})

@@ -965,16 +965,24 @@ export default function WorkflowEditor() {
   // ── Delete node ──────────────────────────────────────────────────────────
   async function handleDeleteNode() {
     if (!selectedNodeId) return;
+    const targetId = selectedNodeId;
     try {
-      await api.delete(`/task-types/statuses/${selectedNodeId}`);
-      setStatuses(prev => prev.filter(s => s.id !== selectedNodeId));
-      setTransitions(prev => prev.filter(t => t.from_status_id !== selectedNodeId && t.to_status_id !== selectedNodeId));
+      if (typeof targetId === "number" || (!isNaN(Number(targetId)) && !String(targetId).includes("g"))) {
+        await api.delete(`/task-types/statuses/${targetId}`).catch(() => {});
+      }
+      setStatuses(prev => prev.filter(s => s.id !== targetId));
+      setTransitions(prev => prev.filter(t => t.from_status_id !== targetId && t.to_status_id !== targetId));
       setSelectedNodeId(null);
       setPropForm(null);
     } catch (err) {
       if (err?.data?.error === "status_in_use") {
         alert("Ce statut est utilisé par des tâches existantes.");
+        return;
       }
+      setStatuses(prev => prev.filter(s => s.id !== targetId));
+      setTransitions(prev => prev.filter(t => t.from_status_id !== targetId && t.to_status_id !== targetId));
+      setSelectedNodeId(null);
+      setPropForm(null);
     }
   }
 
@@ -1233,123 +1241,6 @@ export default function WorkflowEditor() {
 
       {/* ── Main body ─────────────────────────────────────────────────── */}
       <div className="we-body">
-
-        {/* ── Left Status Palette (§3.1.4) ──────────────────────────────── */}
-        {canManage && (
-          <aside className="we-palette">
-            <div className="we-palette-title">BIBLIOTHÈQUE DES ÉTAPES</div>
-            <div className="we-palette-hint">Cliquez pour ajouter au canevas</div>
-            <div className="we-palette-list">
-              {/* Group 1: Démarrage */}
-              <div className="we-palette-group-label">DÉMARRAGE</div>
-              {["debut"].map(ft => {
-                const meta = FUNCTIONAL_META[ft];
-                return (
-                  <button
-                    key={ft}
-                    type="button"
-                    className="we-palette-item"
-                    style={{ background: meta.bg, borderColor: meta.border }}
-                    onClick={() => {
-                      const id = uid();
-                      const centerX = (canvasRef.current?.scrollLeft ?? 0) + (canvasRef.current?.clientWidth ?? 600) / 2 - NODE_W / 2;
-                      const centerY = (canvasRef.current?.scrollTop ?? 0) + (canvasRef.current?.clientHeight ?? 400) / 2 - NODE_H / 2;
-                      setStatuses(prev => [...prev, {
-                        id, title: meta.label.replace(/^STATUT DE /, ""), functional_type: ft,
-                        temporal_type: "evolutif", allowed_roles: [],
-                        pos_x: Math.max(20, centerX + (Math.random() - 0.5) * 80),
-                        pos_y: Math.max(20, centerY + (Math.random() - 0.5) * 80),
-                      }]);
-                    }}
-                    title={`Ajouter un statut "${meta.label}"`}
-                  >
-                    <span className="we-palette-dot" style={{ background: meta.color }} />
-                    <span>
-                      <div className="we-palette-item-name" style={{ color: meta.text }}>{meta.label}</div>
-                      <div className="we-palette-item-desc">Point d'entrée du workflow</div>
-                    </span>
-                  </button>
-                );
-              })}
-
-              {/* Group 2: Étapes intermédiaires & production */}
-              <div className="we-palette-group-label">ÉTAPES INTERMÉDIAIRES / PRODUCTION</div>
-              {["intermediaire", "planification_shooting", "planification_montage", "montage"].map(ft => {
-                const meta = FUNCTIONAL_META[ft];
-                const desc = {
-                  intermediaire: "Étape de travail classique évolutive",
-                  planification_shooting: "Statut figé — Chef Prod planifie le shooting",
-                  planification_montage: "Statut figé — Chef Prod affecte un monteur",
-                  montage: "Étape de réalisation du montage",
-                }[ft];
-                return (
-                  <button
-                    key={ft}
-                    type="button"
-                    className="we-palette-item"
-                    style={{ background: meta.bg, borderColor: meta.border }}
-                    onClick={() => {
-                      const id = uid();
-                      const centerX = (canvasRef.current?.scrollLeft ?? 0) + (canvasRef.current?.clientWidth ?? 600) / 2 - NODE_W / 2;
-                      const centerY = (canvasRef.current?.scrollTop ?? 0) + (canvasRef.current?.clientHeight ?? 400) / 2 - NODE_H / 2;
-                      setStatuses(prev => [...prev, {
-                        id, title: meta.label, functional_type: ft,
-                        temporal_type: ft.startsWith("planification") ? "fige" : "evolutif",
-                        allowed_roles: [],
-                        pos_x: Math.max(20, centerX + (Math.random() - 0.5) * 80),
-                        pos_y: Math.max(20, centerY + (Math.random() - 0.5) * 80),
-                      }]);
-                    }}
-                    title={`Ajouter "${meta.label}"`}
-                  >
-                    <span className="we-palette-dot" style={{ background: meta.color }} />
-                    <span>
-                      <div className="we-palette-item-name" style={{ color: meta.text }}>{meta.label}</div>
-                      <div className="we-palette-item-desc">{desc}</div>
-                    </span>
-                  </button>
-                );
-              })}
-
-              {/* Group 3: Statuts finaux */}
-              <div className="we-palette-group-label">STATUTS FINAUX</div>
-              {["final_confirmation", "final_rejet"].map(ft => {
-                const meta = FUNCTIONAL_META[ft];
-                const desc = ft === "final_confirmation" ? "Tâche terminée avec succès" : "Tâche rejetée";
-                return (
-                  <button
-                    key={ft}
-                    type="button"
-                    className="we-palette-item"
-                    style={{ background: meta.bg, borderColor: meta.border }}
-                    onClick={() => {
-                      const id = uid();
-                      const centerX = (canvasRef.current?.scrollLeft ?? 0) + (canvasRef.current?.clientWidth ?? 600) / 2 - NODE_W / 2;
-                      const centerY = (canvasRef.current?.scrollTop ?? 0) + (canvasRef.current?.clientHeight ?? 400) / 2 - NODE_H / 2;
-                      setStatuses(prev => [...prev, {
-                        id, title: meta.label, functional_type: ft,
-                        temporal_type: "fige", allowed_roles: [],
-                        pos_x: Math.max(20, centerX + (Math.random() - 0.5) * 80),
-                        pos_y: Math.max(20, centerY + (Math.random() - 0.5) * 80),
-                      }]);
-                    }}
-                    title={`Ajouter "${meta.label}"`}
-                  >
-                    <span className="we-palette-dot" style={{ background: meta.color }} />
-                    <span>
-                      <div className="we-palette-item-name" style={{ color: meta.text }}>{meta.label}</div>
-                      <div className="we-palette-item-desc">{desc}</div>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="we-palette-footer">
-              <p>💡 Cliquez sur un statut pour l'ajouter au canevas.</p>
-              <p>⊕ Glissez l'ancre d'un nœud pour créer une transition.</p>
-            </div>
-          </aside>
-        )}
 
         {/* Center canvas */}
         <div className="we-canvas-wrap">
