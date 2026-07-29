@@ -37,29 +37,45 @@ def create_app(config_object="config.DevConfig"):
 
     db.init_app(app)
     sess.init_app(app)
-    allowed_origin_patterns = [
-        r"^http://localhost(:\d+)?$",
-        r"^http://127\.0\.0\.1(:\d+)?$",
-        r"^https://.*\.vercel\.app$",
+    import re
+    allowed_origin_regexes = [
+        re.compile(r"^http://localhost(:\d+)?$"),
+        re.compile(r"^http://127\.0\.0\.1(:\d+)?$"),
+        re.compile(r"^https://.*\.vercel\.app$"),
+        re.compile(r"^https://.*\.onrender\.com$"),
     ]
+
+    def is_origin_allowed(origin):
+        if not origin:
+            return False
+        return any(pattern.match(origin) for pattern in allowed_origin_regexes)
+
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            origin = request.headers.get("Origin")
+            response = app.make_default_options_response()
+            if is_origin_allowed(origin):
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            return response
 
     @app.after_request
     def add_cors_headers(response):
         origin = request.headers.get("Origin")
-        if origin:
-            for pattern in allowed_origin_patterns:
-                if re.match(pattern, origin):
-                    response.headers["Access-Control-Allow-Origin"] = origin
-                    response.headers["Access-Control-Allow-Credentials"] = "true"
-                    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept"
-                    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-                    break
+        if is_origin_allowed(origin):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         return response
 
     CORS(
         app,
         supports_credentials=True,
-        origins=allowed_origin_patterns,
+        origins=allowed_origin_regexes,
         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
