@@ -143,6 +143,23 @@ def create_app(config_object="config.DevConfig"):
     def health():
         return {"status": "ok"}
 
+    dist_dir = os.path.abspath(os.path.join(app.root_path, "../../frontend/dist"))
+
+    @app.route("/", defaults={"path": ""})
+    @app.route("/<path:path>")
+    def serve_frontend(path):
+        if path.startswith("api/"):
+            return jsonify({"error": "not_found"}), 404
+        file_path = os.path.join(dist_dir, path)
+        if path != "" and os.path.exists(file_path):
+            from flask import send_from_directory
+            return send_from_directory(dist_dir, path)
+        else:
+            from flask import send_from_directory
+            if os.path.exists(os.path.join(dist_dir, "index.html")):
+                return send_from_directory(dist_dir, "index.html")
+            return jsonify({"status": "ok", "message": "Backend API running"}), 200
+
     with app.app_context():
         _run_migrations(db)
         db.create_all()
