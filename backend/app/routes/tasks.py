@@ -475,7 +475,12 @@ def create_time_entry(task_id):
         local_now = local_now - timedelta(minutes=-60)
 
     today = local_now.date()
-    yesterday = today - timedelta(days=1)
+    from app.models.system_setting import SystemSetting
+    try:
+        grace_days = int(SystemSetting.get_val("grace_period_days", "1"))
+    except ValueError:
+        grace_days = 1
+    yesterday = today - timedelta(days=grace_days)
 
     if entry_date > today:
         return jsonify({
@@ -486,7 +491,7 @@ def create_time_entry(task_id):
     if entry_date < yesterday:
         return jsonify({
             "error": "date_too_old",
-            "detail": "La saisie de temps n'est autorisée que pour aujourd'hui (J) ou hier (J-1)."
+            "detail": f"La saisie de temps n'est autorisée que pour les {grace_days + 1} derniers jours (J-{grace_days} à J)."
         }), 400
 
     max_mins = get_max_elapsed_minutes(entry_date, client_tz_offset=client_tz_offset)

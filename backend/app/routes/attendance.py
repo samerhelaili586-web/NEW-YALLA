@@ -37,9 +37,15 @@ from app.models.notification import Notification
 
 def check_and_notify_penalties():
     """
-    Checks past workdays where grace period expired (today >= d + 2 days).
+    Checks past workdays where grace period expired (today >= d + grace_days + 1).
     Sends high-priority penalty notifications to employee, managers, and admin sys.
     """
+    from app.models.system_setting import SystemSetting
+    try:
+        grace_days = int(SystemSetting.get_val("grace_period_days", "1"))
+    except ValueError:
+        grace_days = 1
+
     today = date.today()
     users = User.query.filter_by(is_archived=False, is_active=True).filter(
         User.role.in_(["cm", "prod"])
@@ -48,7 +54,7 @@ def check_and_notify_penalties():
         User.role.in_(["admin_sys", "manager"])
     ).all()
 
-    for delta in range(2, 30):
+    for delta in range(grace_days + 1, 30):
         past_date = today - timedelta(days=delta)
         d_str = past_date.strftime("%d/%m/%Y")
 
@@ -62,7 +68,7 @@ def check_and_notify_penalties():
 
             if total_mins < min_req:
                 # Check if notification already sent for this user + date
-                msg_employee = f"⚠️ Pénalité : Votre feuille de présence du {d_str} n'a pas été soumise avant la limite (J+1 à 23h59). Journée marquée pénalisée et non payée."
+                msg_employee = f"⚠️ Pénalité : Votre feuille de présence du {d_str} n'a pas été soumise avant la limite (J+{grace_days} à 23h59). Journée marquée pénalisée et non payée."
                 exists = Notification.query.filter(
                     Notification.user_id == u.id,
                     Notification.message == msg_employee,
@@ -88,6 +94,12 @@ def check_and_notify_penalties():
 
 
 def _build_week(user_id: int, week_start: date):
+    from app.models.system_setting import SystemSetting
+    try:
+        grace_days = int(SystemSetting.get_val("grace_period_days", "1"))
+    except ValueError:
+        grace_days = 1
+
     today = date.today()
     days = []
     for i in range(7):
@@ -98,12 +110,12 @@ def _build_week(user_id: int, week_start: date):
         min_req = 240 if d.weekday() == 5 else MIN_DAILY_MINUTES
 
         # Grace period logic:
-        # If d is in the past and today >= d + 2 days (grace period J+1 23:59 expired),
+        # If d is in the past and today >= d + grace_days + 1 days (grace period expired),
         # and total_minutes < min_req and day_off is None, day_off becomes 'penalized'!
-        if day_off is None and today >= d + timedelta(days=2) and total_minutes < min_req:
+        if day_off is None and today >= d + timedelta(days=grace_days + 1) and total_minutes < min_req:
             day_off = "penalized"
 
-        is_grace_period = (d < today and today == d + timedelta(days=1) and total_minutes < min_req and day_off is None)
+        is_grace_period = (d < today and today <= d + timedelta(days=grace_days) and total_minutes < min_req and day_off is None)
 
         days.append({
             "date": d.isoformat(),

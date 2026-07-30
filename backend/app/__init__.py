@@ -102,6 +102,7 @@ def create_app(config_object="config.DevConfig"):
     from app.models import (  # noqa: F401  (register models with SQLAlchemy)
         user, task_type, project, task, equipment, shoot,
         leave, notification, announcement, guide_page, error_log,
+        system_setting,
     )
 
     from app.routes.auth import auth_bp
@@ -146,6 +147,9 @@ def create_app(config_object="config.DevConfig"):
     from app.routes.monitoring import monitoring_bp
     app.register_blueprint(monitoring_bp, url_prefix="/api/monitoring")
 
+    from app.routes.settings import settings_bp
+    app.register_blueprint(settings_bp, url_prefix="/api/settings")
+
     @app.get("/api/health")
     def health():
         return {"status": "ok"}
@@ -174,5 +178,9 @@ def create_app(config_object="config.DevConfig"):
         if not User.query.first():
             from app.seed import run_seed
             run_seed()
+
+        from app.models.system_setting import SystemSetting
+        if not SystemSetting.query.get("grace_period_days"):
+            SystemSetting.set_val("grace_period_days", "1", "Délai de grâce en jours pour déclarer son temps (ex: 1 pour J+1, 2 pour J+2, etc.)")
 
     return app
