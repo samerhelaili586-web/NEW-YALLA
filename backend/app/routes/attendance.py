@@ -101,17 +101,59 @@ def _build_week(user_id: int, week_start: date):
         grace_days = 1
 
     today = date.today()
+    week_end = week_start + timedelta(days=6)
+
+    # 1. Batch fetch time entries
+    all_entries = TimeEntry.query.filter(
+        TimeEntry.user_id == user_id,
+        TimeEntry.entry_date >= week_start,
+        TimeEntry.entry_date <= week_end
+    ).all()
+    entries_by_date = {}
+    for e in all_entries:
+        entries_by_date.setdefault(e.entry_date, []).append(e)
+
+    # 2. Batch fetch holidays
+    week_holidays = {h.holiday_date for h in Holiday.query.filter(
+        Holiday.holiday_date >= week_start,
+        Holiday.holiday_date <= week_end
+    ).all()}
+
+    # 3. Batch fetch leaves
+    week_leaves = LeaveRequest.query.filter(
+        LeaveRequest.user_id == user_id,
+        LeaveRequest.status == "approved",
+        LeaveRequest.start_date <= week_end,
+        LeaveRequest.end_date >= week_start
+    ).all()
+
+    # 4. Batch fetch sick absences
+    week_sicks = {s.absence_date for s in SickAbsence.query.filter(
+        SickAbsence.user_id == user_id,
+        SickAbsence.absence_date >= week_start,
+        SickAbsence.absence_date <= week_end
+    ).all()}
+
     days = []
     for i in range(7):
         d = week_start + timedelta(days=i)
-        entries = TimeEntry.query.filter_by(user_id=user_id, entry_date=d).all()
+        entries = entries_by_date.get(d, [])
         total_minutes = sum(e.hours * 60 + e.minutes for e in entries)
-        day_off = _is_day_off(d, user_id)
+
+        # Compute day off reasons in memory
+        day_off = None
+        if d.weekday() == 6:
+            day_off = "weekend"
+        elif d in week_holidays:
+            day_off = "holiday"
+        elif any(l.start_date <= d <= l.end_date for l in week_leaves):
+            day_off = "leave"
+        elif d in week_sicks:
+            day_off = "sick"
+
         min_req = 240 if d.weekday() == 5 else MIN_DAILY_MINUTES
 
         # Grace period logic:
-        # If d is in the past and today >= d + grace_days + 1 days (grace period expired),
-        # and total_minutes < min_req and day_off is None, day_off becomes 'penalized'!
         if day_off is None and today >= d + timedelta(days=grace_days + 1) and total_minutes < min_req:
             day_off = "penalized"
 
@@ -128,11 +170,40 @@ def _build_week(user_id: int, week_start: date):
     return days
 
 
+import time
+import threading
+from flask import current_app
+
+_last_penalty_check = 0
+_lock = threading.Lock()
+
+def check_and_notify_penalties_bg():
+    global _last_penalty_check
+    now = time.time()
+    if now - _last_penalty_check < 900:  # 15 minutes throttle
+        return
+
+    with _lock:
+        if now - _last_penalty_check < 900:
+            return
+        _last_penalty_check = now
+
+    app = current_app._get_current_object()
+    def bg_task():
+        with app.app_context():
+            try:
+                check_and_notify_penalties()
+            except Exception as e:
+                app.logger.error(f"Error in background penalty check: {e}")
+
+    threading.Thread(target=bg_task, daemon=True).start()
+
+
 # ---------- Personal weekly timesheet (CM, Prod, Chef Prod) ----------
 @attendance_bp.get("/me")
 @require_menu("feuille_presence_perso")
 def my_week():
-    check_and_notify_penalties()
+    check_and_notify_penalties_bg()
     user = current_user()
     ref = request.args.get("ref_date")
     ref_date = date.fromisoformat(ref) if ref else date.today()
@@ -148,7 +219,7 @@ def my_week():
 @attendance_bp.get("/team")
 @require_menu("feuille_presence_equipe")
 def team_week():
-    check_and_notify_penalties()
+    check_and_notify_penalties_bg()
     ref = request.args.get("ref_date")
     ref_date = date.fromisoformat(ref) if ref else date.today()
     week_start, _ = _week_bounds(ref_date)
