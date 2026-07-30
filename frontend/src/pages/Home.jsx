@@ -110,8 +110,8 @@ export default function Home() {
           const meData = await api.get("/attendance/me").catch(() => null);
           loggedMins = (meData?.days || []).reduce((s, d) => s + (d.total_minutes || 0), 0);
         } else {
-          const teamData = await api.get("/attendance/team").catch(() => []);
-          loggedMins = teamData.reduce((s, u) => s + (u.days || []).reduce((s2, d) => s2 + (d.total_minutes || 0), 0), 0);
+          const summaryData = await api.get("/attendance/summary").catch(() => null);
+          loggedMins = summaryData?.weekly_minutes || 0;
         }
       }
       setWeeklyHours(loggedMins);

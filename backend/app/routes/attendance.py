@@ -114,9 +114,9 @@ def _build_week(user_id: int, week_start: date):
         entries_by_date.setdefault(e.entry_date, []).append(e)
 
     # 2. Batch fetch holidays
-    week_holidays = {h.holiday_date for h in Holiday.query.filter(
-        Holiday.holiday_date >= week_start,
-        Holiday.holiday_date <= week_end
+    week_holidays = {h.date for h in Holiday.query.filter(
+        Holiday.date >= week_start,
+        Holiday.date <= week_end
     ).all()}
 
     # 3. Batch fetch leaves
@@ -236,6 +236,26 @@ def team_week():
         }
         for u in users
     ])
+
+
+# ---------- Team weekly timesheet summary (Admin Sys, Manager) ----------
+@attendance_bp.get("/summary")
+@require_menu("feuille_presence_equipe")
+def team_summary():
+    ref = request.args.get("ref_date")
+    ref_date = date.fromisoformat(ref) if ref else date.today()
+    week_start, week_end = _week_bounds(ref_date)
+    # Sum of hours*60 + minutes for all active users in the system
+    total_mins = db.session.query(db.func.sum(TimeEntry.hours * 60 + TimeEntry.minutes)).join(
+        User, TimeEntry.user_id == User.id
+    ).filter(
+        User.is_archived == False,
+        User.is_active == True,
+        User.role.in_(["cm", "prod"]),
+        TimeEntry.entry_date >= week_start,
+        TimeEntry.entry_date <= week_end
+    ).scalar() or 0
+    return jsonify({"weekly_minutes": int(total_mins)})
 
 
 # ---------- Alerts: users with missing reports today ----------
