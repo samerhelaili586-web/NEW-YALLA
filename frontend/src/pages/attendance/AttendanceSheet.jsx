@@ -116,6 +116,7 @@ export default function AttendanceSheet() {
 
   // Time Entry Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
   const [userTasks, setUserTasks] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [otherActivityName, setOtherActivityName] = useState("");
@@ -373,6 +374,12 @@ export default function AttendanceSheet() {
 
   const todayIso = toISODate(new Date());
 
+  const hasFinished8HoursToday = useMemo(() => {
+    if (!personalWeek || !personalWeek.days) return false;
+    const todayObj = personalWeek.days.find((d) => d.date === todayIso);
+    return todayObj ? todayObj.total_minutes >= 480 : false;
+  }, [personalWeek, todayIso]);
+
   return (
     <AppShell>
       <div className="att-container">
@@ -389,17 +396,43 @@ export default function AttendanceSheet() {
 
           <div className="att-week-nav">
             {!isTeamView && (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => setIsModalOpen(true)}
-                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                Saisir mon temps
-              </button>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => setIsModalOpen(true)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  Saisir mon temps
+                </button>
+
+                {!["admin_sys", "manager"].includes(user?.effective_role) && hasFinished8HoursToday && (
+                  <button
+                    type="button"
+                    className="btn-accent"
+                    onClick={() => {
+                      setHours("1");
+                      setMinutes("0");
+                      setFormError("");
+                      setIsOvertimeModalOpen(true);
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      background: "linear-gradient(135deg, #fbbf24 0%, #d97706 100%)",
+                      border: "none",
+                      color: "#000",
+                      fontWeight: "700"
+                    }}
+                  >
+                    <span>🚀 Heures Supp.</span>
+                  </button>
+                )}
+              </div>
             )}
 
             {isTeamView && (
@@ -892,6 +925,120 @@ export default function AttendanceSheet() {
               </div>
             </div>
           )}
+        </Modal>
+
+        {/* ── Modal Popup: Saisir mes heures supplémentaires ── */}
+        <Modal
+          open={isOvertimeModalOpen}
+          onClose={() => setIsOvertimeModalOpen(false)}
+          title="🚀 Déclarer des heures supplémentaires (Overtime)"
+          width={480}
+        >
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            setFormError("");
+            if (!selectedTaskId) {
+              setFormError("Veuillez sélectionner une tâche ou une activité.");
+              return;
+            }
+            const h = parseInt(hours) || 0;
+            const m = parseInt(minutes) || 0;
+            if (h === 0 && m === 0) {
+              setFormError("Veuillez indiquer une durée supérieure à 0 minute.");
+              return;
+            }
+            setFormSubmitting(true);
+            try {
+              let targetTaskId = selectedTaskId;
+              if (targetTaskId === "other") {
+                if (userTasks.length > 0) {
+                  targetTaskId = userTasks[0].id;
+                } else {
+                  const allTasks = await api.get("/tasks");
+                  if (allTasks.length > 0) {
+                    targetTaskId = allTasks[0].id;
+                  } else {
+                    setFormError("Aucune tâche disponible.");
+                    setFormSubmitting(false);
+                    return;
+                  }
+                }
+              }
+              await api.post(`/tasks/${targetTaskId}/time-entries`, {
+                entry_date: todayIso,
+                hours: h,
+                minutes: m,
+              });
+              setIsOvertimeModalOpen(false);
+              setHours("1");
+              setMinutes("0");
+              refreshData();
+            } catch (err) {
+              setFormError(err?.data?.detail || err?.data?.error || "Erreur lors de la déclaration.");
+            } finally {
+              setFormSubmitting(false);
+            }
+          }}>
+            <div style={{ background: "rgba(251, 191, 36, 0.1)", border: "1px solid rgba(251, 191, 36, 0.2)", borderRadius: "8px", padding: "0.85rem", marginBottom: "1rem" }}>
+              <span style={{ fontSize: "1.1rem", marginRight: "0.4rem" }}>🎉</span>
+              <span style={{ fontSize: "0.85rem", color: "#fbbf24", fontWeight: "600" }}>
+                Félicitations ! Vous avez déjà complété vos 8 heures réglementaires aujourd'hui.
+              </span>
+            </div>
+
+            <div className="field">
+              <label>Tâche ou Activité supplémentaire</label>
+              <select
+                value={selectedTaskId}
+                onChange={(e) => setSelectedTaskId(e.target.value)}
+                required
+              >
+                <option value="">-- Sélectionner une tâche ou activité --</option>
+                {userTasks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    [{t.project_title || "Projet"}] {t.title}
+                  </option>
+                ))}
+                <option value="other">Autre activité (Overtime)</option>
+              </select>
+            </div>
+
+            <div className="field-row">
+              <div className="field">
+                <label>Heures supplémentaires</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="16"
+                  required
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label>Minutes supplémentaires</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  required
+                  value={minutes}
+                  onChange={(e) => setMinutes(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {formError && <p className="field-error" role="alert">{formError}</p>}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1rem" }}>
+              <button type="button" className="btn-secondary" onClick={() => setIsOvertimeModalOpen(false)}>
+                Annuler
+              </button>
+              <button type="submit" className="btn-primary" disabled={formSubmitting} style={{ background: "linear-gradient(135deg, #fbbf24 0%, #d97706 100%)", color: "#000", border: "none", fontWeight: "700" }}>
+                {formSubmitting ? "Déclaration..." : "Valider Heures Supp."}
+              </button>
+            </div>
+          </form>
         </Modal>
       </div>
     </AppShell>
