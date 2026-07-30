@@ -141,6 +141,16 @@ export default function TachesAssociees() {
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [viewMode, setViewMode] = useState("list"); // "list" or "weekly"
+
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(d.setDate(diff));
+    start.setHours(0, 0, 0, 0);
+    return start;
+  });
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -163,6 +173,16 @@ export default function TachesAssociees() {
     loadTasks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const weekDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(currentWeekStart);
+      d.setDate(currentWeekStart.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  }, [currentWeekStart]);
 
   function openTask(t) {
     setSelectedTaskId(t.id);
@@ -196,19 +216,89 @@ export default function TachesAssociees() {
     });
   }, [tasks, search, typeFilter]);
 
+  const tasksByDay = useMemo(() => {
+    const map = {};
+    weekDays.forEach(day => {
+      const key = day.toISOString().slice(0, 10);
+      map[key] = [];
+    });
+
+    filteredTasks.forEach(t => {
+      if (t.planned_publish_date) {
+        const dateKey = new Date(t.planned_publish_date).toISOString().slice(0, 10);
+        if (map[dateKey]) {
+          map[dateKey].push(t);
+        }
+      }
+    });
+    return map;
+  }, [filteredTasks, weekDays]);
+
+  const handlePrevWeek = () => {
+    setCurrentWeekStart(prev => {
+      const d = new Date(prev);
+      d.setDate(prev.getDate() - 7);
+      return d;
+    });
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeekStart(prev => {
+      const d = new Date(prev);
+      d.setDate(prev.getDate() + 7);
+      return d;
+    });
+  };
+
+  const handleCurrentWeek = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(d.setDate(diff));
+    start.setHours(0, 0, 0, 0);
+    setCurrentWeekStart(start);
+  };
+
+  const weekRangeLabel = useMemo(() => {
+    const startOpt = { day: "numeric", month: "short" };
+    const endOpt = { day: "numeric", month: "short", year: "numeric" };
+    const startStr = weekDays[0].toLocaleDateString("fr-FR", startOpt);
+    const endStr = weekDays[6].toLocaleDateString("fr-FR", endOpt);
+    return `${startStr} - ${endStr}`;
+  }, [weekDays]);
+
   return (
     <AppShell>
       <div className="ta-page">
         {/* ── Header ── */}
         <div className="page-header">
-          <div>
-            <h1>Mes tâches</h1>
-            <p className="page-subtitle">
-              {loading
-                ? "Chargement…"
-                : `${tasks.length} tâche${tasks.length !== 1 ? "s" : ""} assignée${tasks.length !== 1 ? "s" : ""}${lateCount > 0 ? ` · ${lateCount} en retard` : ""}`
-              }
-            </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+            <div>
+              <h1>Mes tâches</h1>
+              <p className="page-subtitle">
+                {loading
+                  ? "Chargement…"
+                  : `${tasks.length} tâche${tasks.length !== 1 ? "s" : ""} assignée${tasks.length !== 1 ? "s" : ""}${lateCount > 0 ? ` · ${lateCount} en retard` : ""}`
+                }
+              </p>
+            </div>
+            {/* View Mode Toggle */}
+            <div className="ta-view-toggle">
+              <button
+                type="button"
+                className={`ta-view-btn ${viewMode === "list" ? "active" : ""}`}
+                onClick={() => setViewMode("list")}
+              >
+                📋 Liste
+              </button>
+              <button
+                type="button"
+                className={`ta-view-btn ${viewMode === "weekly" ? "active" : ""}`}
+                onClick={() => setViewMode("weekly")}
+              >
+                📅 Vue Semaine
+              </button>
+            </div>
           </div>
           {canCreateTask && (
             <button
@@ -265,6 +355,15 @@ export default function TachesAssociees() {
 
         {!loading && !loadError && (
           <>
+            {viewMode === "weekly" && (
+              <div className="ta-weekly-navigator">
+                <button type="button" className="btn-secondary btn-sm" onClick={handlePrevWeek}>◀ Précédent</button>
+                <button type="button" className="btn-secondary btn-sm" onClick={handleCurrentWeek}>Aujourd'hui</button>
+                <span className="ta-weekly-range">{weekRangeLabel}</span>
+                <button type="button" className="btn-secondary btn-sm" onClick={handleNextWeek}>Suivant ▶</button>
+              </div>
+            )}
+
             {filteredTasks.length === 0 ? (
               <div className="ta-empty-state">
                 <span className="ta-empty-icon">📋</span>
@@ -275,7 +374,7 @@ export default function TachesAssociees() {
                   </button>
                 )}
               </div>
-            ) : (
+            ) : viewMode === "list" ? (
               <div className="ta-table-wrap">
                 <table className="ta-list-table">
                   <thead>
@@ -328,6 +427,53 @@ export default function TachesAssociees() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            ) : (
+              <div className="ta-weekly-grid">
+                {weekDays.map((day) => {
+                  const dateStr = day.toISOString().slice(0, 10);
+                  const dayTasks = tasksByDay[dateStr] || [];
+                  const isToday = new Date().toISOString().slice(0, 10) === dateStr;
+                  const formattedDayName = day.toLocaleDateString("fr-FR", { weekday: "short" });
+                  const formattedDayNum = day.getDate();
+
+                  return (
+                    <div key={dateStr} className={`ta-weekly-col ${isToday ? "ta-weekly-col--today" : ""}`}>
+                      <div className="ta-weekly-col-header">
+                        <span className="ta-weekly-day-name">{formattedDayName}</span>
+                        <span className="ta-weekly-day-num">{formattedDayNum}</span>
+                      </div>
+                      <div className="ta-weekly-cards">
+                        {dayTasks.length === 0 ? (
+                          <div className="ta-weekly-empty">Aucune tâche</div>
+                        ) : (
+                          dayTasks.map((t) => {
+                            const isPersonal = !t.project_id;
+                            return (
+                              <div key={t.id} className="ta-weekly-card" onClick={() => openTask(t)}>
+                                <div className="ta-weekly-card-meta">
+                                  <span className={`ta-weekly-card-badge ${isPersonal ? "ta-weekly-card-badge--personal" : ""}`}>
+                                    {isPersonal ? "🙋 Perso" : t.task_type_name}
+                                  </span>
+                                  <span className="ta-weekly-card-time">
+                                    ⏱️ {fmtMinutes(t.my_time_minutes > 0 ? t.my_time_minutes : t.prod_time_minutes)}
+                                  </span>
+                                </div>
+                                <div className="ta-weekly-card-title">{t.title}</div>
+                                <div className="ta-weekly-card-proj">
+                                  {isPersonal ? "📌 Personnel" : `📁 ${t.project_title}`}
+                                </div>
+                                <div className="ta-weekly-card-status">
+                                  {t.status_title}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>
