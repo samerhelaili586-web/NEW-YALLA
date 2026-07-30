@@ -1,8 +1,5 @@
 .admin-layout {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 2rem;
-  align-items: start;
+  display: block;
 }
 
 .admin-sidebar {
