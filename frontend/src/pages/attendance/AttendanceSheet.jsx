@@ -153,6 +153,7 @@ export default function AttendanceSheet() {
       const updated = await api.patch(`/tasks/${entry.task_id}/time-entries/${entry.id}`, {
         hours: h,
         minutes: m,
+        client_tz_offset: new Date().getTimezoneOffset(),
       });
       setSelectedDayDetails((prev) => {
         if (!prev) return null;
@@ -278,6 +279,7 @@ export default function AttendanceSheet() {
         entry_date: entryDate,
         hours: h,
         minutes: m,
+        client_tz_offset: new Date().getTimezoneOffset(),
       });
 
       setIsModalOpen(false);

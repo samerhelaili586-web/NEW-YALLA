@@ -376,7 +376,7 @@ def list_time_entries(task_id):
 
 
 
-def get_max_elapsed_minutes(target_date, now_dt=None):
+def get_max_elapsed_minutes(target_date, now_dt=None, client_tz_offset=None):
     """
     Work Schedule:
     - Mon-Fri: 08:30 to 17:30 with 13:00-14:00 lunch break excluded.
@@ -384,7 +384,13 @@ def get_max_elapsed_minutes(target_date, now_dt=None):
     - Sun: Day off.
     """
     if now_dt is None:
-        now_dt = datetime.now()
+        now_dt = datetime.utcnow()
+        if client_tz_offset is not None:
+            # Local = UTC - offset (e.g. UTC - (-60) = UTC + 60 mins)
+            now_dt = now_dt - timedelta(minutes=client_tz_offset)
+        else:
+            # Default to UTC+1 Tunis time (offset -60) if not specified
+            now_dt = now_dt - timedelta(minutes=-60)
 
     today = now_dt.date()
     if target_date > today:
@@ -455,7 +461,20 @@ def create_time_entry(task_id):
 
     user = current_user()
 
-    today = datetime.now().date()
+    client_tz_offset = None
+    try:
+        if "client_tz_offset" in data:
+            client_tz_offset = int(data["client_tz_offset"])
+    except (TypeError, ValueError):
+        pass
+
+    local_now = datetime.utcnow()
+    if client_tz_offset is not None:
+        local_now = local_now - timedelta(minutes=client_tz_offset)
+    else:
+        local_now = local_now - timedelta(minutes=-60)
+
+    today = local_now.date()
     yesterday = today - timedelta(days=1)
 
     if entry_date > today:
@@ -470,7 +489,7 @@ def create_time_entry(task_id):
             "detail": "La saisie de temps n'est autorisée que pour aujourd'hui (J) ou hier (J-1)."
         }), 400
 
-    max_mins = get_max_elapsed_minutes(entry_date)
+    max_mins = get_max_elapsed_minutes(entry_date, client_tz_offset=client_tz_offset)
     requested_mins = hours * 60 + minutes
 
     existing_entries = TimeEntry.query.filter_by(user_id=user.id, entry_date=entry_date).all()
@@ -480,7 +499,7 @@ def create_time_entry(task_id):
         rem_mins = max(0, max_mins - existing_mins)
         rem_h, rem_m = rem_mins // 60, rem_mins % 60
         elapsed_h, elapsed_m = max_mins // 60, max_mins % 60
-        if entry_date == datetime.now().date():
+        if entry_date == today:
             detail_msg = f"Seules {elapsed_h}h{elapsed_m:02d} min se sont écoulées aujourd'hui (début à 08h30, pause 13h-14h non comptée). Temps restant déclarable pour aujourd'hui : {rem_h}h{rem_m:02d} min."
         else:
             detail_msg = f"Le temps déclaré dépasse le maximum autorisé pour cette journée ({elapsed_h}h{elapsed_m:02d} min). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
@@ -517,7 +536,22 @@ def update_time_entry(task_id, entry_id):
         except ValueError:
             return jsonify({"error": "invalid_date"}), 400
 
-    if t_date > datetime.now().date():
+    client_tz_offset = None
+    try:
+        if "client_tz_offset" in data:
+            client_tz_offset = int(data["client_tz_offset"])
+    except (TypeError, ValueError):
+        pass
+
+    local_now = datetime.utcnow()
+    if client_tz_offset is not None:
+        local_now = local_now - timedelta(minutes=client_tz_offset)
+    else:
+        local_now = local_now - timedelta(minutes=-60)
+
+    today = local_now.date()
+
+    if t_date > today:
         return jsonify({
             "error": "future_date_not_allowed",
             "detail": "Impossible de déclarer du temps pour une date future."
@@ -526,7 +560,7 @@ def update_time_entry(task_id, entry_id):
     new_h = int(data.get("hours", entry.hours))
     new_m = int(data.get("minutes", entry.minutes))
 
-    max_mins = get_max_elapsed_minutes(t_date)
+    max_mins = get_max_elapsed_minutes(t_date, client_tz_offset=client_tz_offset)
     requested_mins = new_h * 60 + new_m
 
     other_entries = TimeEntry.query.filter(
@@ -540,7 +574,7 @@ def update_time_entry(task_id, entry_id):
         rem_mins = max(0, max_mins - existing_mins)
         rem_h, rem_m = rem_mins // 60, rem_mins % 60
         elapsed_h, elapsed_m = max_mins // 60, max_mins % 60
-        if t_date == datetime.now().date():
+        if t_date == today:
             detail_msg = f"Seules {elapsed_h}h{elapsed_m:02d} min se sont écoulées aujourd'hui (début à 08h30, pause 13h-14h non comptée). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
         else:
             detail_msg = f"Le temps déclaré dépasse le maximum autorisé pour cette journée ({elapsed_h}h{elapsed_m:02d} min). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
