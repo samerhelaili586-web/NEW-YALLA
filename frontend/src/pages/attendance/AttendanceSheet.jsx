@@ -117,6 +117,7 @@ export default function AttendanceSheet() {
   // Time Entry Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
+  const [overtimeDate, setOvertimeDate] = useState("");
   const [userTasks, setUserTasks] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [otherActivityName, setOtherActivityName] = useState("");
@@ -417,6 +418,7 @@ export default function AttendanceSheet() {
                       setHours("1");
                       setMinutes("0");
                       setFormError("");
+                      setOvertimeDate(todayIso);
                       setIsOvertimeModalOpen(true);
                     }}
                     style={{
@@ -837,9 +839,36 @@ export default function AttendanceSheet() {
         >
           {selectedDayDetails && (
             <div className="att-breakdown-modal">
-              <p className="att-breakdown-total">
-                Total déclaré pour cette journée : <strong>{fmtMinutes(selectedDayDetails.total_minutes)}</strong>
-              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <p className="att-breakdown-total" style={{ margin: 0 }}>
+                  Total déclaré pour cette journée : <strong>{fmtMinutes(selectedDayDetails.total_minutes)}</strong>
+                </p>
+                {!["admin_sys", "manager"].includes(user?.effective_role) && selectedDayDetails.total_minutes >= 480 && (
+                  <button
+                    type="button"
+                    className="btn-accent btn-sm"
+                    onClick={() => {
+                      setHours("1");
+                      setMinutes("0");
+                      setFormError("");
+                      setOvertimeDate(selectedDayDetails.isoDate);
+                      setIsOvertimeModalOpen(true);
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #fbbf24 0%, #d97706 100%)",
+                      border: "none",
+                      color: "#000",
+                      fontWeight: "700",
+                      padding: "0.4rem 0.8rem",
+                      borderRadius: "6px",
+                      fontSize: "0.8rem",
+                      cursor: "pointer"
+                    }}
+                  >
+                    🚀 + Heures Supp.
+                  </button>
+                )}
+              </div>
 
               <div className="att-breakdown-list">
                 {selectedDayDetails.entries.map((te) => (
@@ -965,11 +994,33 @@ export default function AttendanceSheet() {
                 }
               }
               await api.post(`/tasks/${targetTaskId}/time-entries`, {
-                entry_date: todayIso,
+                entry_date: overtimeDate || todayIso,
                 hours: h,
                 minutes: m,
               });
               setIsOvertimeModalOpen(false);
+              // Also update selectedDayDetails state if it is currently open
+              if (selectedDayDetails) {
+                const addedMinutes = h * 60 + m;
+                setSelectedDayDetails(prev => {
+                  if (!prev) return null;
+                  return {
+                    ...prev,
+                    total_minutes: prev.total_minutes + addedMinutes,
+                    entries: [
+                      ...prev.entries,
+                      {
+                        id: Date.now(), // temporary UI id until page refresh
+                        task_id: targetTaskId,
+                        hours: h,
+                        minutes: m,
+                        user_id: user?.id,
+                        task_title: userTasks.find(t => t.id === targetTaskId)?.title || "Activité supplémentaire"
+                      }
+                    ]
+                  };
+                });
+              }
               setHours("1");
               setMinutes("0");
               refreshData();
@@ -982,7 +1033,7 @@ export default function AttendanceSheet() {
             <div style={{ background: "rgba(251, 191, 36, 0.1)", border: "1px solid rgba(251, 191, 36, 0.2)", borderRadius: "8px", padding: "0.85rem", marginBottom: "1rem" }}>
               <span style={{ fontSize: "1.1rem", marginRight: "0.4rem" }}>🎉</span>
               <span style={{ fontSize: "0.85rem", color: "#fbbf24", fontWeight: "600" }}>
-                Félicitations ! Vous avez déjà complété vos 8 heures réglementaires aujourd'hui.
+                Félicitations ! Vous avez déjà complété vos 8 heures réglementaires pour cette journée.
               </span>
             </div>
 
