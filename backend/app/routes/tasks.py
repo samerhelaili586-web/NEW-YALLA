@@ -378,60 +378,10 @@ def list_time_entries(task_id):
 
 def get_max_elapsed_minutes(target_date, now_dt=None):
     """
-    Work Schedule:
-    - Mon-Fri: 08:30 to 17:30 with 13:00-14:00 lunch break excluded = 8 hours net (480 mins).
-    - Sat: 08:30 to 13:30 = 5 hours net (300 mins).
-    - Sun: 0 mins (Day off).
+    Work Schedule and Overtime:
+    - Allow up to 16 hours (960 minutes) maximum per day including overtime.
     """
-    if now_dt is None:
-        now_dt = datetime.now()
-
-    today = now_dt.date()
-    if target_date > today:
-        return 0  # future date
-
-    if target_date < today:
-        weekday = target_date.weekday()
-        if weekday < 5:  # Mon-Fri
-            return 8 * 60
-        elif weekday == 5:  # Sat
-            return 5 * 60
-        else:
-            return 0  # Sun
-
-    # Target date IS today
-    weekday = today.weekday()
-    if weekday == 6:  # Sunday
-        return 0
-
-    cur_mins = now_dt.hour * 60 + now_dt.minute
-
-    if weekday == 5:  # Saturday (08:30 to 13:30 = 300 mins)
-        start = 8 * 60 + 30  # 08:30
-        end = 13 * 60 + 30   # 13:30
-        if cur_mins <= start:
-            return 0
-        if cur_mins >= end:
-            return 300
-        return cur_mins - start
-
-    # Mon-Fri (08:30 to 17:30 with 13:00-14:00 lunch break excluded)
-    start = 8 * 60 + 30    # 08:30 (510)
-    lunch_s = 13 * 60      # 13:00 (780)
-    lunch_e = 14 * 60      # 14:00 (840)
-    end = 17 * 60 + 30     # 17:30 (1050)
-
-    if cur_mins <= start:
-        return 0
-    if cur_mins >= end:
-        return 480
-
-    if cur_mins <= lunch_s:
-        return cur_mins - start
-    elif cur_mins <= lunch_e:
-        return lunch_s - start  # 270 mins (4.5h)
-    else:
-        return (lunch_s - start) + (cur_mins - lunch_e)
+    return 16 * 60
 
 
 @tasks_bp.post("/<int:task_id>/time-entries")
