@@ -11,7 +11,7 @@ const DEFAULT_FLOW_STEPS = [
   { id: 1, title: "1. Création du Projet Client", role: "(Admin / Manager)", desc: "Création du projet et définition des paramètres dans la section Projets." },
   { id: 2, title: "2. Création des Tâches à partir d'un Workflow", role: "(CM / Manager)", desc: "Ajout des tâches et association au Workflow correspondant." },
   { id: 3, title: "3. Planification Shooting & Matériel", role: "(Chef Prod / Manager)", desc: "Réservation du matériel (caméras, micros...) et heures d'équipe dans Planification." },
-  { id: 4, title: "4. Réalisation & Saisie du Temps J+1", role: "(Prod / CM / Chef Prod)", desc: "Production et déclaration obligatoire du temps de travail sous J+1 (23h59)." },
+  { id: 4, title: "4. Réalisation & Saisie du Temps", role: "(Prod / CM / Chef Prod)", desc: "Production et déclaration obligatoire du temps de travail dans le délai paramétré par l'administration." },
   { id: 5, title: "5. Progression des Statuts & Validation", role: "(Parcours dynamique du Workflow)", desc: "Passage des étapes et validation des livrables (liens vidéo...)." },
   { id: 6, title: "6. Publication & Clôture de la Tâche", role: "(CM / Manager)", desc: "Vérification finale du projet et passage au statut FIN." },
 ];
@@ -34,13 +34,13 @@ const DEFAULT_SECTIONS = [
   },
   {
     id: "step4",
-    title: "⏱️ Étape 4 : Déclarations de Temps & Règle J+1 (23h59)",
-    body: "Chaque collaborateur (Prod, Chef Prod, CM) doit obligatoirement déclarer son temps de travail quotidien dans **Feuille de Présence** :\n\n- **Règle J+1 (23h59)** : La saisie s'effectue pour **Aujourd'hui** ou **Hier**. Vous disposez d'un délai de grâce jusqu'à **demain 23h59** pour régulariser votre temps. Au-delà, la journée bascule au statut **Pénalisé**.\n- Seuil quotidien minimum : **6 heures (360 minutes)** par jour travaillé.\n- *L'Admin Sys et le Manager n'effectuent pas de déclaration d'heures.*"
+    title: "⏱️ Étape 4 : Déclarations de Temps & Délais Réglementaires",
+    body: "Chaque collaborateur (Prod, Chef Prod, CM) doit obligatoirement déclarer son temps de travail quotidien dans **Feuille de Présence** :\n\n- **Délai paramétré** : La saisie s'effectue dans la limite du délai de grâce configuré par l'administrateur du système (ex: J+1, J+2...). Passé ce délai de tolérance, la journée bascule au statut **Pénalisé**.\n- Seuil quotidien minimum : **6 heures (360 minutes)** par jour travaillé.\n- *L'Admin Sys et le Manager n'effectuent pas de déclaration d'heures.*"
   },
   {
     id: "roles",
     title: "👥 Matrice des Rôles YALLA",
-    body: "Matrice des responsabilités principales de l'équipe :\n\n- **Admin Système** : Gestion globale, Workflows, Utilisateurs & Tarifs, Visibilité du Guide, Communiqués.\n- **Manager** : Gestion des Projets, Planification, Approbation des Congés, Suivi de la Présence.\n- **Chef Prod** : Planification des Shootings, Réservation Matériel, Exécution & Suivi Prod.\n- **Community Manager (CM)** : Création des Tâches, Suivi des Avancements, Validation des Livrables clients.\n- **Prod (Monteur / Cadrage)** : Exécution des tâches de production, Saisie quotidienne du temps de travail J+1."
+    body: "Matrice des responsabilités principales de l'équipe :\n\n- **Admin Système** : Gestion globale, Workflows, Utilisateurs & Tarifs, Visibilité du Guide, Communiqués.\n- **Manager** : Gestion des Projets, Planification, Approbation des Congés, Suivi de la Présence.\n- **Chef Prod** : Planification des Shootings, Réservation Matériel, Exécution & Suivi Prod.\n- **Community Manager (CM)** : Création des Tâches, Suivi des Avancements, Validation des Livrables clients.\n- **Prod (Monteur / Cadrage)** : Exécution des tâches de production, Saisie du temps dans la limite du délai paramétré."
   },
   {
     id: "leave_ann",

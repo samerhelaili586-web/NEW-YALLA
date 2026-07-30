@@ -50,44 +50,11 @@ export default function AdminUsers() {
   const [rowActionId, setRowActionId] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  // System Settings state
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [graceDays, setGraceDays] = useState("1");
-  const [settingsSaving, setSettingsSaving] = useState(false);
-  const [settingsError, setSettingsError] = useState("");
-
-  async function loadSettings() {
-    try {
-      const data = await api.get("/settings");
-      const graceSetting = data.find(s => s.key === "grace_period_days");
-      if (graceSetting) {
-        setGraceDays(graceSetting.value);
-      }
-    } catch (err) {
-      console.error("Failed to load settings", err);
-    }
-  }
-
-  async function saveSettings(e) {
-    e.preventDefault();
-    setSettingsSaving(true);
-    setSettingsError("");
-    try {
-      await api.put(`/settings/grace_period_days`, { value: graceDays });
-      setSettingsModalOpen(false);
-    } catch (err) {
-      setSettingsError(err?.data?.error || err?.data?.detail || "Erreur lors de la sauvegarde.");
-    } finally {
-      setSettingsSaving(false);
-    }
-  }
-
   useEffect(() => {
     function handleClickOutside() {
       setOpenMenuId(null);
     }
     document.addEventListener("click", handleClickOutside);
-    loadSettings();
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
@@ -265,14 +232,9 @@ export default function AdminUsers() {
           <h1>Utilisateurs</h1>
           <p className="users-subtitle">Gérez les comptes, les tarifs et les rôles de l&rsquo;équipe.</p>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button type="button" className="btn-secondary" onClick={() => { loadSettings(); setSettingsModalOpen(true); }} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-            ⚙️ Paramètres
-          </button>
-          <button type="button" className="btn-primary" onClick={openCreateModal}>
-            + Nouvel utilisateur
-          </button>
-        </div>
+        <button type="button" className="btn-primary" onClick={openCreateModal}>
+          + Nouvel utilisateur
+        </button>
       </div>
 
       <div className="users-toolbar">
@@ -717,54 +679,6 @@ export default function AdminUsers() {
             {rowActionId === confirmRestore?.id ? "Restauration…" : "Restaurer"}
           </button>
         </div>
-      </Modal>
-
-      <Modal
-        open={settingsModalOpen}
-        onClose={() => setSettingsModalOpen(false)}
-        title="⚙️ Paramètres du Système"
-        width={450}
-      >
-        <form onSubmit={saveSettings} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div className="field">
-            <label>Délai de grâce pour la saisie de temps</label>
-            <select
-              value={graceDays}
-              onChange={(e) => setGraceDays(e.target.value)}
-              required
-            >
-              <option value="1">J+1 (23h59 de grâce le lendemain - Par défaut)</option>
-              <option value="2">J+2 (23h59 après 2 jours)</option>
-              <option value="3">J+3 (23h59 après 3 jours)</option>
-              <option value="4">J+4 (23h59 après 4 jours)</option>
-              <option value="5">J+5 (23h59 après 5 jours)</option>
-              <option value="7">J+7 (1 semaine complète)</option>
-              <option value="30">J+30 (1 mois de tolérance)</option>
-            </select>
-            <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-              Définit la période autorisée pour qu'un collaborateur puisse déclarer ses heures. Au-delà, la journée est marquée comme pénalisée.
-            </p>
-          </div>
-
-          {settingsError && <p className="field-error">{settingsError}</p>}
-
-          <div className="form-actions" style={{ marginTop: "1rem" }}>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setSettingsModalOpen(false)}
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={settingsSaving}
-            >
-              {settingsSaving ? "Sauvegarde..." : "Enregistrer"}
-            </button>
-          </div>
-        </form>
       </Modal>
     </div>
   );
