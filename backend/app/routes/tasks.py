@@ -379,9 +379,9 @@ def list_time_entries(task_id):
 def get_max_elapsed_minutes(target_date, now_dt=None):
     """
     Work Schedule:
-    - Mon-Fri: 08:30 to 17:30 with 13:00-14:00 lunch break excluded = 8 hours net (480 mins).
-    - Sat: 08:30 to 13:30 = 5 hours net (300 mins).
-    - Sun: 0 mins (Day off).
+    - Mon-Fri: 08:30 to 17:30 with 13:00-14:00 lunch break excluded.
+    - Sat: 08:30 to 13:30.
+    - Sun: Day off.
     """
     if now_dt is None:
         now_dt = datetime.now()
@@ -391,13 +391,11 @@ def get_max_elapsed_minutes(target_date, now_dt=None):
         return 0  # future date
 
     if target_date < today:
+        # No 8-hour daily limit for past days, allow up to 24 hours.
         weekday = target_date.weekday()
-        if weekday < 5:  # Mon-Fri
-            return 8 * 60
-        elif weekday == 5:  # Sat
-            return 5 * 60
-        else:
-            return 0  # Sun
+        if weekday == 6:  # Sunday
+            return 0  # Sunday is day off
+        return 24 * 60
 
     # Target date IS today
     weekday = today.weekday()
@@ -406,25 +404,19 @@ def get_max_elapsed_minutes(target_date, now_dt=None):
 
     cur_mins = now_dt.hour * 60 + now_dt.minute
 
-    if weekday == 5:  # Saturday (08:30 to 13:30 = 300 mins)
+    if weekday == 5:  # Saturday (08:30 onwards)
         start = 8 * 60 + 30  # 08:30
-        end = 13 * 60 + 30   # 13:30
         if cur_mins <= start:
             return 0
-        if cur_mins >= end:
-            return 300
         return cur_mins - start
 
-    # Mon-Fri (08:30 to 17:30 with 13:00-14:00 lunch break excluded)
-    start = 8 * 60 + 30    # 08:30 (510)
-    lunch_s = 13 * 60      # 13:00 (780)
-    lunch_e = 14 * 60      # 14:00 (840)
-    end = 17 * 60 + 30     # 17:30 (1050)
+    # Mon-Fri (08:30 onwards, excluding 13:00-14:00 lunch break)
+    start = 8 * 60 + 30    # 08:30
+    lunch_s = 13 * 60      # 13:00
+    lunch_e = 14 * 60      # 14:00
 
     if cur_mins <= start:
         return 0
-    if cur_mins >= end:
-        return 480
 
     if cur_mins <= lunch_s:
         return cur_mins - start
@@ -478,7 +470,21 @@ def create_time_entry(task_id):
             "detail": "La saisie de temps n'est autorisée que pour aujourd'hui (J) ou hier (J-1)."
         }), 400
 
-    # No maximum daily limit check anymore as requested
+    max_mins = get_max_elapsed_minutes(entry_date)
+    requested_mins = hours * 60 + minutes
+
+    existing_entries = TimeEntry.query.filter_by(user_id=user.id, entry_date=entry_date).all()
+    existing_mins = sum(e.hours * 60 + e.minutes for e in existing_entries)
+
+    if existing_mins + requested_mins > max_mins:
+        rem_mins = max(0, max_mins - existing_mins)
+        rem_h, rem_m = rem_mins // 60, rem_mins % 60
+        elapsed_h, elapsed_m = max_mins // 60, max_mins % 60
+        if entry_date == datetime.now().date():
+            detail_msg = f"Seules {elapsed_h}h{elapsed_m:02d} min se sont écoulées aujourd'hui (début à 08h30, pause 13h-14h non comptée). Temps restant déclarable pour aujourd'hui : {rem_h}h{rem_m:02d} min."
+        else:
+            detail_msg = f"Le temps déclaré dépasse le maximum autorisé pour cette journée ({elapsed_h}h{elapsed_m:02d} min). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
+        return jsonify({"error": "exceeds_max_workable_hours", "detail": detail_msg}), 400
 
     entry = TimeEntry(
         task_id=task.id,
@@ -520,7 +526,25 @@ def update_time_entry(task_id, entry_id):
     new_h = int(data.get("hours", entry.hours))
     new_m = int(data.get("minutes", entry.minutes))
 
-    # No maximum daily limit check anymore as requested
+    max_mins = get_max_elapsed_minutes(t_date)
+    requested_mins = new_h * 60 + new_m
+
+    other_entries = TimeEntry.query.filter(
+        TimeEntry.user_id == user.id,
+        TimeEntry.entry_date == t_date,
+        TimeEntry.id != entry.id,
+    ).all()
+    existing_mins = sum(e.hours * 60 + e.minutes for e in other_entries)
+
+    if existing_mins + requested_mins > max_mins:
+        rem_mins = max(0, max_mins - existing_mins)
+        rem_h, rem_m = rem_mins // 60, rem_mins % 60
+        elapsed_h, elapsed_m = max_mins // 60, max_mins % 60
+        if t_date == datetime.now().date():
+            detail_msg = f"Seules {elapsed_h}h{elapsed_m:02d} min se sont écoulées aujourd'hui (début à 08h30, pause 13h-14h non comptée). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
+        else:
+            detail_msg = f"Le temps déclaré dépasse le maximum autorisé pour cette journée ({elapsed_h}h{elapsed_m:02d} min). Temps restant déclarable : {rem_h}h{rem_m:02d} min."
+        return jsonify({"error": "exceeds_max_workable_hours", "detail": detail_msg}), 400
 
     entry.entry_date = t_date
     entry.hours = new_h
