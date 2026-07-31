@@ -28,14 +28,16 @@ const ICONS = {
   x:        "M18 6L6 18M6 6l12 12",
   info:     "M12 16v-4M12 8h.01 M12 22a10 10 0 100-20 10 10 0 000 20z",
   external: "M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3",
+  attendance: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
   gear:     "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
 };
 
 const TABS = [
-  { id: "roles",    label: "Rôles",            icon: "roles" },
-  { id: "projects", label: "Droits par Projet", icon: "project" },
-  { id: "lists",    label: "Listes Personnalisées", icon: "list" },
-  { id: "workflow", label: "Workflows",         icon: "workflow" },
+  { id: "roles",      label: "Rôles",            icon: "roles" },
+  { id: "projects",   label: "Droits par Projet", icon: "project" },
+  { id: "lists",      label: "Listes Personnalisées", icon: "list" },
+  { id: "attendance", label: "Délai de Présence", icon: "attendance" },
+  { id: "workflow",   label: "Workflows",         icon: "workflow" },
 ];
 
 const MENU_KEY_LABELS = {
@@ -174,6 +176,7 @@ export default function Parametres() {
         {activeTab === "roles" && <RolesTab />}
         {activeTab === "projects" && <ProjectRightsTab />}
         {activeTab === "lists" && <CustomListsTab />}
+        {activeTab === "attendance" && <AttendanceSettingsTab />}
         {activeTab === "workflow" && <WorkflowInfoTab navigate={navigate} />}
       </div>
     </div>
@@ -1112,6 +1115,120 @@ function ListItemsView({ list, onBack }) {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// TAB: DÉLAI DE PRÉSENCE & SAISIE DU TEMPS
+// ──────────────────────────────────────────────────────────────────────────────
+function AttendanceSettingsTab() {
+  const [graceDays, setGraceDays] = useState("1");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    api.get("/settings")
+      .then(data => {
+        const item = (data || []).find(s => s.key === "grace_period_days");
+        if (item) setGraceDays(String(item.value));
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleSave(valToSave) {
+    const val = valToSave !== undefined ? String(valToSave) : String(graceDays);
+    setSaving(true);
+    setMsg("");
+    try {
+      await api.put("/settings/grace_period_days", { value: val });
+      setGraceDays(val);
+      setMsg("Délai de grâce enregistré avec succès !");
+      setTimeout(() => setMsg(""), 3500);
+    } catch (e) {
+      setMsg("Erreur lors de l'enregistrement du délai.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const PRESETS = [
+    { value: "0", label: "Jour même (J+0)", desc: "Saisie d'heures obligatoire avant minuit du jour même" },
+    { value: "1", label: "24h (J+1) · Recommandé", desc: "Saisie autorisée jusqu'au lendemain soir à minuit" },
+    { value: "2", label: "48h (J+2)", desc: "Délai de 2 jours ouvrés pour déclarer son temps" },
+    { value: "3", label: "72h (J+3)", desc: "Délai de 3 jours ouvrés accordé à l'équipe" },
+    { value: "7", label: "1 Semaine (J+7)", desc: "Souplesse maximale de 7 jours consécutifs" },
+  ];
+
+  return (
+    <div className="param-section">
+      <div className="param-section-header">
+        <div>
+          <h2>Délai de Grâce & Saisie du Temps</h2>
+          <p>Paramétrez le nombre de jours accordés aux collaborateurs pour déclarer ou ajuster leurs heures de présence.</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="param-loader"><div className="param-spinner" /></div>
+      ) : (
+        <div className="attendance-setting-card">
+          {msg && <div className={`param-toast ${msg.includes('Erreur') ? 'error' : 'success'}`}>{msg}</div>}
+
+          <div className="param-field">
+            <label>Délai de grâce autorisé</label>
+            <div className="grace-preset-grid">
+              {PRESETS.map(preset => {
+                const isSelected = String(graceDays) === preset.value;
+                return (
+                  <div
+                    key={preset.value}
+                    className={`grace-preset-card${isSelected ? ' selected' : ''}`}
+                    onClick={() => handleSave(preset.value)}
+                  >
+                    <div className="grace-preset-header">
+                      <div className="grace-preset-radio">
+                        <span className="grace-radio-dot" />
+                      </div>
+                      <div className="grace-preset-title">{preset.label}</div>
+                    </div>
+                    <div className="grace-preset-desc">{preset.desc}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grace-custom-input">
+            <label>Ou spécifiez une valeur sur mesure (en jours) :</label>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.4rem' }}>
+              <input
+                type="number"
+                min="0"
+                max="30"
+                value={graceDays}
+                onChange={e => setGraceDays(e.target.value)}
+                style={{ width: '130px' }}
+              />
+              <button className="param-btn-primary" onClick={() => handleSave()} disabled={saving}>
+                {saving ? "Enregistrement..." : "Appliquer ce délai"}
+              </button>
+            </div>
+          </div>
+
+          <div className="grace-explanation-banner">
+            <div className="grace-explanation-icon">ℹ️</div>
+            <div>
+              <strong>Comment fonctionne ce paramètre ?</strong>
+              <p style={{ margin: '0.2rem 0 0' }}>
+                Si le délai est réglé sur <strong>{graceDays} jour(s)</strong>, les collaborateurs disposent de ce temps pour enregistrer leurs heures quotidiennes. Une fois ce délai dépassé, la journée passe au statut <em>Pénalisé</em> et alerte la direction.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

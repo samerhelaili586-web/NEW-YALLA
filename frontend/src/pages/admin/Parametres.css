@@ -24,46 +24,19 @@
 
 /* ─── Page Layout ──────────────────────────────────────────────────────────── */
 .param-page {
-  padding: 0;
-  max-width: 100%;
+  padding: 2rem 2.5rem;
+  max-width: 1400px;
   margin: 0 auto;
   font-family: 'Inter', var(--font-body, system-ui), sans-serif;
   min-height: 100vh;
-  background: var(--surface-bg, #f8f9fc);
 }
 
-.dark .param-page {
-  background: var(--surface-bg, #0f1117);
-}
-
-/* ─── Stunning Hero Header ─────────────────────────────────────────────────── */
+/* ─── Seamless Header (No box background) ────────────────────────────────── */
 .param-header {
   position: relative;
-  overflow: hidden;
-  padding: 2.5rem 2.5rem 0;
-  margin-bottom: 0;
-}
-
-.param-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg,
-    rgba(99, 102, 241, 0.08) 0%,
-    rgba(139, 92, 246, 0.05) 40%,
-    rgba(6, 182, 212, 0.04) 100%);
-  pointer-events: none;
-}
-
-.param-header::after {
-  content: '';
-  position: absolute;
-  top: -60px;
-  right: -60px;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
-  pointer-events: none;
+  padding: 0;
+  margin-bottom: 2rem;
+  background: transparent;
 }
 
 .param-header-left {
@@ -216,7 +189,7 @@
 .param-tabs {
   display: flex;
   gap: 0;
-  padding: 0 2.5rem;
+  padding: 0;
   margin-top: 1.5rem;
   border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
   overflow-x: auto;
@@ -271,7 +244,155 @@
 
 /* ─── Content Area ─────────────────────────────────────────────────────────── */
 .param-content {
-  padding: 2rem 2.5rem;
+  padding: 2rem 0;
+}
+
+/* ─── Attendance / Grace Period Setting Card ──────────────────────────────── */
+.attendance-setting-card {
+  background: var(--param-card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--param-card-border);
+  border-radius: var(--param-radius-lg);
+  padding: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-shadow: var(--param-shadow-md);
+  max-width: 860px;
+}
+
+.grace-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.grace-preset-card {
+  background: var(--surface, rgba(255,255,255,0.8));
+  border: 1.5px solid var(--border, rgba(0,0,0,0.1));
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.grace-preset-card:hover {
+  border-color: rgba(99,102,241,0.4);
+  transform: translateY(-2px);
+  box-shadow: var(--param-shadow-sm);
+}
+
+.grace-preset-card.selected {
+  border-color: var(--param-accent);
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04));
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+}
+
+.grace-preset-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.grace-preset-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border, rgba(0,0,0,0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.grace-preset-card.selected .grace-preset-radio {
+  border-color: var(--param-accent);
+  background: var(--param-accent);
+}
+
+.grace-radio-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.grace-preset-card.selected .grace-radio-dot {
+  opacity: 1;
+}
+
+.grace-preset-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.grace-preset-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.grace-custom-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border, rgba(0,0,0,0.06));
+}
+
+.grace-custom-input label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.grace-explanation-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02));
+  border: 1px solid rgba(99,102,241,0.15);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.grace-explanation-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.param-toast {
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: param-fade-in 0.2s ease;
+}
+
+.param-toast.success {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.param-toast.error {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
 }
 
 /* ─── Section Layout ───────────────────────────────────────────────────────── */

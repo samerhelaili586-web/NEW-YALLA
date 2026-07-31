@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
@@ -82,6 +82,7 @@ function DayCell({ day, userName, onSelect, targetDate }) {
 
 export default function AttendanceSheet() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isTeamView = ["admin_sys", "manager"].includes(user?.effective_role);
   const [searchParams] = useSearchParams();
 
@@ -432,7 +433,7 @@ export default function AttendanceSheet() {
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={() => { loadSettings(); setSettingsModalOpen(true); }}
+                onClick={() => navigate("/admin/parametres")}
                 style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
               >
                 ⚙️ Paramètres
