@@ -207,13 +207,13 @@ function RolesTab() {
     setLoading(true);
     try {
       const [rolesData, metaData] = await Promise.all([
-        api.get(`/custom-roles?include_archived=${showArchived ? 1 : 0}`),
-        api.get("/custom-roles/meta"),
+        api.get(`/custom-roles?include_archived=${showArchived ? 1 : 0}`).catch(() => []),
+        api.get("/custom-roles/meta").catch(() => ({ menu_keys: [], action_keys: [] })),
       ]);
-      setRoles(rolesData);
-      setMeta(metaData);
+      setRoles(rolesData || []);
+      setMeta(metaData || { menu_keys: [], action_keys: [] });
     } catch (e) {
-      console.error(e);
+      console.error("Roles fetch error:", e);
     } finally {
       setLoading(false);
     }
