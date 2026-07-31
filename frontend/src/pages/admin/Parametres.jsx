@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { useNavigate } from "react-router-dom";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "./Parametres.css";
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
@@ -127,6 +128,7 @@ export default function Parametres() {
         {/* Quick KPI Bar */}
         <div className="param-kpi-bar">
           <div className="param-kpi-card" onClick={() => setActiveTab("roles")}>
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <div className="param-kpi-icon roles">👥</div>
             <div>
               <div className="param-kpi-value">5+</div>
@@ -134,6 +136,7 @@ export default function Parametres() {
             </div>
           </div>
           <div className="param-kpi-card" onClick={() => setActiveTab("projects")}>
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <div className="param-kpi-icon projects">🎯</div>
             <div>
               <div className="param-kpi-value">Sur-mesure</div>
@@ -141,6 +144,7 @@ export default function Parametres() {
             </div>
           </div>
           <div className="param-kpi-card" onClick={() => setActiveTab("lists")}>
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <div className="param-kpi-icon lists">📦</div>
             <div>
               <div className="param-kpi-value">Illimitées</div>
@@ -148,6 +152,7 @@ export default function Parametres() {
             </div>
           </div>
           <div className="param-kpi-card" onClick={() => setActiveTab("workflow")}>
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <div className="param-kpi-icon workflow">⚡</div>
             <div>
               <div className="param-kpi-value">Actifs</div>
@@ -260,9 +265,8 @@ function RolesTab() {
       ) : (
         <div className="roles-grid">
           {filteredRoles.map(role => (
-            <div key={role.id} className={`role-card${role.is_archived ? " archived" : ""}`}
-              style={{ '--role-color': role.color }}
-            >
+            <div key={role.id} className={`role-card${role.is_archived ? " archived" : ""}`}>
+              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
               <div className="role-card-header">
                 <div className="role-badge" style={{
                   background: role.color + '18',
@@ -785,6 +789,7 @@ function CustomListsTab() {
           )}
           {filteredLists.map(lst => (
             <div key={lst.id} className={`list-card${lst.is_archived ? " archived" : ""}`}>
+              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
               <div className="list-card-icon">{lst.icon || "📦"}</div>
               <div className="list-card-body">
                 <div className="list-card-name">{lst.name}</div>
@@ -1190,6 +1195,7 @@ function AttendanceSettingsTab() {
                     className={`grace-preset-card${isSelected ? ' selected' : ''}`}
                     onClick={() => handleSave(preset.value)}
                   >
+                    <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                     <div className="grace-preset-header">
                       <div className="grace-preset-radio">
                         <span className="grace-radio-dot" />
@@ -1250,6 +1256,7 @@ function WorkflowInfoTab({ navigate }) {
 
       <div className="workflow-info-grid">
         <div className="workflow-info-card">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <div className="workflow-info-icon">🔄</div>
           <h3>Éditeur de Workflow</h3>
           <p>Créez et modifiez visuellement vos workflows : statuts, transitions et règles de passage.</p>
@@ -1265,6 +1272,7 @@ function WorkflowInfoTab({ navigate }) {
         </div>
 
         <div className="workflow-info-card">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <div className="workflow-info-icon">📋</div>
           <h3>Formulaires de Transition</h3>
           <p>Chaque transition peut exiger une saisie de données avant d'être validée.</p>
@@ -1278,6 +1286,7 @@ function WorkflowInfoTab({ navigate }) {
         </div>
 
         <div className="workflow-info-card">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <div className="workflow-info-icon">🔒</div>
           <h3>Contrôle d'accès aux transitions</h3>
           <p>Pour chaque transition du workflow, définissez précisément qui peut la déclencher.</p>
