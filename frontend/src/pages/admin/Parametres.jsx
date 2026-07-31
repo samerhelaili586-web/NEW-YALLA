@@ -110,15 +110,47 @@ export default function Parametres() {
 
   return (
     <div className="param-page">
-      {/* Header */}
+      {/* Hero Header */}
       <div className="param-header">
         <div className="param-header-left">
           <div className="param-header-icon">
-            <Icon d={ICONS.gear} size={22} />
+            <Icon d={ICONS.gear} size={26} />
           </div>
           <div>
             <h1 className="param-title">Paramètres Système</h1>
-            <p className="param-subtitle">Configuration avancée de la plateforme Yalla</p>
+            <p className="param-subtitle">Configuration multi-tenant SaaS · Rôles, Droits, Listes & Workflows</p>
+          </div>
+        </div>
+
+        {/* Quick KPI Bar */}
+        <div className="param-kpi-bar">
+          <div className="param-kpi-card" onClick={() => setActiveTab("roles")}>
+            <div className="param-kpi-icon roles">👥</div>
+            <div>
+              <div className="param-kpi-value">5+</div>
+              <div className="param-kpi-label">Rôles Système</div>
+            </div>
+          </div>
+          <div className="param-kpi-card" onClick={() => setActiveTab("projects")}>
+            <div className="param-kpi-icon projects">🎯</div>
+            <div>
+              <div className="param-kpi-value">Sur-mesure</div>
+              <div className="param-kpi-label">Droits Projets</div>
+            </div>
+          </div>
+          <div className="param-kpi-card" onClick={() => setActiveTab("lists")}>
+            <div className="param-kpi-icon lists">📦</div>
+            <div>
+              <div className="param-kpi-value">Illimitées</div>
+              <div className="param-kpi-label">Listes Custom</div>
+            </div>
+          </div>
+          <div className="param-kpi-card" onClick={() => setActiveTab("workflow")}>
+            <div className="param-kpi-icon workflow">⚡</div>
+            <div>
+              <div className="param-kpi-value">Actifs</div>
+              <div className="param-kpi-label">Workflows</div>
+            </div>
           </div>
         </div>
       </div>
@@ -155,6 +187,7 @@ function RolesTab() {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
+  const [search, setSearch] = useState("");
   const [modal, setModal] = useState(null); // null | { mode: "create"|"edit", role: obj|null }
   const [meta, setMeta] = useState({ menu_keys: [], action_keys: [] });
 
@@ -187,6 +220,11 @@ function RolesTab() {
     fetchRoles();
   }
 
+  const filteredRoles = roles.filter(r =>
+    r.label.toLowerCase().includes(search.toLowerCase()) ||
+    r.key.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="param-section">
       <div className="param-section-header">
@@ -195,9 +233,17 @@ function RolesTab() {
           <p>Gérez les rôles de la plateforme et leurs droits d'accès aux fonctionnalités.</p>
         </div>
         <div className="param-section-actions">
+          <div className="param-search-input">
+            <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" size={14} />
+            <input
+              placeholder="Rechercher un rôle..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
           <label className="param-toggle-label">
             <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
-            <span>Afficher archivés</span>
+            <span>Archivés</span>
           </label>
           <button className="param-btn-primary" onClick={() => setModal({ mode: "create", role: null })}>
             <Icon d={ICONS.plus} size={16} />
@@ -210,28 +256,38 @@ function RolesTab() {
         <div className="param-loader"><div className="param-spinner" /></div>
       ) : (
         <div className="roles-grid">
-          {roles.map(role => (
-            <div key={role.id} className={`role-card${role.is_archived ? " archived" : ""}`}>
+          {filteredRoles.map(role => (
+            <div key={role.id} className={`role-card${role.is_archived ? " archived" : ""}`}
+              style={{ '--role-color': role.color }}
+            >
               <div className="role-card-header">
-                <div className="role-badge" style={{ background: role.color + "22", border: `1.5px solid ${role.color}40` }}>
-                  <span className="role-dot" style={{ background: role.color }} />
+                <div className="role-badge" style={{
+                  background: role.color + '18',
+                  border: `1.5px solid ${role.color}35`,
+                }}>
+                  <span className="role-dot" style={{ background: role.color, boxShadow: `0 0 6px ${role.color}` }} />
                   <span className="role-key" style={{ color: role.color }}>{role.key}</span>
                 </div>
-                {role.is_builtin && <span className="role-builtin-tag">INTÉGRÉ</span>}
-                {role.is_archived && <span className="role-archived-tag">ARCHIVÉ</span>}
+                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                  {role.is_builtin && <span className="role-builtin-tag">INTÉGRÉ</span>}
+                  {role.is_archived && <span className="role-archived-tag">ARCHIVÉ</span>}
+                </div>
               </div>
               <div className="role-label">{role.label}</div>
               <div className="role-meta-row">
+                <span className="role-meta-chip users-chip">
+                  👥 {role.user_count || 0} utilisateur{role.user_count > 1 ? "s" : ""}
+                </span>
                 <span className="role-meta-chip">
                   {VISIBILITY_OPTIONS.find(o => o.value === role.visibility_mode)?.label || role.visibility_mode}
                 </span>
                 {role.participates_in_workflow && (
-                  <span className="role-meta-chip workflow">Participe aux workflows</span>
+                  <span className="role-meta-chip workflow">⚡ Workflows</span>
                 )}
               </div>
               <div className="role-permissions-summary">
                 <span>{role.menu_permissions?.length || 0} menus</span>
-                <span>•</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>•</span>
                 <span>{role.action_permissions?.length || 0} actions</span>
               </div>
               <div className="role-card-actions">
@@ -643,6 +699,7 @@ function CustomListsTab() {
   const [lists, setLists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
+  const [search, setSearch] = useState("");
   const [modal, setModal] = useState(null); // null | { mode, list }
   const [itemsView, setItemsView] = useState(null); // list object when viewing items
 
@@ -671,6 +728,11 @@ function CustomListsTab() {
     fetchLists();
   }
 
+  const filteredLists = lists.filter(l =>
+    l.name.toLowerCase().includes(search.toLowerCase()) ||
+    (l.description || "").toLowerCase().includes(search.toLowerCase())
+  );
+
   if (itemsView) {
     return (
       <ListItemsView
@@ -688,9 +750,17 @@ function CustomListsTab() {
           <p>Créez des listes de données configurables (matériel, équipements, types de contenu, etc.)</p>
         </div>
         <div className="param-section-actions">
+          <div className="param-search-input">
+            <Icon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" size={14} />
+            <input
+              placeholder="Rechercher une liste..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
           <label className="param-toggle-label">
             <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
-            <span>Afficher archivées</span>
+            <span>Archivées</span>
           </label>
           <button className="param-btn-primary" onClick={() => setModal({ mode: "create", list: null })}>
             <Icon d={ICONS.plus} size={16} />
@@ -703,14 +773,14 @@ function CustomListsTab() {
         <div className="param-loader"><div className="param-spinner" /></div>
       ) : (
         <div className="lists-grid">
-          {lists.length === 0 && (
+          {filteredLists.length === 0 && (
             <div className="param-empty-state">
               <Icon d={ICONS.list} size={40} />
-              <p>Aucune liste personnalisée</p>
+              <p>Aucune liste trouvée</p>
               <span>Créez votre première liste pour organiser vos données</span>
             </div>
           )}
-          {lists.map(lst => (
+          {filteredLists.map(lst => (
             <div key={lst.id} className={`list-card${lst.is_archived ? " archived" : ""}`}>
               <div className="list-card-icon">{lst.icon || "📦"}</div>
               <div className="list-card-body">

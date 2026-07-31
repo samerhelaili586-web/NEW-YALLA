@@ -24,13 +24,27 @@ AVAILABLE_ACTION_KEYS = [
 @custom_roles_bp.get("")
 @login_required
 def list_custom_roles():
-    """List all non-archived custom roles."""
+    """List custom roles with active user count per role."""
     include_archived = request.args.get("include_archived", "0") == "1"
     q = CustomRole.query
     if not include_archived:
         q = q.filter_by(is_archived=False)
     roles = q.order_by(CustomRole.id).all()
-    return jsonify([r.to_dict() for r in roles])
+
+    from app.models.user import User
+    users = User.query.filter_by(is_archived=False).all()
+    role_user_counts = {}
+    for u in users:
+        eff = u.effective_role
+        role_user_counts[eff] = role_user_counts.get(eff, 0) + 1
+
+    res = []
+    for r in roles:
+        d = r.to_dict()
+        d["user_count"] = role_user_counts.get(r.key, 0)
+        res.append(d)
+
+    return jsonify(res)
 
 
 @custom_roles_bp.get("/meta")
