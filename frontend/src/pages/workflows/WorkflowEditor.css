@@ -976,6 +976,171 @@
   margin-left: 0.1rem;
 }
 
+/* ─── Clean Role & User Picker Flow in Transition Modal ───────────────────── */
+.we-active-perms-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.we-active-perm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: var(--primary, #6366f1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.we-active-perm-tag.is-user {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #059669;
+}
+
+.we-active-perm-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: currentColor;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s;
+}
+
+.we-active-perm-remove:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.we-add-perm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  border: 1.5px dashed var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.04);
+  color: var(--primary, #6366f1);
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.we-add-perm-btn:hover {
+  background: var(--primary, #6366f1);
+  color: #ffffff;
+  border-style: solid;
+}
+
+/* Role Picker Popup Modal */
+.we-role-picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.we-role-picker-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+  background: var(--paper, #fafafa);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.we-role-picker-card:hover {
+  border-color: var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.03);
+  transform: translateY(-1px);
+}
+
+.we-role-picker-card.is-added {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.we-role-picker-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--ink, #1f2937);
+  display: block;
+}
+
+.we-role-picker-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.we-role-picker-arrow {
+  font-size: 1.1rem;
+  color: var(--primary, #6366f1);
+  font-weight: 700;
+}
+
+.we-role-picker-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.we-role-picker-back {
+  background: none;
+  border: none;
+  color: var(--primary, #6366f1);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.we-role-option-box {
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--paper, #fafafa);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.we-role-option-box h4 {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink, #1f2937);
+}
+
+.we-role-option-box p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted, #6b7280);
+}
+
 .we-trans-chips {
   display: flex;
   flex-wrap: wrap;

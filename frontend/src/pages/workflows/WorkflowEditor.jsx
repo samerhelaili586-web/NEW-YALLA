@@ -392,6 +392,8 @@ export default function WorkflowEditor() {
   const [transFields, setTransFields] = useState([]);
   const [transUserId, setTransUserId] = useState(null); // person-specific trigger
   const [transUserIds, setTransUserIds] = useState([]); // list of specific user IDs allowed
+  const [showRolePicker, setShowRolePicker] = useState(false);
+  const [selectedRoleForPicker, setSelectedRoleForPicker] = useState(null);
   const [transSaving, setTransSaving] = useState(false);
   const [transDeleting, setTransDeleting] = useState(false);
 
@@ -1877,98 +1879,70 @@ export default function WorkflowEditor() {
             <div className="we-trans-section">
               <div className="we-trans-section-title">Autorisations de déclenchement</div>
               <p className="we-trans-hint">
-                Pour chaque rôle, autorisez <strong>tous les membres</strong> ou <strong>sélectionnez des personnes spécifiques</strong>.
+                Personnes et rôles autorisés à faire passer une tâche de « {transModal.from_status_title} » à « {transModal.to_status_title} ».
               </p>
 
-              <div className="we-role-permissions-list">
-                {roleOptions.map(r => {
-                  const roleUsers = allUsers.filter(u => u.effective_role === r.value);
-                  const isRoleOn = transRoles.includes(r.value);
-                  const selectedUserIdsInRole = roleUsers.filter(u => transUserIds.includes(u.id)).map(u => u.id);
-                  const isCustomUsersMode = !isRoleOn && selectedUserIdsInRole.length > 0;
-
+              {/* Active Badges List */}
+              <div className="we-active-perms-list">
+                {transRoles.map(rKey => {
+                  const roleLabel = roleOptions.find(r => r.value === rKey)?.label || rKey;
                   return (
-                    <div key={r.value} className={`we-role-perm-card${isRoleOn || isCustomUsersMode ? " is-active" : ""}`}>
-                      <div className="we-role-perm-header">
+                    <span key={rKey} className="we-active-perm-tag">
+                      👥 Tout le monde ({roleLabel})
+                      {isAdmin && (
                         <button
                           type="button"
-                          className={`we-chip we-chip--lg${isRoleOn || isCustomUsersMode ? " we-chip--on" : ""}`}
-                          onClick={() => isAdmin && toggleTransRole(r.value)}
-                          disabled={!isAdmin}
+                          className="we-active-perm-remove"
+                          onClick={() => setTransRoles(prev => prev.filter(r => r !== rKey))}
+                          title="Supprimer la permission"
                         >
-                          {r.label}
+                          ×
                         </button>
-                        <div className="we-role-perm-meta">
-                          <span className="we-role-user-count">
-                            👥 {roleUsers.length} membre{roleUsers.length > 1 ? "s" : ""}
-                          </span>
-                        </div>
-                      </div>
-
-                      {(isRoleOn || isCustomUsersMode || roleUsers.length > 0) && (
-                        <div className="we-role-perm-body">
-                          <div className="we-role-mode-selector">
-                            <label className={`we-mode-radio${isRoleOn ? " is-selected" : ""}`}>
-                              <input
-                                type="radio"
-                                name={`mode_${r.value}`}
-                                checked={isRoleOn}
-                                onChange={() => isAdmin && setRoleModeEveryone(r.value)}
-                                disabled={!isAdmin}
-                              />
-                              <span>Tout le monde avec le rôle {r.label} ({roleUsers.length})</span>
-                            </label>
-
-                            {roleUsers.length > 0 && (
-                              <label className={`we-mode-radio${isCustomUsersMode ? " is-selected" : ""}`}>
-                                <input
-                                  type="radio"
-                                  name={`mode_${r.value}`}
-                                  checked={isCustomUsersMode}
-                                  onChange={() => {
-                                    if (!isAdmin) return;
-                                    if (selectedUserIdsInRole.length === 0 && roleUsers.length > 0) {
-                                      toggleTransUser(roleUsers[0].id, r.value);
-                                    }
-                                  }}
-                                  disabled={!isAdmin}
-                                />
-                                <span>Sélectionner des utilisateurs spécifiques avec ce rôle</span>
-                              </label>
-                            )}
-                          </div>
-
-                          {isCustomUsersMode && roleUsers.length > 0 && (
-                            <div className="we-user-chips-grid">
-                              {roleUsers.map(u => {
-                                const isSelected = transUserIds.includes(u.id);
-                                return (
-                                  <button
-                                    key={u.id}
-                                    type="button"
-                                    className={`we-user-chip${isSelected ? " is-selected" : ""}`}
-                                    onClick={() => isAdmin && toggleTransUser(u.id, r.value)}
-                                    disabled={!isAdmin}
-                                  >
-                                    <Avatar firstName={u.first_name} lastName={u.last_name} photoUrl={u.photo_url} size={22} />
-                                    <span>{u.first_name} {u.last_name}</span>
-                                    {isSelected && <span className="we-user-chip-check">✓</span>}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
                       )}
-                    </div>
+                    </span>
                   );
                 })}
+
+                {transUserIds.map(uId => {
+                  const u = allUsers.find(x => x.id === uId);
+                  if (!u) return null;
+                  const roleLabel = roleOptions.find(r => r.value === u.effective_role)?.label || u.effective_role;
+                  return (
+                    <span key={uId} className="we-active-perm-tag is-user">
+                      <Avatar firstName={u.first_name} lastName={u.last_name} photoUrl={u.photo_url} size={18} />
+                      <span>{u.first_name} {u.last_name} ({roleLabel})</span>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="we-active-perm-remove"
+                          onClick={() => setTransUserIds(prev => prev.filter(id => id !== uId))}
+                          title="Supprimer l'utilisateur"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
+
+                {transRoles.length === 0 && transUserIds.length === 0 && (
+                  <p className="we-trans-empty-hint" style={{ margin: 0, width: "100%" }}>
+                    Aucune restriction spécifique — seuls Manager et Admin Système pourront déclencher cette transition par défaut.
+                  </p>
+                )}
               </div>
 
-              {transRoles.length === 0 && transUserIds.length === 0 && (
-                <p className="we-trans-empty-hint" style={{ marginTop: "0.5rem" }}>
-                  Aucun rôle ni personne sélectionné — seuls Manager et Admin Sys pourront déclencher cette transition.
-                </p>
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="we-add-perm-btn"
+                  onClick={() => {
+                    setSelectedRoleForPicker(null);
+                    setShowRolePicker(true);
+                  }}
+                >
+                  + Choisir un rôle
+                </button>
               )}
             </div>
 
@@ -2158,6 +2132,118 @@ export default function WorkflowEditor() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* ── Role & User Picker Modal ─────────────────────────────────────── */}
+      <Modal
+        open={showRolePicker}
+        onClose={() => setShowRolePicker(false)}
+        title={selectedRoleForPicker ? `Utilisateurs : ${selectedRoleForPicker.label}` : "Choisir un rôle"}
+        width={480}
+      >
+        {!selectedRoleForPicker ? (
+          <div className="we-role-picker-grid">
+            <p className="we-trans-hint" style={{ margin: "0 0 0.5rem" }}>
+              Cliquez sur un rôle pour l'autoriser en totalité ou sélectionner des membres spécifiques :
+            </p>
+            {roleOptions.map(r => {
+              const usersCount = allUsers.filter(u => u.effective_role === r.value).length;
+              const isRoleAdded = transRoles.includes(r.value);
+              const usersInRoleCount = allUsers.filter(u => u.effective_role === r.value && transUserIds.includes(u.id)).length;
+
+              return (
+                <div
+                  key={r.value}
+                  className={`we-role-picker-card${isRoleAdded ? " is-added" : ""}`}
+                  onClick={() => setSelectedRoleForPicker(r)}
+                >
+                  <div className="we-role-picker-info">
+                    <span className="we-role-picker-title">{r.label}</span>
+                    <span className="we-role-picker-sub">
+                      👥 {usersCount} membre{usersCount > 1 ? "s" : ""}
+                      {isRoleAdded ? " • Tout le monde autorisé" : usersInRoleCount > 0 ? ` • ${usersInRoleCount} membre(s) sélectionné(s)` : ""}
+                    </span>
+                  </div>
+                  <span className="we-role-picker-arrow">→</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="we-role-picker-detail">
+            <button
+              type="button"
+              className="we-role-picker-back"
+              onClick={() => setSelectedRoleForPicker(null)}
+            >
+              ← Retour aux rôles
+            </button>
+
+            {(() => {
+              const r = selectedRoleForPicker;
+              const roleUsers = allUsers.filter(u => u.effective_role === r.value);
+              const isRoleOn = transRoles.includes(r.value);
+
+              return (
+                <>
+                  <div className="we-role-option-box">
+                    <h4>Option 1 : Autoriser tout le monde ({roleUsers.length})</h4>
+                    <p>Accorde le droit de déclencher cette transition à tous les membres du rôle <strong>{r.label}</strong>.</p>
+                    <button
+                      type="button"
+                      className={`btn-primary-sm${isRoleOn ? " is-disabled" : ""}`}
+                      onClick={() => {
+                        setRoleModeEveryone(r.value);
+                        setShowRolePicker(false);
+                      }}
+                      style={{ alignSelf: "flex-start", marginTop: "0.4rem" }}
+                    >
+                      {isRoleOn ? "✓ Tout le rôle est déjà autorisé" : `Autoriser tout le monde avec le rôle ${r.label}`}
+                    </button>
+                  </div>
+
+                  {roleUsers.length > 0 ? (
+                    <div className="we-role-option-box">
+                      <h4>Option 2 : Choisir des utilisateurs spécifiques ({roleUsers.length})</h4>
+                      <p>Sélectionnez les personnes précises habilitées à exécuter cette transition :</p>
+
+                      <div className="we-user-chips-grid" style={{ marginTop: "0.5rem" }}>
+                        {roleUsers.map(u => {
+                          const isSelected = transUserIds.includes(u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              className={`we-user-chip${isSelected ? " is-selected" : ""}`}
+                              onClick={() => toggleTransUser(u.id, r.value)}
+                            >
+                              <Avatar firstName={u.first_name} lastName={u.last_name} photoUrl={u.photo_url} size={22} />
+                              <span>{u.first_name} {u.last_name}</span>
+                              {isSelected && <span className="we-user-chip-check">✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn-primary-sm"
+                        onClick={() => setShowRolePicker(false)}
+                        style={{ alignSelf: "flex-end", marginTop: "0.6rem" }}
+                      >
+                        Valider la sélection
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="we-trans-hint" style={{ fontStyle: "italic", marginTop: "0.5rem" }}>
+                      Aucun utilisateur n'a actuellement ce rôle.
+                    </p>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
       </Modal>
     </div>
   );
