@@ -115,6 +115,12 @@
   padding: 0.75rem 0.65rem;
   flex: 1;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.shell-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .shell-nav-section {
