@@ -110,6 +110,29 @@
   overflow: hidden;
 }
 
+/* Inner elements z-index for GlowingEffect */
+.role-card-header,
+.role-label,
+.role-meta-row,
+.role-permissions-summary,
+.role-card-actions,
+.list-card-icon,
+.list-card-body,
+.list-card-actions,
+.workflow-info-icon,
+.workflow-info-card h3,
+.workflow-info-card p,
+.workflow-info-card ul,
+.workflow-info-card .param-btn-primary,
+.grace-preset-header,
+.grace-preset-desc,
+.param-kpi-icon,
+.param-kpi-value,
+.param-kpi-label {
+  position: relative;
+  z-index: 1;
+}
+
 .param-kpi-card:hover {
   transform: translateY(-3px);
   box-shadow: var(--param-shadow-md);
