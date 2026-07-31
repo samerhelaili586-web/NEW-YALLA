@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import Avatar from "./Avatar";
 import { UrgentBadge } from "../utils/taskUtils";
+import { GlowingEffect } from "./GlowingEffect";
 import "./KanbanBoard.css";
 
 export default function KanbanBoard({ tasks = [], onOpenTask }) {
@@ -47,6 +48,7 @@ export default function KanbanBoard({ tasks = [], onOpenTask }) {
                 className={`kb-card${task.is_late ? " is-late" : ""}`}
                 onClick={() => onOpenTask?.(task)}
               >
+                <GlowingEffect spread={30} glow={true} disabled={false} proximity={48} inactiveZone={0.01} />
                 <div className="kb-card-header">
                   <span className="kb-card-type">{task.task_type_name || "Tâche"}</span>
                   {task.is_late && (

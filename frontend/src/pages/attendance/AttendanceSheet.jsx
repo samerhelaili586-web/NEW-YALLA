@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import AppShell from "../../components/AppShell";
 import Avatar from "../../components/Avatar";
 import Modal from "../../components/Modal";

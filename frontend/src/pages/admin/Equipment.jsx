@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import Modal from "../../components/Modal";
 import "../../styles/shared.css";
 import "./Equipment.css";
@@ -151,6 +152,7 @@ export default function AdminEquipment() {
           )}
           {filtered.map((item) => (
             <div key={item.id} className={`eq-card${!item.is_active ? " is-inactive-card" : ""}`}>
+              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
               <div className="eq-card-image">
                 {item.image_url ? (
                   <img src={item.image_url} alt={item.name} />
