@@ -219,6 +219,10 @@ function RolesTab() {
     }
   }, [showArchived]);
 
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
+
   const [confirmModal, setConfirmModal] = useState({ open: false, title: "", message: "", onConfirm: null });
 
   async function handleArchive(role) {
