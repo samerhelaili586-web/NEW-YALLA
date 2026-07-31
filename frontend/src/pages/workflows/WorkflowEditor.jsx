@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import Modal from "../../components/Modal";
+import Avatar from "../../components/Avatar";
 import "../../styles/shared.css";
 import "./WorkflowEditor.css";
 
