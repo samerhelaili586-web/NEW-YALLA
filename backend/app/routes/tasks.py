@@ -280,6 +280,9 @@ def change_status(task_id):
 
     task.status_id = new_status.id
 
+    # Send notifications to users responsible for the next transition step
+    notify_next_status_users(task, new_status, acting_user=user)
+
     # If form_values were provided, log them as a comment
     if form_values and isinstance(form_values, dict):
         formatted_fields = "\n".join([f"• **{k}**: {v}" for k, v in form_values.items() if v])
@@ -290,6 +293,67 @@ def change_status(task_id):
 
     db.session.commit()
     return jsonify(task.to_dict())
+
+
+def notify_next_status_users(task, new_status, acting_user=None):
+    """
+    When a task transitions to `new_status`, find all outgoing transitions from `new_status`
+    (i.e. transitions from `new_status` to next status(es)), and notify all active users
+    authorized to trigger those next transitions.
+    """
+    from app.models.user import User
+    from app.models.task_type import Transition, DEFAULT_ALLOWED_ROLES
+
+    target_user_ids = set()
+
+    # Outgoing transitions from the NEW status
+    outgoing = Transition.query.filter_by(from_status_id=new_status.id).all()
+
+    if outgoing:
+        all_active_users = User.query.filter(
+            User.is_active.is_(True),
+            User.is_archived.is_(False)
+        ).all()
+
+        for t in outgoing:
+            # 1. Allowed roles for this transition
+            roles = t.allowed_roles if t.allowed_roles else DEFAULT_ALLOWED_ROLES.get(new_status.functional_type, [])
+            if roles:
+                for u in all_active_users:
+                    if u.effective_role in roles:
+                        target_user_ids.add(u.id)
+
+            # 2. Specifically allowed user IDs for this transition
+            specific_uids = (getattr(t, "allowed_user_ids", None) or []) + ([t.allowed_user_id] if t.allowed_user_id else [])
+            for uid in specific_uids:
+                if uid:
+                    target_user_ids.add(uid)
+    else:
+        # Fallback: if no outgoing transition defined (e.g. end status), notify assignees if any
+        if task.assignees:
+            for a in task.assignees:
+                target_user_ids.add(a.user_id)
+
+    # Do not send a notification to the person who triggered the transition
+    if acting_user and acting_user.id in target_user_ids:
+        target_user_ids.remove(acting_user.id)
+
+    # Add notification for each target user
+    for uid in target_user_ids:
+        target_user = User.query.get(uid)
+        if not target_user or not target_user.is_active or target_user.is_archived:
+            continue
+
+        msg = f"La tâche « {task.title} » est passée au statut « {new_status.title} ». À vous de jouer pour l'étape suivante !"
+        link_url = "/tasks"
+
+        notif = Notification(
+            user_id=uid,
+            type="status_transition",
+            message=msg,
+            link_url=link_url,
+        )
+        db.session.add(notif)
 
 
 @tasks_bp.post("/<int:task_id>/assignees")

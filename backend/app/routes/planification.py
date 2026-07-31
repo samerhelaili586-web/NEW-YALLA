@@ -182,9 +182,11 @@ def create_or_update_shoot():
     # if it's still sitting on the same "planification_shooting" status that triggered this action.
     if not existing_shoot and task.status and task.status.functional_type == "planification_shooting":
         from app.routes.task_types import get_available_next_statuses
+        from app.routes.tasks import notify_next_status_users
         next_statuses = get_available_next_statuses(task.status, "chef_prod")
         if len(next_statuses) >= 1:
             task.status_id = next_statuses[0].id
+            notify_next_status_users(task, next_statuses[0], acting_user=current_user())
             db.session.commit()
 
     return jsonify(shoot.to_dict()), 201
@@ -244,9 +246,11 @@ def assign_montage(task_id):
 
     if task.status and task.status.functional_type == "planification_montage":
         from app.routes.task_types import get_available_next_statuses
+        from app.routes.tasks import notify_next_status_users
         next_statuses = get_available_next_statuses(task.status, "chef_prod")
         if len(next_statuses) >= 1:
             task.status_id = next_statuses[0].id
+            notify_next_status_users(task, next_statuses[0], acting_user=current_user())
 
     db.session.commit()
     return jsonify(task.to_dict())

@@ -3,7 +3,7 @@ from app import db
 
 NOTIFICATION_TYPES = (
     "project_assigned", "leave_new", "certificate_uploaded",
-    "leave_auto_rejected", "mention", "holiday_added",
+    "leave_auto_rejected", "mention", "holiday_added", "status_transition",
 )
 
 
