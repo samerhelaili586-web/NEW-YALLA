@@ -262,7 +262,8 @@ def change_status(task_id):
         transition_roles = transition.allowed_roles if transition.allowed_roles else DEFAULT_ALLOWED_ROLES.get(
             task.status.functional_type, []
         )
-        if user.effective_role not in transition_roles:
+        allowed_user_ids = (transition.allowed_user_ids or []) + ([transition.allowed_user_id] if transition.allowed_user_id else [])
+        if user.effective_role not in transition_roles and user.id not in allowed_user_ids:
             return jsonify({"error": "role_not_allowed_for_transition"}), 403
 
     # Validate required transition form fields if configured

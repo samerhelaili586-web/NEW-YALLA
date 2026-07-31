@@ -852,6 +852,130 @@
   margin: 0 0 0.75rem;
 }
 
+.we-card-badges {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+/* ─── Role & User Permissions Selector in Transition Modal ────────────────── */
+.we-role-permissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.we-role-perm-card {
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  background: var(--paper, #fafafa);
+  transition: all 0.18s ease;
+}
+
+.we-role-perm-card.is-active {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.03);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.06);
+}
+
+.we-role-perm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.we-role-user-count {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+}
+
+.we-role-perm-body {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--line, rgba(0, 0, 0, 0.08));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.we-role-mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.we-mode-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--ink, #1f2937);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.we-mode-radio.is-selected {
+  font-weight: 650;
+  color: var(--primary, #6366f1);
+}
+
+.we-mode-radio input[type="radio"] {
+  accent-color: var(--primary, #6366f1);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.we-user-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+  padding: 0.6rem;
+  background: var(--card, #ffffff);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+  border-radius: 9px;
+}
+
+.we-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 500;
+  border-radius: 20px;
+  border: 1px solid var(--line, #e5e7eb);
+  background: var(--paper, #f9fafb);
+  color: var(--ink, #374151);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.we-user-chip:hover:not(:disabled) {
+  border-color: var(--primary, #6366f1);
+  color: var(--primary, #6366f1);
+}
+
+.we-user-chip.is-selected {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--primary, #6366f1);
+  color: var(--primary, #6366f1);
+  font-weight: 650;
+}
+
+.we-user-chip-check {
+  font-weight: 700;
+  font-size: 0.72rem;
+  margin-left: 0.1rem;
+}
+
 .we-trans-chips {
   display: flex;
   flex-wrap: wrap;

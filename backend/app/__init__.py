@@ -22,6 +22,7 @@ def _run_migrations(db):
         "ALTER TABLE guide_pages ADD COLUMN steps JSON NOT NULL DEFAULT '[]'",
         # Feature 4: per-transition person-specific trigger
         "ALTER TABLE transitions ADD COLUMN allowed_user_id INTEGER REFERENCES users(id)",
+        "ALTER TABLE transitions ADD COLUMN allowed_user_ids JSON DEFAULT '[]'",
     ]
     with db.engine.connect() as conn:
         for stmt in migrations:

@@ -290,9 +290,14 @@ def update_transition(transition_id):
         transition.allowed_roles = data["allowed_roles"]
     if "form_fields" in data:
         transition.form_fields = data["form_fields"]
-    if "allowed_user_id" in data:
-        # Accept null to clear the person-specific trigger
-        transition.allowed_user_id = data["allowed_user_id"] or None
+    if "allowed_user_ids" in data:
+        raw_ids = data["allowed_user_ids"] or []
+        transition.allowed_user_ids = [int(i) for i in raw_ids if i is not None]
+        transition.allowed_user_id = transition.allowed_user_ids[0] if transition.allowed_user_ids else None
+    elif "allowed_user_id" in data:
+        uid = data["allowed_user_id"]
+        transition.allowed_user_id = int(uid) if uid else None
+        transition.allowed_user_ids = [int(uid)] if uid else []
 
     # Update parent workflow's updated_at
     from_status = Status.query.get(transition.from_status_id)
@@ -332,7 +337,8 @@ def get_available_next_statuses(current_status: Status, effective_role: str):
         transition_roles = t.allowed_roles if t.allowed_roles else DEFAULT_ALLOWED_ROLES.get(
             current_status.functional_type, []
         )
-        if effective_role in transition_roles:
+        allowed_user_ids = (t.allowed_user_ids or []) + ([t.allowed_user_id] if t.allowed_user_id else [])
+        if effective_role in transition_roles or current_user().id in allowed_user_ids:
             result.append(t.to_status)
 
     return result

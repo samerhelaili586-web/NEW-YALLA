@@ -110,9 +110,10 @@ class Transition(db.Model):
     # Empty list [] = only Manager/Admin Sys can use it (their override always applies).
     allowed_roles = db.Column(db.JSON, nullable=False, default=list)
 
-    # Optional: a specific user (person) who can ALSO trigger this transition.
-    # Works as OR with allowed_roles: role OR specific user.
+    # Optional: a specific user (person) or list of users who can ALSO trigger this transition.
+    # Works as OR with allowed_roles: role OR specific user(s).
     allowed_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    allowed_user_ids = db.Column(db.JSON, nullable=False, default=list)
 
     # Optional per-transition form fields definition.
     # Each item: {"id": str, "type": "text"|"number"|"date"|"select"|"list_select", "label": str, "list_id": int|null, "capture_fields": [str]}
@@ -123,6 +124,10 @@ class Transition(db.Model):
     allowed_user = db.relationship("User", foreign_keys=[allowed_user_id])
 
     def to_dict(self):
+        user_ids = self.allowed_user_ids if self.allowed_user_ids is not None else []
+        if self.allowed_user_id and self.allowed_user_id not in user_ids:
+            user_ids = [self.allowed_user_id] + list(user_ids)
+
         return {
             "id": self.id,
             "from_status_id": self.from_status_id,
@@ -132,6 +137,7 @@ class Transition(db.Model):
             "allowed_roles": self.allowed_roles if self.allowed_roles is not None else [],
             "form_fields": self.form_fields if self.form_fields is not None else [],
             "allowed_user_id": self.allowed_user_id,
+            "allowed_user_ids": user_ids,
             "allowed_user_name": (
                 f"{self.allowed_user.first_name} {self.allowed_user.last_name}"
                 if self.allowed_user else None
