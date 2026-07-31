@@ -15,7 +15,7 @@ const STATUS_LABELS = {
   termine: "Terminé",
 };
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 10;
 const EMPTY_FORM = { title: "", start_date: "", remarks: "", cm_id: "", monthly_targets: {} };
 
 export default function ProjectList() {
@@ -174,24 +174,68 @@ export default function ProjectList() {
       {loading && <p className="tt-status">Chargement…</p>}
 
       {!loading && (
-        <div className="pl-grid">
-          {filtered.length === 0 && (
-            <p className="tt-status">Aucun projet ne correspond à ces critères.</p>
+        <>
+          <div className="pl-table-wrap">
+            <table className="pl-table">
+              <thead>
+                <tr>
+                  <th>Projet</th>
+                  <th>Community Manager</th>
+                  <th>Statut</th>
+                  <th>Date de début</th>
+                  <th>Date de création</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="pl-empty">
+                      Aucun projet ne correspond à ces critères.
+                    </td>
+                  </tr>
+                )}
+                {filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <Link to={`/projects/${p.id}`} className="pl-project-link">
+                        <span className="pl-project-title">{p.title}</span>
+                      </Link>
+                    </td>
+                    <td>
+                      <div className="pl-cm-cell">
+                        <span>{p.cm_name || "—"}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-chip ${p.status === "actif" ? "is-active" : p.status === "on_hold" ? "is-inactive" : "is-archived"}`}>
+                        {STATUS_LABELS[p.status] || p.status}
+                      </span>
+                    </td>
+                    <td className="pl-date-cell">
+                      {p.start_date ? new Date(p.start_date).toLocaleDateString("fr-FR") : "—"}
+                    </td>
+                    <td className="pl-date-cell">
+                      {p.created_at ? new Date(p.created_at).toLocaleDateString("fr-FR") : "—"}
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <Link to={`/projects/${p.id}`} className="pl-action-btn">
+                        Consulter →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length > PAGE_SIZE && (
+            <Pagination
+              current={page}
+              total={Math.ceil(filtered.length / PAGE_SIZE)}
+              onChange={setPage}
+            />
           )}
-          {filtered.map((p) => (
-            <Link key={p.id} to={`/projects/${p.id}`} className="pl-card">
-              <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
-              <div className="pl-card-top">
-                <h3>{p.title}</h3>
-                <span className={`status-chip ${p.status === "actif" ? "is-active" : p.status === "on_hold" ? "is-inactive" : "is-archived"}`}>
-                  {STATUS_LABELS[p.status] || p.status}
-                </span>
-              </div>
-              <p className="pl-card-cm">CM : {p.cm_name || "—"}</p>
-              <p className="pl-card-date">Début : {new Date(p.start_date).toLocaleDateString("fr-FR")}</p>
-            </Link>
-          ))}
-        </div>
+        </>
       )}
 
       <Modal open={modalOpen} onClose={closeModal} title="Nouveau projet" width={480}>

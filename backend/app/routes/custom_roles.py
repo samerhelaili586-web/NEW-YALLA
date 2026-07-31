@@ -1,24 +1,9 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.custom_role import CustomRole
-from app.permissions import login_required, require_role, current_user
+from app.permissions import login_required, require_role, current_user, get_available_menu_keys, get_available_action_keys
 
 custom_roles_bp = Blueprint("custom_roles", __name__)
-
-# Keys available for menu/action permissions (mirrors permissions.py)
-AVAILABLE_MENU_KEYS = [
-    "gestion_utilisateurs", "gestion_workflows", "consulter_workflows",
-    "gestion_materiel", "projets_tous", "projets_affectes", "taches_associees",
-    "taches_montage", "planification", "feuille_presence_perso",
-    "feuille_presence_equipe", "shooting_calendrier", "conges_absences",
-    "approbation_conges", "annuaire", "salaires_paie",
-]
-
-AVAILABLE_ACTION_KEYS = [
-    "creer_projet", "modifier_projet", "on_hold_projet", "creer_tache",
-    "changer_statut_standard", "forcer_statut", "changer_statut_planification",
-    "reporter_temps", "ajouter_commentaire", "gerer_salaires",
-]
 
 
 @custom_roles_bp.get("")
@@ -50,10 +35,10 @@ def list_custom_roles():
 @custom_roles_bp.get("/meta")
 @login_required
 def get_meta():
-    """Return available menu and action permission keys."""
+    """Return available menu and action permission keys dynamically generated from app.permissions."""
     return jsonify({
-        "menu_keys": AVAILABLE_MENU_KEYS,
-        "action_keys": AVAILABLE_ACTION_KEYS,
+        "menu_keys": get_available_menu_keys(),
+        "action_keys": get_available_action_keys(),
     })
 
 

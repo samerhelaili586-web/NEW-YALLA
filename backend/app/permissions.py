@@ -36,6 +36,21 @@ ACTION_ACCESS = {
 }
 
 
+# Dynamic registries for permission keys (auto-discovered on decorator usage or matrix keys)
+REGISTERED_MENU_KEYS = set(MENU_ACCESS.keys())
+REGISTERED_ACTION_KEYS = set(ACTION_ACCESS.keys())
+
+
+def get_available_menu_keys():
+    """Return sorted list of all dynamically registered and matrix-defined menu permission keys."""
+    return sorted(list(REGISTERED_MENU_KEYS | set(MENU_ACCESS.keys())))
+
+
+def get_available_action_keys():
+    """Return sorted list of all dynamically registered and matrix-defined action permission keys."""
+    return sorted(list(REGISTERED_ACTION_KEYS | set(ACTION_ACCESS.keys())))
+
+
 def current_user():
     from app.models.user import User
     uid = session.get("user_id")
@@ -55,7 +70,8 @@ def login_required(fn):
 
 
 def require_menu(menu_key):
-    """Decorator: 403 unless the current user's effective_role can see this menu."""
+    """Decorator: 403 unless the current user's effective_role can see this menu. Auto-registers menu_key."""
+    REGISTERED_MENU_KEYS.add(menu_key)
     def decorator(fn):
         @wraps(fn)
         @login_required
@@ -69,7 +85,8 @@ def require_menu(menu_key):
 
 
 def require_action(action_key):
-    """Decorator: 403 unless the current user's effective_role can perform this action."""
+    """Decorator: 403 unless the current user's effective_role can perform this action. Auto-registers action_key."""
+    REGISTERED_ACTION_KEYS.add(action_key)
     def decorator(fn):
         @wraps(fn)
         @login_required
