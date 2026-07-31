@@ -151,6 +151,11 @@
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 12px;
+  position: sticky;
+  top: 1rem;
+  z-index: 90;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
 }
 
 .guide-role-filter-chip {
@@ -329,6 +334,10 @@
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
   margin-bottom: 0.5rem;
+  position: sticky;
+  top: 1rem;
+  z-index: 100;
+  backdrop-filter: blur(12px);
 }
 
 .guide-flow-card-desc {
