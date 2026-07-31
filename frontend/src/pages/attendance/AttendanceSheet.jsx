@@ -6,6 +6,7 @@ import { GlowingEffect } from "../../components/GlowingEffect";
 import AppShell from "../../components/AppShell";
 import Avatar from "../../components/Avatar";
 import Modal from "../../components/Modal";
+import ConfirmModal from "../../components/ConfirmModal";
 import "../../styles/shared.css";
 import "./AttendanceSheet.css";
 
@@ -204,19 +205,30 @@ export default function AttendanceSheet() {
     }
   }
 
-  async function deleteEntry(entry) {
-    if (!window.confirm("Voulez-vous vraiment supprimer cette saisie de temps ?")) return;
+  const [deleteConfirmEntry, setDeleteConfirmEntry] = useState(null);
+  const [deletingEntry, setDeletingEntry] = useState(false);
+
+  function deleteEntry(entry) {
+    setDeleteConfirmEntry(entry);
+  }
+
+  async function confirmDeleteEntry() {
+    if (!deleteConfirmEntry) return;
+    setDeletingEntry(true);
     try {
-      await api.delete(`/tasks/${entry.task_id}/time-entries/${entry.id}`);
+      await api.delete(`/tasks/${deleteConfirmEntry.task_id}/time-entries/${deleteConfirmEntry.id}`);
       setSelectedDayDetails((prev) => {
         if (!prev) return null;
-        const newEntries = prev.entries.filter((e) => e.id !== entry.id);
+        const newEntries = prev.entries.filter((e) => e.id !== deleteConfirmEntry.id);
         const newTotal = newEntries.reduce((acc, e) => acc + e.hours * 60 + e.minutes, 0);
         return { ...prev, entries: newEntries, total_minutes: newTotal };
       });
+      setDeleteConfirmEntry(null);
       refreshData();
     } catch (err) {
-      alert(err?.data?.error || err?.data?.detail || "Erreur lors de la suppression.");
+      console.error("Erreur lors de la suppression:", err);
+    } finally {
+      setDeletingEntry(false);
     }
   }
 
@@ -994,6 +1006,19 @@ export default function AttendanceSheet() {
             </div>
           </form>
         </Modal>
+
+        {/* Delete Time Entry Confirm Modal */}
+        <ConfirmModal
+          open={!!deleteConfirmEntry}
+          onClose={() => setDeleteConfirmEntry(null)}
+          onConfirm={confirmDeleteEntry}
+          title="Supprimer la saisie de temps"
+          message="Voulez-vous vraiment supprimer cette saisie de temps ? Cette action réajustera le total d'heures déclarées."
+          confirmText="Supprimer"
+          cancelText="Annuler"
+          danger={true}
+          loading={deletingEntry}
+        />
       </div>
     </AppShell>
   );

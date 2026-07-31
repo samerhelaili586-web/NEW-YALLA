@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { api } from "../../api/client";
 import "./Monitoring.css";
 
+import ConfirmModal from "../../components/ConfirmModal";
+
 export default function AdminMonitoring() {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({
@@ -16,6 +18,8 @@ export default function AdminMonitoring() {
   const [statusFilter, setStatusFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLog, setSelectedLog] = useState(null);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const fetchMonitoringData = useCallback(async () => {
     setLoading(true);
@@ -44,12 +48,15 @@ export default function AdminMonitoring() {
   }, [fetchMonitoringData]);
 
   const handleClearLogs = async () => {
-    if (!window.confirm("Voulez-vous vraiment effacer tout l'historique des erreurs système ?")) return;
+    setClearing(true);
     try {
       await api.delete("/monitoring/logs");
+      setConfirmClearOpen(false);
       fetchMonitoringData();
     } catch (err) {
-      alert("Erreur lors de la suppression des logs.");
+      console.error("Erreur lors de la suppression des logs:", err);
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -73,7 +80,7 @@ export default function AdminMonitoring() {
           <button className="btn-secondary" onClick={fetchMonitoringData} disabled={loading}>
             {loading ? "Chargement..." : "🔄 Rafraîchir"}
           </button>
-          <button className="btn-danger" onClick={handleClearLogs} disabled={logs.length === 0}>
+          <button className="btn-danger" onClick={() => setConfirmClearOpen(true)} disabled={logs.length === 0}>
             🗑️ Effacer les logs
           </button>
         </div>
@@ -266,6 +273,19 @@ export default function AdminMonitoring() {
           </div>
         </div>
       )}
+
+      {/* Clear Logs Confirm Modal */}
+      <ConfirmModal
+        open={confirmClearOpen}
+        onClose={() => setConfirmClearOpen(false)}
+        onConfirm={handleClearLogs}
+        title="Effacer les logs système"
+        message="Voulez-vous vraiment effacer tout l'historique des erreurs système ? Cette action est irrémédiable."
+        confirmText="Effacer les logs"
+        cancelText="Annuler"
+        danger={true}
+        loading={clearing}
+      />
     </div>
   );
 }

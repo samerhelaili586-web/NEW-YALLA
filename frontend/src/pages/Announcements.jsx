@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import AppShell from "../components/AppShell";
 import Avatar from "../components/Avatar";
 import Modal from "../components/Modal";
+import ConfirmModal from "../components/ConfirmModal";
 import { GlowingEffect } from "../components/GlowingEffect";
 import "../styles/shared.css";
 import "./Announcements.css";
@@ -111,13 +112,24 @@ export default function Announcements() {
     }
   }
 
-  async function handleDeleteAnnouncement(item) {
-    if (!window.confirm(`Supprimer le communiqué "${item.title}" ?`)) return;
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState(null);
+  const [deletingItem, setDeletingItem] = useState(false);
+
+  function handleDeleteAnnouncement(item) {
+    setDeleteConfirmItem(item);
+  }
+
+  async function confirmDeleteAnnouncement() {
+    if (!deleteConfirmItem) return;
+    setDeletingItem(true);
     try {
-      await api.delete(`/announcements/${item.id}`);
+      await api.delete(`/announcements/${deleteConfirmItem.id}`);
+      setDeleteConfirmItem(null);
       loadAnnouncements();
     } catch (err) {
-      alert(err?.data?.detail || "Erreur lors de la suppression.");
+      console.error("Erreur lors de la suppression du communiqué:", err);
+    } finally {
+      setDeletingItem(false);
     }
   }
 
@@ -565,6 +577,19 @@ export default function Announcements() {
             </div>
           )}
         </Modal>
+
+        {/* Delete Announcement Confirm Modal */}
+        <ConfirmModal
+          open={!!deleteConfirmItem}
+          onClose={() => setDeleteConfirmItem(null)}
+          onConfirm={confirmDeleteAnnouncement}
+          title="Supprimer le communiqué"
+          message={deleteConfirmItem ? `Voulez-vous vraiment supprimer le communiqué « ${deleteConfirmItem.title} » ?` : ""}
+          confirmText="Supprimer"
+          cancelText="Annuler"
+          danger={true}
+          loading={deletingItem}
+        />
       </div>
     </AppShell>
   );

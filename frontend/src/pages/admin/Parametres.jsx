@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { useNavigate } from "react-router-dom";
 import { GlowingEffect } from "../../components/GlowingEffect";
+import ConfirmModal from "../../components/ConfirmModal";
 import "./Parametres.css";
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
@@ -215,12 +216,19 @@ function RolesTab() {
     }
   }, [showArchived]);
 
-  useEffect(() => { fetchRoles(); }, [fetchRoles]);
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: "", message: "", onConfirm: null });
 
   async function handleArchive(role) {
-    if (!confirm(`Archiver le rôle "${role.label}" ?`)) return;
-    await api.post(`/custom-roles/${role.id}/archive`);
-    fetchRoles();
+    setConfirmModal({
+      open: true,
+      title: "Archiver le rôle",
+      message: `Voulez-vous vraiment archiver le rôle "${role.label}" ?`,
+      onConfirm: async () => {
+        await api.post(`/custom-roles/${role.id}/archive`);
+        fetchRoles();
+        setConfirmModal({ open: false, title: "", message: "", onConfirm: null });
+      }
+    });
   }
 
   async function handleRestore(role) {
@@ -329,6 +337,15 @@ function RolesTab() {
           onSaved={() => { setModal(null); fetchRoles(); }}
         />
       )}
+
+      <ConfirmModal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        danger={true}
+      />
     </div>
   );
 }
@@ -724,10 +741,19 @@ function CustomListsTab() {
 
   useEffect(() => { fetchLists(); }, [fetchLists]);
 
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: "", message: "", onConfirm: null });
+
   async function handleArchive(lst) {
-    if (!confirm(`Archiver la liste "${lst.name}" ?`)) return;
-    await api.post(`/custom-lists/${lst.id}/archive`);
-    fetchLists();
+    setConfirmModal({
+      open: true,
+      title: "Archiver la liste",
+      message: `Voulez-vous vraiment archiver la liste "${lst.name}" ?`,
+      onConfirm: async () => {
+        await api.post(`/custom-lists/${lst.id}/archive`);
+        fetchLists();
+        setConfirmModal({ open: false, title: "", message: "", onConfirm: null });
+      }
+    });
   }
 
   async function handleRestore(lst) {
@@ -833,6 +859,15 @@ function CustomListsTab() {
           onSaved={() => { setModal(null); fetchLists(); }}
         />
       )}
+
+      <ConfirmModal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        danger={true}
+      />
     </div>
   );
 }
