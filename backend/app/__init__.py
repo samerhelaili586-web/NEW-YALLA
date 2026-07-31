@@ -20,6 +20,8 @@ def _run_migrations(db):
         "ALTER TABLE users ADD COLUMN hourly_rate FLOAT NOT NULL DEFAULT 25.0",
         "ALTER TABLE users ADD COLUMN monthly_hours_goal INTEGER NOT NULL DEFAULT 160",
         "ALTER TABLE guide_pages ADD COLUMN steps JSON NOT NULL DEFAULT '[]'",
+        # Feature 4: per-transition person-specific trigger
+        "ALTER TABLE transitions ADD COLUMN allowed_user_id INTEGER REFERENCES users(id)",
     ]
     with db.engine.connect() as conn:
         for stmt in migrations:
@@ -102,7 +104,7 @@ def create_app(config_object="config.DevConfig"):
     from app.models import (  # noqa: F401  (register models with SQLAlchemy)
         user, task_type, project, task, equipment, shoot,
         leave, notification, announcement, guide_page, error_log,
-        system_setting,
+        system_setting, custom_role, custom_list, project_permission,
     )
 
     from app.routes.auth import auth_bp
@@ -150,6 +152,15 @@ def create_app(config_object="config.DevConfig"):
     from app.routes.settings import settings_bp
     app.register_blueprint(settings_bp, url_prefix="/api/settings")
 
+    from app.routes.custom_roles import custom_roles_bp
+    app.register_blueprint(custom_roles_bp, url_prefix="/api/custom-roles")
+
+    from app.routes.custom_lists import custom_lists_bp
+    app.register_blueprint(custom_lists_bp, url_prefix="/api/custom-lists")
+
+    from app.routes.project_permissions import project_permissions_bp
+    app.register_blueprint(project_permissions_bp, url_prefix="/api/projects")
+
     @app.get("/api/health")
     def health():
         return {"status": "ok"}
@@ -183,4 +194,78 @@ def create_app(config_object="config.DevConfig"):
         if not SystemSetting.query.get("grace_period_days"):
             SystemSetting.set_val("grace_period_days", "1", "Délai de grâce en jours pour déclarer son temps (ex: 1 pour J+1, 2 pour J+2, etc.)")
 
+        # Seed built-in roles if not already present
+        from app.models.custom_role import CustomRole
+        if not CustomRole.query.first():
+            _seed_builtin_roles()
+
     return app
+
+
+def _seed_builtin_roles():
+    """Create the 5 built-in roles in the custom_roles table on first startup."""
+    from app.models.custom_role import CustomRole
+    from app.permissions import MENU_ACCESS, ACTION_ACCESS
+
+    BUILTINS = [
+        {
+            "key": "admin_sys",
+            "label": "Admin Système",
+            "color": "#dc2626",
+            "visibility_mode": "all",
+            "participates_in_workflow": True,
+            "menu_permissions": [k for k, v in MENU_ACCESS.items() if "admin_sys" in v],
+            "action_permissions": [k for k, v in ACTION_ACCESS.items() if "admin_sys" in v],
+        },
+        {
+            "key": "manager",
+            "label": "Manager",
+            "color": "#2563eb",
+            "visibility_mode": "all",
+            "participates_in_workflow": True,
+            "menu_permissions": [k for k, v in MENU_ACCESS.items() if "manager" in v],
+            "action_permissions": [k for k, v in ACTION_ACCESS.items() if "manager" in v],
+        },
+        {
+            "key": "cm",
+            "label": "Community Manager",
+            "color": "#7c3aed",
+            "visibility_mode": "actionable",
+            "participates_in_workflow": True,
+            "menu_permissions": [k for k, v in MENU_ACCESS.items() if "cm" in v],
+            "action_permissions": [k for k, v in ACTION_ACCESS.items() if "cm" in v],
+        },
+        {
+            "key": "prod",
+            "label": "Prod / Monteur",
+            "color": "#059669",
+            "visibility_mode": "actionable",
+            "participates_in_workflow": True,
+            "menu_permissions": [k for k, v in MENU_ACCESS.items() if "prod" in v],
+            "action_permissions": [k for k, v in ACTION_ACCESS.items() if "prod" in v],
+        },
+        {
+            "key": "chef_prod",
+            "label": "Chef de Production",
+            "color": "#d97706",
+            "visibility_mode": "actionable",
+            "participates_in_workflow": True,
+            "menu_permissions": [k for k, v in MENU_ACCESS.items() if "chef_prod" in v],
+            "action_permissions": [k for k, v in ACTION_ACCESS.items() if "chef_prod" in v],
+        },
+    ]
+
+    for b in BUILTINS:
+        role = CustomRole(
+            key=b["key"],
+            label=b["label"],
+            color=b["color"],
+            is_builtin=True,
+            participates_in_workflow=b["participates_in_workflow"],
+            visibility_mode=b["visibility_mode"],
+            menu_permissions=b["menu_permissions"],
+            action_permissions=b["action_permissions"],
+        )
+        db.session.add(role)
+    db.session.commit()
+    print("Seeded 5 built-in roles in custom_roles table.")

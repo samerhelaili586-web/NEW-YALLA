@@ -38,7 +38,9 @@ const FUNCTIONAL_META = {
 };
 
 
-const ROLE_OPTIONS = [
+// ROLE_OPTIONS is loaded dynamically from /api/custom-roles below.
+// This default is a safe fallback when the API hasn't responded yet.
+const DEFAULT_ROLE_OPTIONS = [
   { value: "admin_sys",  label: "Admin Sys" },
   { value: "manager",   label: "Manager" },
   { value: "cm",        label: "CM" },
@@ -53,10 +55,11 @@ const WORKFLOW_STATUS_OPTIONS = [
 ];
 
 const FIELD_TYPES = [
-  { value: "text",   label: "Texte" },
-  { value: "number", label: "Nombre" },
-  { value: "date",   label: "Date" },
-  { value: "select", label: "Liste" },
+  { value: "text",        label: "Texte" },
+  { value: "number",      label: "Nombre" },
+  { value: "date",        label: "Date" },
+  { value: "select",      label: "Liste fixe" },
+  { value: "list_select", label: "✨ Sélection depuis une liste" },
 ];
 
 const NODE_W = 250;
@@ -386,8 +389,13 @@ export default function WorkflowEditor() {
   const [transModal, setTransModal] = useState(null); // transition object
   const [transRoles, setTransRoles] = useState([]);
   const [transFields, setTransFields] = useState([]);
+  const [transUserId, setTransUserId] = useState(null); // person-specific trigger
   const [transSaving, setTransSaving] = useState(false);
   const [transDeleting, setTransDeleting] = useState(false);
+
+  // Dynamic roles + users loaded from API
+  const [roleOptions, setRoleOptions] = useState(DEFAULT_ROLE_OPTIONS);
+  const [allUsers, setAllUsers] = useState([]);
 
   // Create status modal
   const [createStatusOpen, setCreateStatusOpen] = useState(false);
@@ -451,6 +459,20 @@ export default function WorkflowEditor() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Load dynamic roles and users from API
+  useEffect(() => {
+    api.get("/custom-roles?include_archived=0")
+      .then(data => {
+        if (data && data.length > 0) {
+          setRoleOptions(data.map(r => ({ value: r.key, label: r.label })));
+        }
+      })
+      .catch(() => {}); // silently fall back to defaults
+    api.get("/users")
+      .then(data => setAllUsers((data || []).filter(u => !u.is_archived)))
+      .catch(() => {});
+  }, []);
 
   // ── Config validation ─────────────────────────────────────────────────────
   const configIssues = workflow ? validateConfig(statuses, transitions) : [];
@@ -991,6 +1013,7 @@ export default function WorkflowEditor() {
     setSelectedTransition(t);
     setTransRoles(t.allowed_roles || []);
     setTransFields(t.form_fields || []);
+    setTransUserId(t.allowed_user_id || null);
     setTransModal(t);
     setSelectedNodeId(null);
     setPropForm(null);
@@ -1019,6 +1042,7 @@ export default function WorkflowEditor() {
       const updated = await api.patch(`/task-types/transitions/${transModal.id}`, {
         allowed_roles: transRoles,
         form_fields: transFields,
+        allowed_user_id: transUserId || null,
       });
       setTransitions(prev => prev.map(t => t.id === transModal.id ? { ...t, ...updated } : t));
       setTransModal(null);
@@ -1816,7 +1840,7 @@ export default function WorkflowEditor() {
                 Sélectionnez les rôles qui peuvent faire passer une tâche de « {transModal.from_status_title} » à « {transModal.to_status_title} ».
               </p>
               <div className="we-trans-chips">
-                {ROLE_OPTIONS.map(r => {
+                {roleOptions.map(r => {
                   const on = transRoles.includes(r.value);
                   return (
                     <button
@@ -1833,6 +1857,33 @@ export default function WorkflowEditor() {
               </div>
               {transRoles.length === 0 && (
                 <p className="we-trans-empty-hint">Aucun rôle sélectionné — seuls Manager et Admin Sys pourront déclencher cette transition.</p>
+              )}
+            </div>
+
+            {/* Person-specific trigger */}
+            <div className="we-trans-section">
+              <div className="we-trans-section-title">Personne spécifique autorisée (optionnel)</div>
+              <p className="we-trans-hint">
+                En plus des rôles ci-dessus, vous pouvez désigner un utilisateur précis qui peut déclencher cette transition (logique OR : rôle OU personne).
+              </p>
+              <select
+                className="we-props-select"
+                style={{ width: "100%", maxWidth: 320 }}
+                value={transUserId || ""}
+                onChange={e => setTransUserId(e.target.value ? Number(e.target.value) : null)}
+                disabled={!isAdmin}
+              >
+                <option value="">— Aucune personne spécifique —</option>
+                {allUsers.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.first_name} {u.last_name} ({u.effective_role})
+                  </option>
+                ))}
+              </select>
+              {transUserId && (
+                <p className="we-trans-hint" style={{ marginTop: "0.4rem", color: "var(--accent, #6366f1)" }}>
+                  ✓ {allUsers.find(u => u.id === transUserId)?.first_name} {allUsers.find(u => u.id === transUserId)?.last_name} peut aussi déclencher cette transition
+                </p>
               )}
             </div>
 

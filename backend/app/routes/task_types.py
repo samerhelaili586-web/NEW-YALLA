@@ -290,6 +290,9 @@ def update_transition(transition_id):
         transition.allowed_roles = data["allowed_roles"]
     if "form_fields" in data:
         transition.form_fields = data["form_fields"]
+    if "allowed_user_id" in data:
+        # Accept null to clear the person-specific trigger
+        transition.allowed_user_id = data["allowed_user_id"] or None
 
     # Update parent workflow's updated_at
     from_status = Status.query.get(transition.from_status_id)
