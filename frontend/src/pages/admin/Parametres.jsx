@@ -31,15 +31,17 @@ const ICONS = {
   info:     "M12 16v-4M12 8h.01 M12 22a10 10 0 100-20 10 10 0 000 20z",
   external: "M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3",
   attendance: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+  bell:       "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
   gear:     "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
 };
 
 const TABS = [
-  { id: "roles",      label: "Rôles",            icon: "roles" },
-  { id: "projects",   label: "Droits par Projet", icon: "project" },
-  { id: "lists",      label: "Listes Personnalisées", icon: "list" },
-  { id: "attendance", label: "Délai de Présence", icon: "attendance" },
-  { id: "workflow",   label: "Workflows",         icon: "workflow" },
+  { id: "roles",         label: "Rôles",                icon: "roles" },
+  { id: "projects",      label: "Droits par Projet",    icon: "project" },
+  { id: "lists",         label: "Listes Personnalisées",icon: "list" },
+  { id: "attendance",    label: "Délai de Présence",    icon: "attendance" },
+  { id: "notifications", label: "Notifications",       icon: "bell" },
+  { id: "workflow",      label: "Workflows",            icon: "workflow" },
 ];
 
 const MENU_KEY_LABELS = {
@@ -183,6 +185,7 @@ export default function Parametres() {
         {activeTab === "projects" && <ProjectRightsTab />}
         {activeTab === "lists" && <CustomListsTab />}
         {activeTab === "attendance" && <AttendanceSettingsTab />}
+        {activeTab === "notifications" && <NotificationsTab />}
         {activeTab === "workflow" && <WorkflowInfoTab navigate={navigate} />}
       </div>
     </div>
@@ -1339,6 +1342,178 @@ function WorkflowInfoTab({ navigate }) {
               <span>Passent toujours en mode dérogatoire</span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// TAB: NOTIFICATION SETTINGS
+// ──────────────────────────────────────────────────────────────────────────────
+function NotificationsTab() {
+  const [settings, setSettings] = useState({
+    notif_status_transition_enabled: "true",
+    notif_project_assigned_enabled: "true",
+    notif_shooting_planned_enabled: "true",
+    notif_attendance_reminder_enabled: "true",
+    notif_leave_requests_enabled: "true",
+    notif_announcements_enabled: "true",
+    notif_retention_days: "14",
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const fetchSettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.get("/notifications/settings");
+      if (data) setSettings(data);
+    } catch (e) {
+      console.error("Failed to load notification settings:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const handleToggle = (key) => {
+    setSettings((prev) => ({
+      ...prev,
+      [key]: prev[key] === "true" ? "false" : "true",
+    }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSuccessMsg("");
+    try {
+      const updated = await api.put("/notifications/settings", settings);
+      if (updated) setSettings(updated);
+      setSuccessMsg("Paramètres de notifications enregistrés avec succès !");
+      setTimeout(() => setSuccessMsg(""), 3500);
+    } catch (e) {
+      console.error("Failed to save settings:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="param-loading">Chargement des paramètres de notifications...</div>;
+
+  const NOTIF_EVENT_ITEMS = [
+    {
+      key: "notif_status_transition_enabled",
+      title: "⚡ Transitions de Workflow (Avancement d'étape)",
+      desc: "Avertir automatiquement les membres habilités à l'étape suivante lors du passage de statut d'une tâche.",
+      icon: "⚡",
+    },
+    {
+      key: "notif_project_assigned_enabled",
+      title: "📌 Assignations Projets & Tâches",
+      desc: "Avertir les collaborateurs lorsqu'ils sont assignés à un projet ou une nouvelle tâche.",
+      icon: "📌",
+    },
+    {
+      key: "notif_shooting_planned_enabled",
+      title: "🎥 Planification Shootings & Tournages",
+      desc: "Avertir l'équipe prod et les créateurs lors de la réservation d'un créneau ou de matériel.",
+      icon: "🎥",
+    },
+    {
+      key: "notif_attendance_reminder_enabled",
+      title: "⏱️ Rappels Présence & Délais de grâce",
+      desc: "Notifier les retardataires et avertir lors du dépassement du délai de tolérance quotidien.",
+      icon: "⏱️",
+    },
+    {
+      key: "notif_leave_requests_enabled",
+      title: "🌴 Demandes de Congés & Absences",
+      desc: "Notifier les managers lors d'une nouvelle demande et les employés lors de l'approbation.",
+      icon: "🌴",
+    },
+    {
+      key: "notif_announcements_enabled",
+      title: "📢 Communiqués Internes",
+      desc: "Avertir les collaborateurs lors de la publication d'annonces importantes de la direction.",
+      icon: "📢",
+    },
+  ];
+
+  return (
+    <div className="param-section">
+      <div className="param-section-header">
+        <div>
+          <h2>🔔 Configuration des Notifications Système</h2>
+          <p className="param-hint">
+            Activez ou désactivez les alertes automatiques pour chaque événement de l'application et gérez la rétention des messages.
+          </p>
+        </div>
+        <button className="btn-primary" onClick={handleSave} disabled={saving}>
+          {saving ? "Enregistrement..." : "✓ Enregistrer les modifications"}
+        </button>
+      </div>
+
+      {successMsg && <div className="param-toast-success">{successMsg}</div>}
+
+      {/* Grid of Notification Event Cards */}
+      <div className="param-notif-grid">
+        {NOTIF_EVENT_ITEMS.map((item) => {
+          const isOn = settings[item.key] === "true";
+          return (
+            <div
+              key={item.key}
+              className={`param-notif-card${isOn ? " is-on" : ""}`}
+              onClick={() => handleToggle(item.key)}
+            >
+              <GlowingEffect spread={30} glow={true} disabled={false} proximity={50} inactiveZone={0.01} />
+              <div className="param-notif-card-header">
+                <span className="param-notif-icon">{item.icon}</span>
+                <label className="param-toggle-switch" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={isOn}
+                    onChange={() => handleToggle(item.key)}
+                  />
+                  <span className="param-toggle-slider" />
+                </label>
+              </div>
+              <h3 className="param-notif-title">{item.title}</h3>
+              <p className="param-notif-desc">{item.desc}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Retention Settings Card */}
+      <div className="param-card-box" style={{ marginTop: "1.5rem" }}>
+        <h3 style={{ fontSize: "1.05rem", fontWeight: 700, margin: "0 0 0.5rem" }}>
+          📦 Conservation & Auto-nettoyage des notifications lues
+        </h3>
+        <p className="param-hint" style={{ marginBottom: "1rem" }}>
+          Définit la durée après laquelle les notifications déjà lues sont automatiquement supprimées du système.
+          <br />
+          <em>Note : Les notifications marquées du cadenas (🔒 Verrouillées) sont conservées indéfiniment.</em>
+        </p>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <label style={{ fontSize: "0.88rem", fontWeight: 600 }}>Durée de conservation :</label>
+          <select
+            className="param-select-input"
+            value={settings.notif_retention_days}
+            onChange={(e) => setSettings((prev) => ({ ...prev, notif_retention_days: e.target.value }))}
+            style={{ width: "220px" }}
+          >
+            <option value="7">7 jours</option>
+            <option value="14">14 jours (Recommandé)</option>
+            <option value="30">30 jours (1 mois)</option>
+            <option value="90">90 jours (3 mois)</option>
+            <option value="0">Illimité (Conserver toujours)</option>
+          </select>
         </div>
       </div>
     </div>

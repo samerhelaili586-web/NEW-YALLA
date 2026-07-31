@@ -301,6 +301,10 @@ def notify_next_status_users(task, new_status, acting_user=None):
     (i.e. transitions from `new_status` to next status(es)), and notify all active users
     authorized to trigger those next transitions.
     """
+    from app.models.system_setting import SystemSetting
+    if SystemSetting.get_val("notif_status_transition_enabled", "true") != "true":
+        return
+
     from app.models.user import User
     from app.models.task_type import Transition, DEFAULT_ALLOWED_ROLES
 

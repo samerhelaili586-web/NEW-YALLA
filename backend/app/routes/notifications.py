@@ -64,3 +64,49 @@ def clear_all_notifications():
     ).delete(synchronize_session=False)
     db.session.commit()
     return jsonify({"ok": True})
+
+
+DEFAULT_NOTIFICATION_SETTINGS = {
+    "notif_status_transition_enabled": "true",
+    "notif_project_assigned_enabled": "true",
+    "notif_shooting_planned_enabled": "true",
+    "notif_attendance_reminder_enabled": "true",
+    "notif_leave_requests_enabled": "true",
+    "notif_announcements_enabled": "true",
+    "notif_retention_days": "14",
+}
+
+
+@notifications_bp.get("/settings")
+@login_required
+def get_notification_settings():
+    from app.models.system_setting import SystemSetting
+    settings = {}
+    for key, default in DEFAULT_NOTIFICATION_SETTINGS.items():
+        settings[key] = SystemSetting.get_val(key, default)
+    return jsonify(settings)
+
+
+@notifications_bp.put("/settings")
+@login_required
+def update_notification_settings():
+    from flask import request
+    from app.models.system_setting import SystemSetting
+    user = current_user()
+    if user.effective_role not in ("admin_sys", "manager"):
+        return jsonify({"error": "forbidden"}), 403
+
+    data = request.get_json(force=True) or {}
+
+    for key in DEFAULT_NOTIFICATION_SETTINGS.keys():
+        if key in data:
+            val = data[key]
+            if isinstance(val, bool):
+                val = "true" if val else "false"
+            SystemSetting.set_val(key, str(val))
+
+    db.session.commit()
+    settings = {}
+    for key, default in DEFAULT_NOTIFICATION_SETTINGS.items():
+        settings[key] = SystemSetting.get_val(key, default)
+    return jsonify(settings)
