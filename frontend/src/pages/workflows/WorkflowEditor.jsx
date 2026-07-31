@@ -473,9 +473,17 @@ export default function WorkflowEditor() {
         }
       })
       .catch(() => {}); // silently fall back to defaults
-    api.get("/users")
-      .then(data => setAllUsers((data || []).filter(u => !u.is_archived)))
-      .catch(() => {});
+    api.get("/users/directory")
+      .then(data => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setAllUsers(data.filter(u => !u.is_archived));
+        } else {
+          api.get("/users").then(d => setAllUsers((d || []).filter(u => !u.is_archived))).catch(() => {});
+        }
+      })
+      .catch(() => {
+        api.get("/users").then(d => setAllUsers((d || []).filter(u => !u.is_archived))).catch(() => {});
+      });
   }, []);
 
   // ── Config validation ─────────────────────────────────────────────────────
