@@ -1359,6 +1359,13 @@ function NotificationsTab() {
     notif_attendance_reminder_enabled: "true",
     notif_leave_requests_enabled: "true",
     notif_announcements_enabled: "true",
+    notif_task_overdue_enabled: "true",
+    notif_task_due_soon_enabled: "true",
+    notif_deliverable_uploaded_enabled: "true",
+    notif_task_comments_enabled: "true",
+    notif_equipment_conflict_enabled: "true",
+    notif_daily_absence_summary_enabled: "true",
+    notif_project_completed_enabled: "true",
     notif_retention_days: "14",
   });
   const [loading, setLoading] = useState(true);
@@ -1442,6 +1449,48 @@ function NotificationsTab() {
       desc: "Avertir les collaborateurs lors de la publication d'annonces importantes de la direction.",
       icon: "📢",
     },
+    {
+      key: "notif_task_overdue_enabled",
+      title: "🚨 Tâches en retard (Échéance dépassée)",
+      desc: "Notifier les responsables et les managers lorsqu'une tâche dépasse sa date limite sans validation.",
+      icon: "🚨",
+    },
+    {
+      key: "notif_task_due_soon_enabled",
+      title: "⏳ Rappels d'échéance imminente",
+      desc: "Notifier les collaborateurs 24h avant la date limite d'un livrable client ou d'une tâche.",
+      icon: "⏳",
+    },
+    {
+      key: "notif_deliverable_uploaded_enabled",
+      title: "🎬 Livrables Vidéo & Liens de révision",
+      desc: "Avertir le Community Manager dès qu'un monteur dépose un lien de révision vidéo pour validation.",
+      icon: "🎬",
+    },
+    {
+      key: "notif_task_comments_enabled",
+      title: "💬 Nouveaux commentaires sur les tâches",
+      desc: "Notifier les personnes assignées lorsqu'un nouveau commentaire ou consigne est posté.",
+      icon: "💬",
+    },
+    {
+      key: "notif_equipment_conflict_enabled",
+      title: "⚠️ Alertes de conflit de matériel",
+      desc: "Notifier les chefs prod lorsque deux tournages tentent d'emprunter le même équipement.",
+      icon: "⚠️",
+    },
+    {
+      key: "notif_daily_absence_summary_enabled",
+      title: "🌴 Résumé quotidien des absents",
+      desc: "Notifier la direction et les managers chaque matin avec la liste des collaborateurs absents.",
+      icon: "🌴",
+    },
+    {
+      key: "notif_project_completed_enabled",
+      title: "🎉 Clôture de Projet Client",
+      desc: "Avertir toute l'équipe et la direction lorsque toutes les tâches d'un projet ont été clôturées.",
+      icon: "🎉",
+    },
   ];
 
   return (
@@ -1489,31 +1538,41 @@ function NotificationsTab() {
         })}
       </div>
 
-      {/* Retention Settings Card */}
-      <div className="param-card-box" style={{ marginTop: "1.5rem" }}>
-        <h3 style={{ fontSize: "1.05rem", fontWeight: 700, margin: "0 0 0.5rem" }}>
-          📦 Conservation & Auto-nettoyage des notifications lues
-        </h3>
-        <p className="param-hint" style={{ marginBottom: "1rem" }}>
-          Définit la durée après laquelle les notifications déjà lues sont automatiquement supprimées du système.
-          <br />
-          <em>Note : Les notifications marquées du cadenas (🔒 Verrouillées) sont conservées indéfiniment.</em>
-        </p>
+      {/* Premium Redesigned Retention Settings Card */}
+      <div className="param-retention-box">
+        <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
+        <div className="param-retention-header">
+          <div className="param-retention-icon-badge">📦</div>
+          <div>
+            <h3 className="param-retention-title">Conservation & Auto-nettoyage des notifications lues</h3>
+            <p className="param-retention-subtitle">
+              Définit la durée après laquelle les notifications consultées sont automatiquement archivées ou supprimées du système.
+            </p>
+          </div>
+        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <label style={{ fontSize: "0.88rem", fontWeight: 600 }}>Durée de conservation :</label>
-          <select
-            className="param-select-input"
-            value={settings.notif_retention_days}
-            onChange={(e) => setSettings((prev) => ({ ...prev, notif_retention_days: e.target.value }))}
-            style={{ width: "220px" }}
-          >
-            <option value="7">7 jours</option>
-            <option value="14">14 jours (Recommandé)</option>
-            <option value="30">30 jours (1 mois)</option>
-            <option value="90">90 jours (3 mois)</option>
-            <option value="0">Illimité (Conserver toujours)</option>
-          </select>
+        <div className="param-retention-body">
+          <div className="param-retention-field">
+            <label className="param-retention-label">Durée de conservation des messages lus :</label>
+            <div className="param-retention-select-wrapper">
+              <select
+                className="param-retention-select"
+                value={settings.notif_retention_days || "14"}
+                onChange={(e) => setSettings((prev) => ({ ...prev, notif_retention_days: e.target.value }))}
+              >
+                <option value="7">📅 7 jours</option>
+                <option value="14">⭐ 14 jours (Recommandé)</option>
+                <option value="30">📆 30 jours (1 mois)</option>
+                <option value="90">📊 90 jours (3 mois)</option>
+                <option value="0">♾️ Illimité (Conserver toujours)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="param-retention-note-pill">
+            <span className="param-retention-lock-icon">🔒</span>
+            <span><strong>Protection automatique :</strong> Les notifications verrouillées par un collaborateur restent protégées et conservées indéfiniment.</span>
+          </div>
         </div>
       </div>
     </div>

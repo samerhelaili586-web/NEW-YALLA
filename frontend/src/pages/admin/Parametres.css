@@ -1624,3 +1624,122 @@
   font-weight: 650;
   margin-top: 1rem;
 }
+
+/* ─── Premium Retention Box Redesign ─────────────────────────────────────── */
+.param-retention-box {
+  position: relative;
+  margin-top: 2rem;
+  background: var(--card, #ffffff);
+  border: 1.5px solid rgba(99, 102, 241, 0.18);
+  border-radius: 20px;
+  padding: 1.6rem 2rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow: hidden;
+  transition: all 0.22s ease;
+}
+
+.param-retention-box:hover {
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 12px 36px rgba(99, 102, 241, 0.12);
+}
+
+.param-retention-header {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.param-retention-icon-badge {
+  font-size: 1.6rem;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.param-retention-title {
+  font-size: 1.08rem;
+  font-weight: 750;
+  color: var(--ink, #1f2937);
+  margin: 0 0 0.25rem;
+}
+
+.param-retention-subtitle {
+  font-size: 0.84rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.param-retention-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--line, rgba(0, 0, 0, 0.1));
+}
+
+.param-retention-field {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.param-retention-label {
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--ink, #1f2937);
+}
+
+.param-retention-select-wrapper {
+  position: relative;
+}
+
+.param-retention-select {
+  background: var(--paper, #f8fafc);
+  border: 1.5px solid var(--line, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--ink, #1f2937);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.param-retention-select:hover,
+.param-retention-select:focus {
+  border-color: var(--primary, #6366f1);
+  background: var(--card, #ffffff);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.param-retention-note-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--ink, #1f2937);
+  font-size: 0.81rem;
+  line-height: 1.4;
+}
+
+.param-retention-lock-icon {
+  font-size: 1rem;
+}

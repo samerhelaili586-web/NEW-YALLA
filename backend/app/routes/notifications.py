@@ -73,7 +73,13 @@ DEFAULT_NOTIFICATION_SETTINGS = {
     "notif_attendance_reminder_enabled": "true",
     "notif_leave_requests_enabled": "true",
     "notif_announcements_enabled": "true",
-    "notif_retention_days": "14",
+    "notif_task_overdue_enabled": "true",
+    "notif_task_due_soon_enabled": "true",
+    "notif_deliverable_uploaded_enabled": "true",
+    "notif_task_comments_enabled": "true",
+    "notif_equipment_conflict_enabled": "true",
+    "notif_daily_absence_summary_enabled": "true",
+    "notif_project_completed_enabled": "true",
 }
 
 
