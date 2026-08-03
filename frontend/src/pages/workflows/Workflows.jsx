@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./Workflows.css";
 
@@ -60,7 +61,7 @@ export default function Workflows() {
     setLoading(true);
     setLoadError("");
     try {
-      const data = await api.get("/task-types", { include_archived: 1 });
+      const data = await api.get("/task-types");
       setWorkflows(data);
     } catch {
       setLoadError("Impossible de charger les workflows.");
@@ -71,30 +72,19 @@ export default function Workflows() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Close menu on outside click
-  useEffect(() => {
-    if (!menuOpenId) return;
-    function handle(e) {
-      if (!e.target.closest(".wf-action-menu-wrap")) setMenuOpenId(null);
-    }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [menuOpenId]);
-
-  const stats = useMemo(() => {
-    const all = workflows.filter(w => !w.is_archived || w.workflow_status !== undefined);
-    return {
-      total:    all.length,
-      active:   all.filter(w => w.workflow_status === "active").length,
-      draft:    all.filter(w => w.workflow_status === "draft").length,
-      disabled: all.filter(w => w.workflow_status === "disabled").length,
-    };
-  }, [workflows]);
+  const stats = useMemo(() => ({
+    total:    workflows.length,
+    active:   workflows.filter(w => w.workflow_status === "active").length,
+    draft:    workflows.filter(w => w.workflow_status === "draft").length,
+    disabled: workflows.filter(w => w.workflow_status === "disabled").length,
+  }), [workflows]);
 
   const filtered = useMemo(() => {
+    const desiredStatus = TAB_FILTER[activeTab];
     let list = workflows;
-    const statusFilter = TAB_FILTER[activeTab];
-    if (statusFilter) list = list.filter(w => w.workflow_status === statusFilter);
+    if (desiredStatus) {
+      list = list.filter(w => w.workflow_status === desiredStatus);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(w =>
@@ -140,14 +130,14 @@ export default function Workflows() {
   async function handleDuplicate(wf) {
     setMenuOpenId(null);
     try {
-      const copy = await api.post(`/task-types/${wf.id}/duplicate`);
-      setWorkflows(prev => [...prev, copy]);
+      const dup = await api.post(`/task-types/${wf.id}/duplicate`);
+      setWorkflows(prev => [...prev, dup]);
     } catch {
-      alert("Impossible de dupliquer le workflow.");
+      alert("Impossible de duplicer le workflow.");
     }
   }
 
-  async function handleDelete() {
+  async function handleDeleteConfirm() {
     if (!confirmDelete) return;
     setDeleting(true);
     setDeleteError("");
@@ -156,11 +146,7 @@ export default function Workflows() {
       setWorkflows(prev => prev.filter(w => w.id !== confirmDelete.id));
       setConfirmDelete(null);
     } catch (err) {
-      setDeleteError(
-        err?.data?.error === "task_type_in_use"
-          ? "Ce workflow est utilisé par des tâches existantes. Archivez-le plutôt."
-          : "Une erreur est survenue."
-      );
+      setDeleteError(err.data?.error || "Impossible de supprimer ce workflow.");
     } finally {
       setDeleting(false);
     }
@@ -173,9 +159,8 @@ export default function Workflows() {
         <div className="wf-header">
           <div>
             <div className="wf-header-title">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 6h4v4H4V6zM10 4h4v4h-4V4zM16 8h4v4h-4V8zM6 14c0-1.1.9-2 2-2h8a2 2 0 012 2v4H6v-4z" stroke="var(--primary)" strokeWidth="1.6" strokeLinejoin="round"/>
-                <path d="M8 10v4M12 8v8M16 12v2" stroke="var(--primary)" strokeWidth="1.6" strokeLinecap="round"/>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 3h4v4H5V3zM15 3h4v4h-4V3zM5 13h4v4H5v-4zM15 13h4v4h-4v-4zM9 5h6M19 5v8M5 15h6M15 7v6"/>
               </svg>
               <h1>Gestion des workflows</h1>
             </div>
@@ -191,24 +176,28 @@ export default function Workflows() {
         {/* Stat cards */}
         <div className="wf-stats">
           <div className="wf-stat-card">
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <div className="wf-stat-icon wf-stat-icon--total">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/></svg>
             </div>
             <div><div className="wf-stat-value">{stats.total}</div><div className="wf-stat-label">Workflows totaux</div></div>
           </div>
           <div className="wf-stat-card">
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <div className="wf-stat-icon wf-stat-icon--active">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div><div className="wf-stat-value">{stats.active}</div><div className="wf-stat-label">Actifs</div></div>
           </div>
           <div className="wf-stat-card">
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <div className="wf-stat-icon wf-stat-icon--draft">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" strokeDasharray="3 2"/></svg>
             </div>
             <div><div className="wf-stat-value">{stats.draft}</div><div className="wf-stat-label">Brouillons</div></div>
           </div>
           <div className="wf-stat-card">
+            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
             <div className="wf-stat-icon wf-stat-icon--disabled">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
             </div>
