@@ -370,3 +370,264 @@ button:not(.no-anim):not(:disabled):active {
   pointer-events: none;
   animation: ripple-animation 0.6s ease-out forwards;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* 🌟 MASTER UNIFIED DARK MODE DESIGN SYSTEM FOR ALL PAGES                   */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+.dark {
+  color-scheme: dark;
+}
+
+/* ── Typography & Headings across all pages ── */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark .page-header h1,
+.dark .title,
+.dark .card-title,
+.dark .att-title,
+.dark .pl-header h1,
+.dark .wf-header-title h1,
+.dark .ann-title,
+.dark .modal-title {
+  color: #ffffff !important;
+}
+
+.dark .page-subtitle,
+.dark .att-subtitle,
+.dark .pl-subtitle,
+.dark .wf-subtitle,
+.dark .text-muted,
+.dark .sub-text {
+  color: #9ca3af !important;
+}
+
+/* ── Cards, Containers & Glassmorphism Panels ── */
+.dark .card,
+.dark .modal-box,
+.dark .modal-content,
+.dark .panel,
+.dark .box,
+.dark .tt-table-wrap,
+.dark .pl-table-wrap,
+.dark .wf-table-wrap,
+.dark .ann-card,
+.dark .directory-card,
+.dark .stat-card,
+.dark .widget-card,
+.dark .user-card,
+.dark .equip-card,
+.dark .holiday-card,
+.dark .leave-card {
+  background: rgba(26, 27, 38, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* ── Unified Table Styling across ALL pages ── */
+.dark table,
+.dark .tt-table,
+.dark .pl-table,
+.dark .wf-table,
+.dark .att-table,
+.dark .mon-table,
+.dark .directory-table,
+.dark .ann-table,
+.dark .users-table,
+.dark .equip-table,
+.dark .holiday-table {
+  background: transparent !important;
+}
+
+.dark table thead,
+.dark .tt-table th,
+.dark .pl-table th,
+.dark .wf-table th,
+.dark table th {
+  background: rgba(30, 31, 45, 0.95) !important;
+  color: #a5b4fc !important;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2) !important;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+}
+
+.dark table td,
+.dark .tt-table td,
+.dark .pl-table td,
+.dark .wf-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: #f3f4f6 !important;
+}
+
+.dark table tbody tr:hover td,
+.dark .tt-table tbody tr:hover td,
+.dark .pl-table tbody tr:hover td,
+.dark .wf-table tbody tr:hover td {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+.dark table td a,
+.dark table td strong,
+.dark table td .cell-title {
+  color: #ffffff !important;
+}
+
+/* ── Inputs, Selects & Date Pickers ── */
+.dark input[type="text"],
+.dark input[type="number"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="date"],
+.dark select,
+.dark textarea,
+.dark .field input,
+.dark .field select,
+.dark .field textarea,
+.dark .users-search,
+.dark .wf-search,
+.dark .pl-toolbar input {
+  background-color: #1e1f2d !important;
+  color: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+}
+
+.dark select option,
+.dark option {
+  background-color: #1e1f2d !important;
+  color: #ffffff !important;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* ── Unified Buttons & Action Elements ── */
+.dark .btn-primary {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+
+.dark .btn-primary:hover {
+  background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5) !important;
+}
+
+.dark .btn-secondary,
+.dark .btn-ghost,
+.dark .chip-toggle {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #a5b4fc !important;
+  border: 1px solid rgba(99, 102, 241, 0.25) !important;
+}
+
+.dark .btn-secondary:hover,
+.dark .btn-ghost:hover,
+.dark .chip-toggle:hover {
+  background: rgba(99, 102, 241, 0.25) !important;
+  color: #ffffff !important;
+  border-color: #6366f1 !important;
+}
+
+.dark .chip-toggle.is-selected {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4) !important;
+}
+
+/* ── Modals & Dialog Overlays across ALL pages ── */
+.dark .modal-overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.dark .modal-box,
+.dark .modal-container,
+.dark .modal-content {
+  background: #171825 !important;
+  border: 1px solid rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .modal-header,
+.dark .modal-title {
+  color: #ffffff !important;
+  border-bottom-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark .modal-close {
+  color: #9ca3af !important;
+}
+
+.dark .modal-close:hover {
+  color: #ffffff !important;
+  background: rgba(99, 102, 241, 0.2) !important;
+}
+
+/* ── Annuaire & Communiqués in Dark Mode ── */
+.dark .directory-card,
+.dark .ann-card,
+.dark .ann-item {
+  background: rgba(26, 27, 38, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark .directory-name,
+.dark .ann-title {
+  color: #ffffff !important;
+}
+
+.dark .directory-role,
+.dark .ann-body,
+.dark .ann-date {
+  color: #9ca3af !important;
+}
+
+/* ── Guide & Workflow Help in Dark Mode ── */
+.dark .guide-card,
+.dark .guide-step-box {
+  background: rgba(26, 27, 38, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark .guide-title,
+.dark .guide-step-title {
+  color: #ffffff !important;
+}
+
+.dark .guide-desc,
+.dark .guide-step-desc {
+  color: #9ca3af !important;
+}
+
+/* ── Admin Sub-pages (Users, Salaires, Equipment, Holidays, Monitoring) ── */
+.dark .users-card,
+.dark .salaires-card,
+.dark .equip-card,
+.dark .holiday-card,
+.dark .mon-card,
+.dark .log-item {
+  background: rgba(26, 27, 38, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .user-name,
+.dark .equip-name,
+.dark .holiday-name {
+  color: #ffffff !important;
+}
