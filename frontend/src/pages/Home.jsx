@@ -308,8 +308,7 @@ export default function Home() {
               <h3>🌴 Absents aujourd'hui</h3>
               <button
                 type="button"
-                className="btn-ghost-sm"
-                style={{ fontSize: "0.75rem" }}
+                className="dash-link-btn"
                 onClick={() => setUpcomingOpen(true)}
               >
                 À venir →
