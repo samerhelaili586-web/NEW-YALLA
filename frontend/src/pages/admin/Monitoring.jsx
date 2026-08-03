@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../../api/client";
-import "./Monitoring.css";
-
+import { GlowingEffect } from "../../components/GlowingEffect";
+import Avatar from "../../components/Avatar";
 import ConfirmModal from "../../components/ConfirmModal";
+import "./Monitoring.css";
 
 export default function AdminMonitoring() {
   const [logs, setLogs] = useState([]);
@@ -20,6 +21,7 @@ export default function AdminMonitoring() {
   const [selectedLog, setSelectedLog] = useState(null);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const fetchMonitoringData = useCallback(async () => {
     setLoading(true);
@@ -60,10 +62,25 @@ export default function AdminMonitoring() {
     }
   };
 
+  const handleCopyStacktrace = (text) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const getStatusBadgeClass = (statusCode) => {
     if (statusCode >= 500) return "mon-badge-danger";
     if (statusCode >= 400) return "mon-badge-warning";
     return "mon-badge-info";
+  };
+
+  const getMethodBadgeClass = (method) => {
+    const m = (method || "GET").toUpperCase();
+    if (m === "POST") return "mon-method--post";
+    if (m === "DELETE") return "mon-method--delete";
+    if (m === "PUT" || m === "PATCH") return "mon-method--put";
+    return "mon-method--get";
   };
 
   return (
@@ -71,9 +88,15 @@ export default function AdminMonitoring() {
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="mon-header">
         <div>
-          <h1 className="mon-title">📊 Monitoring Technique & Logs système</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.3rem" }}>
+            <h1 className="mon-title">📊 Monitoring Technique & Logs Système</h1>
+            <span className="mon-live-pulse" title="Surveillance en temps réel active (auto-rafraîchissement 15s)">
+              <span className="mon-pulse-dot" />
+              <span>Temps réel</span>
+            </span>
+          </div>
           <p className="mon-subtitle">
-            Surveillance en temps réel de toutes les erreurs serveur et client déclenchées par les utilisateurs.
+            Surveillance en direct de toutes les erreurs serveur et client déclenchées par les utilisateurs.
           </p>
         </div>
         <div className="mon-header-actions">
@@ -89,6 +112,7 @@ export default function AdminMonitoring() {
       {/* ── KPI Stat Cards ────────────────────────────────────────────────── */}
       <div className="mon-stats-grid">
         <div className="mon-card">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <div className="mon-card-icon mon-card-icon--red">🚨</div>
           <div>
             <div className="mon-card-value">{stats.total_errors ?? 0}</div>
@@ -97,14 +121,19 @@ export default function AdminMonitoring() {
         </div>
 
         <div className="mon-card">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <div className="mon-card-icon mon-card-icon--critical">💥</div>
           <div>
             <div className="mon-card-value">{stats.critical_500_errors ?? 0}</div>
-            <div className="mon-card-label">Erreurs Critiques (500)</div>
+            <div className="mon-card-label">
+              Erreurs Critiques (500)
+              {stats.critical_500_errors === 0 && <span className="mon-status-ok-tag">✓ Système stable</span>}
+            </div>
           </div>
         </div>
 
         <div className="mon-card">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <div className="mon-card-icon mon-card-icon--amber">📅</div>
           <div>
             <div className="mon-card-value">{stats.today_errors ?? 0}</div>
@@ -113,6 +142,7 @@ export default function AdminMonitoring() {
         </div>
 
         <div className="mon-card">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <div className="mon-card-icon mon-card-icon--blue">⚙️</div>
           <div>
             <div className="mon-card-value">
@@ -165,7 +195,8 @@ export default function AdminMonitoring() {
           <div className="mon-empty-state">Chargement du journal d'erreurs...</div>
         ) : logs.length === 0 ? (
           <div className="mon-empty-state">
-            🎉 Aucune erreur technique détectée ! Le système fonctionne parfaitement.
+            <span style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }}>🎉</span>
+            Aucune erreur technique détectée ! Le système fonctionne parfaitement.
           </div>
         ) : (
           <table className="mon-table">
@@ -177,46 +208,63 @@ export default function AdminMonitoring() {
                 <th>Utilisateur</th>
                 <th>URL / Route</th>
                 <th>Message d'erreur</th>
-                <th>Action</th>
+                <th style={{ textAlign: "right" }}>Action</th>
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
-                <tr key={log.id}>
-                  <td className="mon-cell-time">
-                    {log.timestamp ? new Date(log.timestamp).toLocaleString("fr-FR") : "N/A"}
-                  </td>
-                  <td>
-                    <span className={`mon-badge ${getStatusBadgeClass(log.status_code)}`}>
-                      {log.status_code}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`mon-source-tag mon-source-tag--${log.source}`}>
-                      {log.source === "backend" ? "⚙️ Backend" : "💻 Client"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="mon-user-info">
-                      <div className="mon-user-email">{log.user_email || "Anonyme"}</div>
-                      <div className="mon-user-role">{log.user_role || "Public"}</div>
-                    </div>
-                  </td>
-                  <td className="mon-cell-endpoint">
-                    <span className="mon-method-tag">{log.method}</span> {log.endpoint}
-                  </td>
-                  <td className="mon-cell-message">{log.error_message}</td>
-                  <td>
-                    <button
-                      className="btn-ghost-sm"
-                      onClick={() => setSelectedLog(log)}
-                      title="Voir les détails et stacktrace"
-                    >
-                      🔍 Stacktrace
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {logs.map((log) => {
+                const userParts = (log.user_email || "Anonyme").split("@")[0].split(".");
+                const firstName = userParts[0] || "A";
+                const lastName = userParts[1] || "";
+
+                return (
+                  <tr key={log.id} onClick={() => setSelectedLog(log)} style={{ cursor: "pointer" }}>
+                    <td className="mon-cell-time">
+                      {log.timestamp ? new Date(log.timestamp).toLocaleString("fr-FR") : "N/A"}
+                    </td>
+                    <td>
+                      <span className={`mon-badge ${getStatusBadgeClass(log.status_code)}`}>
+                        {log.status_code}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`mon-source-tag mon-source-tag--${log.source}`}>
+                        {log.source === "backend" ? "⚙️ Server" : "💻 Client"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="mon-user-chip-wrap">
+                        <Avatar firstName={firstName} lastName={lastName} size={24} />
+                        <div className="mon-user-info">
+                          <div className="mon-user-email">{log.user_email || "Anonyme"}</div>
+                          <div className="mon-user-role">{log.user_role || "Public"}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="mon-cell-endpoint">
+                      <span className={`mon-method-badge ${getMethodBadgeClass(log.method)}`}>
+                        {log.method || "GET"}
+                      </span>
+                      <span className="mon-endpoint-path">{log.endpoint}</span>
+                    </td>
+                    <td className="mon-cell-message">
+                      <span className="mon-message-text">{log.error_message}</span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        className="btn-ghost-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedLog(log);
+                        }}
+                        title="Voir les détails et stacktrace"
+                      >
+                        🔍 Stacktrace
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -227,8 +275,22 @@ export default function AdminMonitoring() {
         <div className="mon-modal-backdrop" onClick={() => setSelectedLog(null)}>
           <div className="mon-modal" onClick={(e) => e.stopPropagation()}>
             <div className="mon-modal-header">
-              <h3>Détails techniques de l'erreur #{selectedLog.id}</h3>
-              <button className="btn-ghost-sm" onClick={() => setSelectedLog(null)} style={{ fontSize: "1.2rem", color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>
+              <div>
+                <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span>🚨 Erreur #{selectedLog.id}</span>
+                  <span className={`mon-badge ${getStatusBadgeClass(selectedLog.status_code)}`}>
+                    {selectedLog.status_code}
+                  </span>
+                </h3>
+                <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+                  Rapport d'erreur technique capturé en temps réel
+                </p>
+              </div>
+              <button
+                className="btn-ghost-sm"
+                onClick={() => setSelectedLog(null)}
+                style={{ fontSize: "1.2rem", color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}
+              >
                 ✕
               </button>
             </div>
@@ -241,31 +303,48 @@ export default function AdminMonitoring() {
                     : "N/A"}
                 </div>
                 <div>
-                  <strong>Code HTTP:</strong> {selectedLog.status_code}
+                  <strong>Source:</strong>{" "}
+                  <span className={`mon-source-tag mon-source-tag--${selectedLog.source}`}>
+                    {selectedLog.source === "backend" ? "⚙️ Backend Server" : "💻 Frontend Client"}
+                  </span>
                 </div>
                 <div>
-                  <strong>Source:</strong> {selectedLog.source}
+                  <strong>Utilisateur:</strong> {selectedLog.user_email || "Anonyme"} ({selectedLog.user_role || "Public"})
                 </div>
                 <div>
-                  <strong>Utilisateur:</strong> {selectedLog.user_email} ({selectedLog.user_role})
+                  <strong>Méthode HTTP:</strong>{" "}
+                  <span className={`mon-method-badge ${getMethodBadgeClass(selectedLog.method)}`}>
+                    {selectedLog.method || "GET"}
+                  </span>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <strong>Endpoint / Page:</strong> [{selectedLog.method}] {selectedLog.endpoint}
+                  <strong>Endpoint / Route:</strong>
+                  <div className="mon-code-line">{selectedLog.endpoint}</div>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <strong>Message:</strong>
+                  <strong>Message d'Erreur:</strong>
                   <div className="mon-msg-box">{selectedLog.error_message}</div>
                 </div>
               </div>
 
               <div style={{ marginTop: "1rem" }}>
-                <strong>Stacktrace Technique:</strong>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                  <strong>Stacktrace Technique:</strong>
+                  <button
+                    type="button"
+                    className="btn-ghost-sm"
+                    onClick={() => handleCopyStacktrace(selectedLog.stack_trace || selectedLog.error_message)}
+                    style={{ fontSize: "0.78rem" }}
+                  >
+                    {copied ? "✓ Copié !" : "📋 Copier la trace"}
+                  </button>
+                </div>
                 <pre className="mon-stacktrace-box">
-                  {selectedLog.stack_trace || "Aucune trace de pile disponible."}
+                  {selectedLog.stack_trace || "Aucune trace de pile disponible pour cette erreur client."}
                 </pre>
               </div>
             </div>
-            <div className="mon-modal-footer" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "0.75rem", marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
+            <div className="mon-modal-footer" style={{ borderTop: "1px solid var(--line, rgba(0,0,0,0.08))", paddingTop: "0.75rem", marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
               <button className="btn-secondary" onClick={() => setSelectedLog(null)}>
                 Fermer
               </button>
