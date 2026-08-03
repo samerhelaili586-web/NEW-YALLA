@@ -176,8 +176,10 @@ export default function AppShell({ children }) {
   const planifBadge = usePlanifBadge(user?.effective_role);
   const [isHovered, setIsHovered] = useState(false);
   const [isSidebarLocked, setIsSidebarLocked] = useState(() => {
-    return localStorage.getItem("yalla_sidebar_locked") === "true";
+    const stored = localStorage.getItem("yalla_sidebar_locked");
+    return stored === null ? true : stored === "true";
   });
+
   const [isDark, setIsDark] = useState(() => {
     return document.documentElement.classList.contains("dark") || 
            localStorage.getItem("theme") === "dark";
@@ -269,6 +271,9 @@ export default function AppShell({ children }) {
           </div>
           <div className="shell-sidebar-actions">
             <NotificationBell />
+            <button className="shell-theme-toggle" type="button" onClick={() => navigate("/guide")} title="Guide d'utilisation & Aide">
+              <Icon d={ICONS.book} size={17} />
+            </button>
             <button className="shell-theme-toggle" type="button" onClick={toggleTheme} title={isDark ? "Passer au thème clair" : "Passer au thème sombre"}>
               <Icon d={isDark ? ICONS.sun : ICONS.moon} size={17} />
             </button>
