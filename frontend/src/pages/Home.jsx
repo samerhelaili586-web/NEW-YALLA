@@ -45,7 +45,7 @@ const QUICK_ACTIONS = {
   admin_sys: [
     { to: "/admin/parametres", emoji: "⚙️", label: "Administration", bg: "linear-gradient(135deg, #6366f1, #8b5cf6)" },
     { to: "/attendance", emoji: "🕐", label: "Présences", bg: "linear-gradient(135deg, #f59e0b, #d97706)" },
-    { to: "/task-types", emoji: "⚡", label: "Workflows", bg: "linear-gradient(135deg, #10b981, #059669)" },
+    { to: "/workflows", emoji: "⚡", label: "Workflows", bg: "linear-gradient(135deg, #10b981, #059669)" },
   ],
   manager: [
     { to: "/projects", emoji: "🎯", label: "Projets", bg: "linear-gradient(135deg, #6366f1, #8b5cf6)" },

@@ -73,6 +73,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/task-types" element={<Navigate to="/workflows" replace />} />
         <Route
           path="/workflows/:id"
           element={
