@@ -1743,3 +1743,102 @@
 .param-retention-lock-icon {
   font-size: 1rem;
 }
+
+/* ─── Comprehensive Dark Mode Fixes ───────────────────────────────────────── */
+.dark select,
+.dark option,
+.dark select option {
+  background-color: #1e1f2d !important;
+  color: #f3f4f6 !important;
+  color-scheme: dark;
+}
+
+/* Project Selector & Inputs in Dark Mode */
+.dark .project-selector select,
+.dark .param-select-input,
+.dark .param-retention-select,
+.dark .rule-type select,
+.dark .field-row input,
+.dark .field-row select,
+.dark .grace-custom-input input {
+  background-color: #1e1f2d !important;
+  color: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark .project-selector select option,
+.dark .param-select-input option,
+.dark .param-retention-select option,
+.dark .rule-type select option {
+  background-color: #1e1f2d !important;
+  color: #ffffff !important;
+}
+
+.dark .project-selector select:focus,
+.dark .param-select-input:focus,
+.dark .param-retention-select:focus,
+.dark .rule-type select:focus,
+.dark .grace-custom-input input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+}
+
+/* Grace Period Cards Dark Mode Fix */
+.dark .grace-preset-card {
+  background: rgba(30, 31, 45, 0.9) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .grace-preset-card:hover {
+  background: rgba(40, 42, 60, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+}
+
+.dark .grace-preset-card.selected {
+  background: rgba(99, 102, 241, 0.22) !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35) !important;
+}
+
+.dark .grace-preset-title {
+  color: #ffffff !important;
+}
+
+.dark .grace-preset-desc {
+  color: #a3a3a3 !important;
+}
+
+/* Card Containers & Boxes Dark Mode */
+.dark .param-card-box,
+.dark .param-notif-card,
+.dark .param-retention-box,
+.dark .project-rights-editor,
+.dark .workflow-info-card,
+.dark .items-table-wrapper {
+  background: rgba(26, 27, 38, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark .param-notif-card.is-on {
+  background: rgba(99, 102, 241, 0.14) !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+}
+
+.dark .param-notif-title,
+.dark .param-retention-title,
+.dark .param-retention-label {
+  color: #ffffff !important;
+}
+
+.dark .param-notif-desc,
+.dark .param-retention-subtitle,
+.dark .param-retention-note-pill {
+  color: #d1d5db !important;
+}
+
+.dark .param-retention-note-pill {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
