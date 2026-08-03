@@ -212,6 +212,7 @@ export default function Home() {
             
             {!loading && tasks.length === 0 && (
               <div className="dash-empty-card">
+                <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                 <span className="dash-empty-emoji">🎉</span>
                 <h3>Aucune tâche urgente en attente</h3>
                 <p>Toutes vos tâches attribuées sont à jour. Excellent travail !</p>
@@ -255,6 +256,7 @@ export default function Home() {
 
             {!loading && shoots.length === 0 && (
               <div className="dash-empty-card">
+                <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                 <span className="dash-empty-emoji">🎥</span>
                 <h3>Aucun shooting prévu prochainement</h3>
                 <p>Consultez le calendrier de production pour réserver de nouveaux créneaux.</p>

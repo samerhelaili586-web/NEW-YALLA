@@ -224,6 +224,8 @@
 
 /* Empty State Card */
 .dash-empty-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -234,6 +236,11 @@
   border-radius: 18px;
   text-align: center;
   gap: 0.4rem;
+}
+
+.dash-empty-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .dash-empty-emoji {
