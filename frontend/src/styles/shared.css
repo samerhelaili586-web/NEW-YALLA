@@ -552,6 +552,8 @@ button:not(.no-anim):not(:disabled):active {
 /* 🌟 UNIFIED HOVER GLOWING ANIMATION FOR ALL CARDS ACROSS ALL PAGES         */
 /* ─────────────────────────────────────────────────────────────────────────── */
 
+.role-card,
+.list-card,
 .card,
 .panel,
 .box,
@@ -581,6 +583,8 @@ button:not(.no-anim):not(:disabled):active {
 .workflow-info-card,
 .grace-preset-card,
 .unavailable-panel {
+  position: relative;
+  overflow: hidden;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
               border-color 0.25s ease, 
               box-shadow 0.25s ease, 
@@ -588,6 +592,8 @@ button:not(.no-anim):not(:disabled):active {
 }
 
 /* Light Theme Hover Glow */
+.role-card:hover,
+.list-card:hover,
 .card:hover,
 .panel:hover,
 .box:hover,
@@ -615,13 +621,15 @@ button:not(.no-anim):not(:disabled):active {
 .workflow-info-card:hover,
 .grace-preset-card:hover,
 .unavailable-panel:hover {
-  border-color: rgba(99, 102, 241, 0.45) !important;
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.18), 
-              0 0 15px rgba(99, 102, 241, 0.12) !important;
-  transform: translateY(-2px) !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.18), 
+              0 0 18px rgba(99, 102, 241, 0.14) !important;
+  transform: translateY(-3px) !important;
 }
 
 /* Dark Theme Hover Glow (Neon Pulse Sheen) */
+.dark .role-card:hover,
+.dark .list-card:hover,
 .dark .card:hover,
 .dark .panel:hover,
 .dark .box:hover,
@@ -650,8 +658,8 @@ button:not(.no-anim):not(:disabled):active {
 .dark .grace-preset-card:hover,
 .dark .unavailable-panel:hover {
   border-color: #6366f1 !important;
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.32), 
-              0 0 22px rgba(99, 102, 241, 0.25) !important;
+  box-shadow: 0 10px 35px rgba(99, 102, 241, 0.35), 
+              0 0 24px rgba(99, 102, 241, 0.28) !important;
   transform: translateY(-3px) !important;
 }
 
