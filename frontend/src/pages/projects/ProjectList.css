@@ -161,3 +161,68 @@
   gap: 0.6rem;
   font-size: 0.85rem;
 }
+
+/* ─── Dark Mode Overrides for Project List ────────────────────────────────── */
+.dark .pl-table-wrap {
+  background: rgba(26, 27, 38, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dark .pl-table th {
+  background: rgba(30, 31, 45, 0.95) !important;
+  color: #a5b4fc !important;
+  border-bottom-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark .pl-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .pl-table tbody tr:hover td {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+.dark .pl-project-link {
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+.dark .pl-project-link:hover {
+  color: #818cf8 !important;
+}
+
+.dark .pl-cm-cell {
+  color: #e5e7eb !important;
+  font-weight: 600;
+}
+
+.dark .pl-date-cell {
+  color: #9ca3af !important;
+}
+
+.dark .pl-action-btn {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #a5b4fc !important;
+  font-weight: 650;
+}
+
+.dark .pl-action-btn:hover {
+  background: #6366f1 !important;
+  border-color: #6366f1 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.dark input[type="date"],
+.dark .pl-toolbar input {
+  background-color: #1e1f2d !important;
+  color: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
