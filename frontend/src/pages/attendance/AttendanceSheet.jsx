@@ -442,17 +442,19 @@ export default function AttendanceSheet() {
           </div>
 
           <div className="att-week-nav">
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => setIsModalOpen(true)}
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Déclarer mes heures
-            </button>
+            {!isTeamView && (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setIsModalOpen(true)}
+                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Déclarer mes heures
+              </button>
+            )}
 
             {isTeamView && (
               <button
