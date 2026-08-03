@@ -150,38 +150,64 @@ export default function NotificationBell() {
 
   const unlockedCount = notifications.filter((n) => !n.is_locked).length;
 
+  function getNotifIcon(type) {
+    switch (type) {
+      case "status_transition": return "⚡";
+      case "task_assigned": return "📌";
+      case "project_assigned": return "🎯";
+      case "shooting_planned": return "🎥";
+      case "attendance_reminder":
+      case "attendance_penalized": return "⏱️";
+      case "leave_new":
+      case "leave_approved":
+      case "leave_rejected": return "🌴";
+      case "announcement_new": return "📢";
+      case "mention": return "@";
+      default: return "🔔";
+    }
+  }
+
   return (
     <div className="notif-bell-wrap" ref={containerRef}>
       <button
-        className="shell-notif"
+        className={`shell-notif${unreadCount > 0 ? " has-unread" : ""}`}
         type="button"
         aria-label="Notifications"
         aria-expanded={open}
         onClick={toggleOpen}
       >
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" className="notif-bell-icon">
           <path
             d="M12 3a6 6 0 0 0-6 6v3.3c0 .6-.2 1.2-.6 1.7L4 16h16l-1.4-2c-.4-.5-.6-1.1-.6-1.7V9a6 6 0 0 0-6-6Z"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.6"
+            strokeWidth="1.8"
             strokeLinejoin="round"
           />
           <path
             d="M9.5 19a2.5 2.5 0 0 0 5 0"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.6"
+            strokeWidth="1.8"
             strokeLinecap="round"
           />
         </svg>
+
+        {/* Pulsing Green Ping Status Dot & Badge */}
+        <span className={`notif-status-dot-ping${unreadCount > 0 ? " is-active" : ""}`} />
         {unreadCount > 0 && <span className="shell-notif-badge">{unreadCount}</span>}
       </button>
 
       {open && createPortal(
         <div className="notif-panel" role="dialog" aria-label="Notifications" ref={panelRef}>
           <div className="notif-panel-header">
-            <span>Notifications</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span style={{ fontWeight: 700 }}>Notifications</span>
+              {unreadCount > 0 && (
+                <span className="notif-header-count">{unreadCount} non lues</span>
+              )}
+            </div>
+
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               {notifications.some((n) => !n.is_read) && (
                 <button type="button" className="link-action" onClick={handleMarkAllRead}>
@@ -211,11 +237,19 @@ export default function NotificationBell() {
                         <path d="M10 11v6M14 11v6"/>
                         <path d="M9 6V4h6v2"/>
                       </svg>
-                      Supprimer tout
                     </>
                   )}
                 </button>
               )}
+
+              <button
+                type="button"
+                className="notif-close-btn"
+                onClick={() => setOpen(false)}
+                aria-label="Fermer"
+              >
+                ✕
+              </button>
             </div>
           </div>
 
@@ -236,7 +270,7 @@ export default function NotificationBell() {
                     className={`notif-item${n.link_url ? " is-clickable" : ""}`}
                     onClick={() => handleNotificationClick(n)}
                   >
-                    <span className="notif-item-dot" />
+                    <span className="notif-type-avatar">{getNotifIcon(n.type)}</span>
                     <span className="notif-item-body">
                       <span className="notif-item-message">{n.message}</span>
                       <span className="notif-item-time">
