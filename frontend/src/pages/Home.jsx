@@ -15,7 +15,15 @@ const MONTH_LABELS = ["janvier", "février", "mars", "avril", "mai", "juin", "ju
 
 function todayLabel() {
   const now = new Date();
-  return `${WEEKDAY_LABELS[now.getDay()]} ${now.getDate()} ${MONTH_LABELS[now.getMonth()]}`;
+  const dayName = WEEKDAY_LABELS[now.getDay()];
+  const capDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+  return `${capDay} ${now.getDate()} ${MONTH_LABELS[now.getMonth()]}`;
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 18 || hour < 5) return "Bonsoir";
+  return "Bonjour";
 }
 
 function fmtDate(d) {
@@ -35,29 +43,29 @@ function fmtMinutes(total) {
 
 const QUICK_ACTIONS = {
   admin_sys: [
-    { to: "/admin", emoji: "⚙️", label: "Administration" },
-    { to: "/attendance", emoji: "🕐", label: "Présences" },
-    { to: "/leave/approval", label: "Congés", emoji: "✅" },
+    { to: "/admin/parametres", emoji: "⚙️", label: "Administration", bg: "linear-gradient(135deg, #6366f1, #8b5cf6)" },
+    { to: "/attendance", emoji: "🕐", label: "Présences", bg: "linear-gradient(135deg, #f59e0b, #d97706)" },
+    { to: "/leave/approval", emoji: "🌴", label: "Congés", bg: "linear-gradient(135deg, #10b981, #059669)" },
   ],
   manager: [
-    { to: "/projects", emoji: "📁", label: "Projets" },
-    { to: "/attendance", emoji: "🕐", label: "Présences" },
-    { to: "/leave/approval", emoji: "✅", label: "Approbation congés" },
+    { to: "/projects", emoji: "🎯", label: "Projets", bg: "linear-gradient(135deg, #6366f1, #8b5cf6)" },
+    { to: "/attendance", emoji: "🕐", label: "Présences", bg: "linear-gradient(135deg, #f59e0b, #d97706)" },
+    { to: "/leave/approval", emoji: "🌴", label: "Approbation", bg: "linear-gradient(135deg, #10b981, #059669)" },
   ],
   cm: [
-    { to: "/projects", emoji: "📁", label: "Mes projets" },
-    { to: "/tasks", emoji: "📋", label: "Mes tâches" },
-    { to: "/attendance", emoji: "🕐", label: "Mes présences" },
+    { to: "/projects", emoji: "🎯", label: "Mes projets", bg: "linear-gradient(135deg, #6366f1, #8b5cf6)" },
+    { to: "/tasks", emoji: "📋", label: "Mes tâches", bg: "linear-gradient(135deg, #06b6d4, #0891b2)" },
+    { to: "/attendance", emoji: "🕐", label: "Présences", bg: "linear-gradient(135deg, #f59e0b, #d97706)" },
   ],
   prod: [
-    { to: "/tasks", emoji: "📋", label: "Mes tâches" },
-    { to: "/tasks-montage", emoji: "🎬", label: "Tâches Montage" },
-    { to: "/attendance", emoji: "🕐", label: "Mes présences" },
+    { to: "/tasks", emoji: "📋", label: "Mes tâches", bg: "linear-gradient(135deg, #06b6d4, #0891b2)" },
+    { to: "/tasks-montage", emoji: "🎬", label: "Montage", bg: "linear-gradient(135deg, #8b5cf6, #7c3aed)" },
+    { to: "/attendance", emoji: "🕐", label: "Présences", bg: "linear-gradient(135deg, #f59e0b, #d97706)" },
   ],
   chef_prod: [
-    { to: "/tasks", emoji: "📋", label: "Mes tâches" },
-    { to: "/tasks-montage", emoji: "🎬", label: "Tâches Montage" },
-    { to: "/planification", emoji: "📆", label: "Planification" },
+    { to: "/tasks", emoji: "📋", label: "Mes tâches", bg: "linear-gradient(135deg, #06b6d4, #0891b2)" },
+    { to: "/tasks-montage", emoji: "🎬", label: "Montage", bg: "linear-gradient(135deg, #8b5cf6, #7c3aed)" },
+    { to: "/planification", emoji: "⚡", label: "Planification", bg: "linear-gradient(135deg, #f59e0b, #d97706)" },
   ],
 };
 
@@ -103,7 +111,7 @@ export default function Home() {
         .slice(0, 3);
       setShoots(futureShoots);
 
-      // Weekly timesheet hours count (target 36h)
+      // Weekly timesheet hours count
       let loggedMins = 0;
       if (user) {
         if (["cm", "prod", "chef_prod"].includes(user.effective_role)) {
@@ -144,25 +152,33 @@ export default function Home() {
 
   return (
     <AppShell>
-      {/* ── Welcome Banner ── */}
+      {/* ── Welcome Hero Banner ── */}
       <div className="dash-welcome-card">
         <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
         <div className="dash-welcome-content">
           <div className="dash-welcome-text">
-            <h1>Bonjour, {user?.first_name} 👋</h1>
-            <p className="page-subtitle" style={{ textTransform: "capitalize" }}>{todayLabel()}</p>
+            <div className="dash-status-pill">
+              <span className="dash-pulse-dot" />
+              <span>Agence Active · Production</span>
+            </div>
+            <h1>{getGreeting()}, {user?.first_name} 👋</h1>
+            <p className="page-subtitle">{todayLabel()}</p>
           </div>
 
-          <div className="dash-weekly-stat" style={{ minWidth: "auto" }}>
-            <div className="dash-stat-info" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.2rem" }}>
-              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 500 }}>
+          <div className="dash-weekly-stat">
+            <div className="dash-stat-info">
+              <span className="dash-stat-title">
                 {["admin_sys", "manager"].includes(user?.effective_role)
                   ? "Temps total équipe cette semaine"
                   : "Mon temps de travail cette semaine"
                 }
               </span>
-              <strong style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--ink)" }}>{fmtMinutes(weeklyHours)}</strong>
+              <strong className="dash-stat-hours">{fmtMinutes(weeklyHours)}</strong>
             </div>
+            <div className="dash-progress-track">
+              <div className="dash-progress-fill" style={{ width: `${progressPercent}%` }} />
+            </div>
+            <span className="dash-progress-lbl">{progressPercent}% complété</span>
           </div>
         </div>
       </div>
@@ -173,14 +189,16 @@ export default function Home() {
           {quickActions.map((a) => (
             <Link key={a.to} to={a.to} className="home-quick-btn">
               <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
-              <span className="home-quick-emoji">{a.emoji}</span>
+              <div className="home-quick-icon-badge" style={{ background: a.bg }}>
+                {a.emoji}
+              </div>
               <span className="home-quick-label">{a.label}</span>
             </Link>
           ))}
         </section>
       )}
 
-      {/* ── Main Dashboard Layout ── */}
+      {/* ── Main Dashboard Grid ── */}
       <div className="home-grid">
         <div className="dash-main-col">
           {/* Urgent tasks */}
@@ -194,8 +212,9 @@ export default function Home() {
             
             {!loading && tasks.length === 0 && (
               <div className="dash-empty-card">
-                <span>🎉</span>
-                <p>Aucune tâche urgente à faire. Bien joué !</p>
+                <span className="dash-empty-emoji">🎉</span>
+                <h3>Aucune tâche urgente en attente</h3>
+                <p>Toutes vos tâches attribuées sont à jour. Excellent travail !</p>
               </div>
             )}
 
@@ -236,8 +255,9 @@ export default function Home() {
 
             {!loading && shoots.length === 0 && (
               <div className="dash-empty-card">
-                <span>🎥</span>
-                <p>Aucun shooting prévu prochainement.</p>
+                <span className="dash-empty-emoji">🎥</span>
+                <h3>Aucun shooting prévu prochainement</h3>
+                <p>Consultez le calendrier de production pour réserver de nouveaux créneaux.</p>
               </div>
             )}
 
@@ -281,64 +301,66 @@ export default function Home() {
 
         {/* Sidebar */}
         <div className="dash-sidebar-col">
-          {/* Absents */}
+          {/* Absents aujourd'hui */}
           <aside className="unavailable-panel">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.8rem" }}>
-              <h2 style={{ margin: 0, fontSize: "0.92rem" }}>Absents aujourd&rsquo;hui</h2>
+            <GlowingEffect spread={30} glow={true} disabled={false} proximity={50} inactiveZone={0.01} />
+            <div className="dash-widget-header">
+              <h3>🌴 Absents aujourd'hui</h3>
               <button
                 type="button"
-                className="btn-secondary"
-                style={{ fontSize: "0.75rem", padding: "0.25rem 0.6rem" }}
+                className="btn-ghost-sm"
+                style={{ fontSize: "0.75rem" }}
                 onClick={() => setUpcomingOpen(true)}
               >
-                Voir tout
+                À venir →
               </button>
             </div>
             {!loading && unavailable.length === 0 && (
-              <p className="unavailable-empty">✓ Tout le monde est disponible.</p>
+              <div className="unavailable-empty-box">
+                <span>✓</span>
+                <p>Toute l'équipe est présente aujourd'hui.</p>
+              </div>
             )}
             {unavailable.length > 0 && (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: "left", padding: "0.3rem 0.5rem", borderBottom: "1px solid var(--line)", fontWeight: 600, color: "var(--text-muted)", fontSize: "0.75rem" }}>Collaborateur</th>
-                    <th style={{ textAlign: "left", padding: "0.3rem 0.5rem", borderBottom: "1px solid var(--line)", fontWeight: 600, color: "var(--text-muted)", fontSize: "0.75rem" }}>Statut</th>
-                    <th style={{ textAlign: "left", padding: "0.3rem 0.5rem", borderBottom: "1px solid var(--line)", fontWeight: 600, color: "var(--text-muted)", fontSize: "0.75rem" }}>Période</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unavailable.map((u) => (
-                    <tr key={`${u.user_id}-${u.reason}`}>
-                      <td style={{ padding: "0.4rem 0.5rem", borderBottom: "1px solid var(--line)" }} className="unavailable-name">{u.user_name}</td>
-                      <td style={{ padding: "0.4rem 0.5rem", borderBottom: "1px solid var(--line)" }}>
-                        <span className={`unavailable-reason unavailable-reason--${u.reason}`}>
-                          Indisponible
-                        </span>
-                      </td>
-                      <td style={{ padding: "0.4rem 0.5rem", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap", color: "var(--text-muted)", fontSize: "0.75rem" }}>
-                        {u.start ? `${new Date(u.start).toLocaleDateString("fr-FR")} → ${new Date(u.end).toLocaleDateString("fr-FR")}` : "Aujourd'hui"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="unavailable-list-wrap">
+                {unavailable.map((u) => (
+                  <div key={`${u.user_id}-${u.reason}`} className="unavailable-card-item">
+                    <div className="unavailable-user">
+                      <span className="unavailable-dot" />
+                      <div>
+                        <div className="unavailable-name">{u.user_name}</div>
+                        <div className="unavailable-dates">
+                          {u.start ? `${new Date(u.start).toLocaleDateString("fr-FR")} → ${new Date(u.end).toLocaleDateString("fr-FR")}` : "Aujourd'hui"}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`unavailable-reason-pill unavailable-reason--${u.reason}`}>
+                      Indisponible
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </aside>
 
           {/* Agency Projects Stats */}
           <section className="unavailable-panel" style={{ marginTop: "1.25rem" }}>
-            <h2 style={{ fontSize: "0.92rem", marginBottom: "0.8rem" }}>Statistiques Projets</h2>
+            <GlowingEffect spread={30} glow={true} disabled={false} proximity={50} inactiveZone={0.01} />
+            <div className="dash-widget-header">
+              <h3>📊 Projets par Statut</h3>
+              <Link to="/projects" style={{ fontSize: "0.75rem", color: "var(--primary)", textDecoration: "none", fontWeight: 600 }}>Voir tout</Link>
+            </div>
             <div className="dash-stats-grid">
-              <div className="dash-stat-box">
+              <div className="dash-stat-box dash-stat-box--actif">
                 <span className="dash-stat-val">{activeProjCount}</span>
                 <span className="dash-stat-lbl">Actifs</span>
               </div>
-              <div className="dash-stat-box">
-                <span className="dash-stat-val" style={{ color: "var(--amber-deep)" }}>{onHoldProjCount}</span>
+              <div className="dash-stat-box dash-stat-box--pause">
+                <span className="dash-stat-val">{onHoldProjCount}</span>
                 <span className="dash-stat-lbl">En pause</span>
               </div>
-              <div className="dash-stat-box">
-                <span className="dash-stat-val" style={{ color: "var(--primary)" }}>{termProjCount}</span>
+              <div className="dash-stat-box dash-stat-box--termine">
+                <span className="dash-stat-val">{termProjCount}</span>
                 <span className="dash-stat-lbl">Terminés</span>
               </div>
             </div>
