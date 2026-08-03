@@ -189,6 +189,11 @@ export default function AdminMonitoring() {
         </select>
       </div>
 
+      {/* Subtle Hint Note */}
+      <div className="mon-table-hint">
+        💡 <em>Cliquez sur une ligne de tableau pour afficher le détail et la stacktrace de l'erreur.</em>
+      </div>
+
       {/* ── Logs Table ────────────────────────────────────────────────────── */}
       <div className="mon-table-wrap">
         {loading && logs.length === 0 ? (

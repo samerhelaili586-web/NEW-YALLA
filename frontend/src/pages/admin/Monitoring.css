@@ -193,6 +193,15 @@
   border-color: var(--accent, #6366f1);
 }
 
+.mon-table-hint {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+  margin-bottom: 0.6rem;
+  padding-left: 0.2rem;
+  user-select: none;
+}
+
 /* ─── Logs Table ──────────────────────────────────────────────────────────── */
 .mon-table-wrap {
   background: var(--card, #ffffff);
