@@ -548,6 +548,113 @@ button:not(.no-anim):not(:disabled):active {
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4) !important;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* 🌟 UNIFIED HOVER GLOWING ANIMATION FOR ALL CARDS ACROSS ALL PAGES         */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+.card,
+.panel,
+.box,
+.tt-table-wrap,
+.pl-table-wrap,
+.wf-table-wrap,
+.wf-stat-card,
+.att-kpi-card,
+.att-table-wrap,
+.att-toolbar,
+.ann-card,
+.directory-card,
+.stat-card,
+.widget-card,
+.user-card,
+.equip-card,
+.holiday-card,
+.leave-card,
+.dash-task-item,
+.dash-shoot-card,
+.dash-welcome-card,
+.home-quick-btn,
+.param-card-box,
+.param-notif-card,
+.param-retention-box,
+.project-rights-editor,
+.workflow-info-card,
+.grace-preset-card,
+.unavailable-panel {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.25s ease, 
+              box-shadow 0.25s ease, 
+              background 0.25s ease !important;
+}
+
+/* Light Theme Hover Glow */
+.card:hover,
+.panel:hover,
+.box:hover,
+.tt-table-wrap:hover,
+.pl-table-wrap:hover,
+.wf-table-wrap:hover,
+.wf-stat-card:hover,
+.att-kpi-card:hover,
+.att-table-wrap:hover,
+.ann-card:hover,
+.directory-card:hover,
+.stat-card:hover,
+.widget-card:hover,
+.user-card:hover,
+.equip-card:hover,
+.holiday-card:hover,
+.leave-card:hover,
+.dash-task-item:hover,
+.dash-shoot-card:hover,
+.home-quick-btn:hover,
+.param-card-box:hover,
+.param-notif-card:hover,
+.param-retention-box:hover,
+.project-rights-editor:hover,
+.workflow-info-card:hover,
+.grace-preset-card:hover,
+.unavailable-panel:hover {
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.18), 
+              0 0 15px rgba(99, 102, 241, 0.12) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Dark Theme Hover Glow (Neon Pulse Sheen) */
+.dark .card:hover,
+.dark .panel:hover,
+.dark .box:hover,
+.dark .tt-table-wrap:hover,
+.dark .pl-table-wrap:hover,
+.dark .wf-table-wrap:hover,
+.dark .wf-stat-card:hover,
+.dark .att-kpi-card:hover,
+.dark .att-table-wrap:hover,
+.dark .ann-card:hover,
+.dark .directory-card:hover,
+.dark .stat-card:hover,
+.dark .widget-card:hover,
+.dark .user-card:hover,
+.dark .equip-card:hover,
+.dark .holiday-card:hover,
+.dark .leave-card:hover,
+.dark .dash-task-item:hover,
+.dark .dash-shoot-card:hover,
+.dark .home-quick-btn:hover,
+.dark .param-card-box:hover,
+.dark .param-notif-card:hover,
+.dark .param-retention-box:hover,
+.dark .project-rights-editor:hover,
+.dark .workflow-info-card:hover,
+.dark .grace-preset-card:hover,
+.dark .unavailable-panel:hover {
+  border-color: #6366f1 !important;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.32), 
+              0 0 22px rgba(99, 102, 241, 0.25) !important;
+  transform: translateY(-3px) !important;
+}
+
 /* ── Modals & Dialog Overlays across ALL pages ── */
 .dark .modal-overlay {
   background: rgba(0, 0, 0, 0.75) !important;
