@@ -394,3 +394,146 @@
   .wf-stats { grid-template-columns: repeat(2, 1fr); }
   .wf-toolbar { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
 }
+
+/* ─── Dark Mode Specific Overrides for Workflows ─────────────────────────── */
+.dark .wf-page {
+  color-scheme: dark;
+}
+
+.dark .wf-header-title h1 {
+  color: #ffffff !important;
+}
+
+.dark .wf-subtitle {
+  color: #9ca3af !important;
+}
+
+.dark .wf-stat-card {
+  background: rgba(26, 27, 38, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dark .wf-stat-value {
+  color: #ffffff !important;
+}
+
+.dark .wf-stat-label {
+  color: #9ca3af !important;
+}
+
+.dark .wf-tabs {
+  background: rgba(30, 31, 45, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark .wf-tab {
+  color: #9ca3af !important;
+}
+
+.dark .wf-tab:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: #ffffff !important;
+}
+
+.dark .wf-tab--active {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4) !important;
+}
+
+.dark .wf-search {
+  background: #1e1f2d !important;
+  color: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+.dark .wf-search:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+}
+
+.dark .wf-table-wrap {
+  background: rgba(26, 27, 38, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dark .wf-table thead {
+  background: rgba(30, 31, 45, 0.95) !important;
+}
+
+.dark .wf-table th {
+  color: #a5b4fc !important;
+  border-bottom-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.dark .wf-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .wf-row:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+.dark .wf-row-name {
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+.dark .wf-row-desc {
+  color: #9ca3af !important;
+}
+
+.dark .wf-count-cell {
+  color: #d1d5db !important;
+}
+
+.dark .wf-date-cell {
+  color: #e5e7eb !important;
+  font-weight: 600;
+}
+
+.dark .wf-icon-btn {
+  color: #9ca3af !important;
+}
+
+.dark .wf-icon-btn:hover {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.dark .wf-action-menu {
+  background: #1e1f2d !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+}
+
+.dark .wf-action-menu-item {
+  color: #f3f4f6 !important;
+}
+
+.dark .wf-action-menu-item:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: #ffffff !important;
+}
+
+/* Stat Badges in Dark Mode */
+.dark .wf-badge--active {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.dark .wf-badge--draft {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.dark .wf-badge--disabled {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
