@@ -1,6 +1,7 @@
 .mon-container {
-  padding: 2rem 2.5rem;
-  max-width: 1400px;
+  padding: 1.75rem 2rem;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
   color: var(--ink);
   font-family: 'Inter', var(--font-body, system-ui), sans-serif;
@@ -197,8 +198,9 @@
   background: var(--card, #ffffff);
   border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
   border-radius: 16px;
-  overflow-x: auto;
+  overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  width: 100%;
 }
 
 .mon-empty-state {
@@ -213,23 +215,24 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.86rem;
-  min-width: 900px;
+  font-size: 0.84rem;
+  table-layout: auto;
 }
 
 .mon-table th {
   background: var(--muted, rgba(0, 0, 0, 0.02));
-  padding: 0.9rem 1.25rem;
+  padding: 0.85rem 0.8rem;
   font-weight: 700;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.08));
   text-transform: uppercase;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .mon-table td {
-  padding: 0.95rem 1.25rem;
+  padding: 0.8rem 0.8rem;
   border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.06));
   vertical-align: middle;
   color: var(--ink);
