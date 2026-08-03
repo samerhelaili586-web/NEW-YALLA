@@ -267,15 +267,21 @@ export default function AttendanceSheet() {
 
   useEffect(() => {
     async function fetchTasks() {
+      if (!user) return;
       try {
-        const data = await api.get("/tasks", { assigned_to_me: 1 });
+        let data = await api.get("/tasks", { assigned_to_me: 1 });
+        if (!data || data.length === 0) {
+          data = await api.get("/tasks");
+        }
         setUserTasks(data || []);
       } catch {
         setUserTasks([]);
       }
     }
-    fetchTasks();
-  }, []);
+    if (isModalOpen) {
+      fetchTasks();
+    }
+  }, [user, isModalOpen]);
 
   useEffect(() => {
     if (user?.effective_role === "admin_sys") {

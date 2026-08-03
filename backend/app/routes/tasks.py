@@ -26,26 +26,18 @@ def list_tasks():
         q = q.filter_by(project_id=project_id)
 
     if assigned_to_me:
+        # Get tasks explicitly assigned to the user in TaskAssignee
         assigned_ids = [
             a.task_id for a in TaskAssignee.query.filter_by(user_id=user.id).all()
         ]
-        # Also include personal tasks owned by this user (no project)
-        from sqlalchemy import or_
-        personal_task_ids = [
-            t.id for t in Task.query.filter_by(project_id=None)
-            .filter(Task.id.in_([a.task_id for a in TaskAssignee.query.filter_by(user_id=user.id).all()]))
-            .all()
-        ]
-        q = q.filter(Task.id.in_(set(assigned_ids) | set(personal_task_ids)))
-
-        # spec §5.2: CM must not see their own projects' tasks in this view
+        # Also include tasks in projects where user is the designated CM
+        cm_task_ids = []
         if user.effective_role == "cm":
-            from app.models.project import Project as Proj
-            own_project_ids = [
-                p.id for p in Proj.query.filter_by(cm_id=user.id).all()
-            ]
+            own_project_ids = [p.id for p in Project.query.filter_by(cm_id=user.id).all()]
             if own_project_ids:
-                q = q.filter(~Task.project_id.in_(own_project_ids))
+                cm_task_ids = [t.id for t in Task.query.filter(Task.project_id.in_(own_project_ids)).all()]
+
+        q = q.filter(Task.id.in_(set(assigned_ids) | set(cm_task_ids)))
 
     if montage_only:
         q = q.join(Status).filter(Status.functional_type.in_(["montage", "planification_montage"]))
