@@ -374,6 +374,17 @@ function RoleModal({ mode, role, meta, onClose, onSaved }) {
     return list.includes(key) ? list.filter(k => k !== key) : [...list, key];
   }
 
+  function toggleAll(field, allKeys) {
+    setForm(f => {
+      const current = f[field] || [];
+      const allSelected = allKeys.every(k => current.includes(k));
+      return {
+        ...f,
+        [field]: allSelected ? [] : [...allKeys]
+      };
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
@@ -392,11 +403,14 @@ function RoleModal({ mode, role, meta, onClose, onSaved }) {
     }
   }
 
+  const allMenusSelected = meta.menu_keys.length > 0 && meta.menu_keys.every(k => form.menu_permissions.includes(k));
+  const allActionsSelected = meta.action_keys.length > 0 && meta.action_keys.every(k => form.action_permissions.includes(k));
+
   return (
     <div className="param-modal-overlay" onClick={onClose}>
       <div className="param-modal large" onClick={e => e.stopPropagation()}>
         <div className="param-modal-header">
-          <h3>{mode === "create" ? "Nouveau Rôle" : `Modifier : ${role.label}`}</h3>
+          <h3>{mode === "create" ? "✨ Nouveau Rôle" : `✏️ Modifier : ${role.label}`}</h3>
           <button className="param-modal-close" onClick={onClose}><Icon d={ICONS.x} size={18} /></button>
         </div>
         <form className="param-modal-body" onSubmit={handleSubmit}>
@@ -487,7 +501,19 @@ function RoleModal({ mode, role, meta, onClose, onSaved }) {
 
           {/* Menu Permissions */}
           <div className="param-field">
-            <label>Accès aux menus</label>
+            <div className="param-field-header">
+              <label>
+                Accès aux menus
+                <span className="param-perm-badge">{form.menu_permissions.length} / {meta.menu_keys.length}</span>
+              </label>
+              <button
+                type="button"
+                className="param-quick-toggle"
+                onClick={() => toggleAll("menu_permissions", meta.menu_keys)}
+              >
+                {allMenusSelected ? "Tout décocher" : "Tout cocher"}
+              </button>
+            </div>
             <div className="param-permissions-grid">
               {meta.menu_keys.map(key => (
                 <label key={key} className={`perm-chip${form.menu_permissions.includes(key) ? " active" : ""}`}>
@@ -505,7 +531,19 @@ function RoleModal({ mode, role, meta, onClose, onSaved }) {
 
           {/* Action Permissions */}
           <div className="param-field">
-            <label>Permissions d'actions</label>
+            <div className="param-field-header">
+              <label>
+                Permissions d'actions
+                <span className="param-perm-badge">{form.action_permissions.length} / {meta.action_keys.length}</span>
+              </label>
+              <button
+                type="button"
+                className="param-quick-toggle"
+                onClick={() => toggleAll("action_permissions", meta.action_keys)}
+              >
+                {allActionsSelected ? "Tout décocher" : "Tout cocher"}
+              </button>
+            </div>
             <div className="param-permissions-grid">
               {meta.action_keys.map(key => (
                 <label key={key} className={`perm-chip${form.action_permissions.includes(key) ? " active" : ""}`}>

@@ -12,9 +12,8 @@ DEMO_PASSWORD = "password123"
 
 
 def run_seed():
-    if User.query.first():
-        print("Database already seeded — skipping run_seed.")
-        return
+    from app.seed_car_rental import seed_car_rental
+    seed_car_rental()
     # ── 1. USERS ─────────────────────────────────────────────────────────────
     # Standard company roster across all departments
     demo_users = [

@@ -48,7 +48,7 @@ def check_and_notify_penalties():
 
     today = date.today()
     users = User.query.filter_by(is_archived=False, is_active=True).filter(
-        User.role.in_(["cm", "prod"])
+        User.role != "admin_sys"
     ).all()
     managers_and_admins = User.query.filter_by(is_archived=False, is_active=True).filter(
         User.role.in_(["admin_sys", "manager"])
@@ -225,7 +225,7 @@ def team_week():
     week_start, _ = _week_bounds(ref_date)
 
     users = User.query.filter_by(is_archived=False, is_active=True).filter(
-        User.role.in_(["cm", "prod"])
+        User.role != "admin_sys"
     ).all()
     return jsonify([
         {
@@ -251,7 +251,7 @@ def team_summary():
     ).filter(
         User.is_archived == False,
         User.is_active == True,
-        User.role.in_(["cm", "prod"]),
+        User.role != "admin_sys",
         TimeEntry.entry_date >= week_start,
         TimeEntry.entry_date <= week_end
     ).scalar() or 0
