@@ -85,7 +85,7 @@ function DayCell({ day, userName, onSelect, targetDate }) {
 export default function AttendanceSheet() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const isTeamView = ["admin_sys", "manager"].includes(user?.effective_role);
+  const isTeamView = ["admin_sys", "manager", "comptable", "resp_flotte"].includes(user?.effective_role);
   const [searchParams] = useSearchParams();
 
   const [refDate, setRefDate] = useState(() => {

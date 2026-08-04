@@ -62,7 +62,7 @@ def seed_car_rental():
             "color": "#3b82f6",  # blue
             "participates_in_workflow": True,
             "visibility_mode": "all",
-            "menu_permissions": ["annuaire", "projets_tous", "taches_associees", "conges_absences"],
+            "menu_permissions": ["annuaire", "projets_tous", "taches_associees", "feuille_presence_perso", "conges_absences"],
             "action_permissions": ["creer_tache", "changer_statut_standard", "ajouter_commentaire"],
         },
         {
@@ -71,7 +71,7 @@ def seed_car_rental():
             "color": "#eab308",  # yellow/amber
             "participates_in_workflow": True,
             "visibility_mode": "actionable",  # Chauffeur sees ONLY actionable tasks!
-            "menu_permissions": ["taches_associees", "conges_absences"],
+            "menu_permissions": ["taches_associees", "feuille_presence_perso", "conges_absences"],
             "action_permissions": ["changer_statut_standard", "reporter_temps", "ajouter_commentaire"],
         },
         {
@@ -80,7 +80,7 @@ def seed_car_rental():
             "color": "#ec4899",  # pink
             "participates_in_workflow": True,
             "visibility_mode": "all",
-            "menu_permissions": ["annuaire", "projets_tous", "taches_associees", "gestion_workflows", "conges_absences"],
+            "menu_permissions": ["annuaire", "projets_tous", "taches_associees", "gestion_workflows", "feuille_presence_perso", "feuille_presence_equipe", "conges_absences"],
             "action_permissions": ["creer_tache", "changer_statut_standard", "changer_statut_planification", "forcer_statut", "ajouter_commentaire"],
         },
         {
@@ -89,7 +89,7 @@ def seed_car_rental():
             "color": "#10b981",  # emerald green
             "participates_in_workflow": True,
             "visibility_mode": "all",  # narrow read-only / billing focus
-            "menu_permissions": ["annuaire", "projets_tous", "salaires_paie"],
+            "menu_permissions": ["annuaire", "projets_tous", "salaires_paie", "feuille_presence_perso", "feuille_presence_equipe", "conges_absences"],
             "action_permissions": ["ajouter_commentaire"],
         },
     ]
