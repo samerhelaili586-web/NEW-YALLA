@@ -3,6 +3,7 @@ import { api, ApiError } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./LeaveRequests.css";
 
@@ -184,6 +185,7 @@ export default function LeaveRequests() {
               <p className="lv-status">Aucune demande pour le moment.</p>
             ) : (
               <div className="lv-table-wrap">
+                <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                 <table className="lv-table">
                   <thead>
                     <tr>
@@ -234,6 +236,7 @@ export default function LeaveRequests() {
               <p className="lv-status">Aucune absence déclarée.</p>
             ) : (
               <div className="lv-table-wrap">
+                <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                 <table className="lv-table">
                   <thead>
                     <tr>

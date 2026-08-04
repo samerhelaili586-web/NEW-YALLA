@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../../api/client";
 import Modal from "../../components/Modal";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./TaskTypes.css";
 
@@ -398,6 +399,7 @@ export default function AdminTaskTypes() {
 
                   {statuses.length > 0 && (
                     <div className="tt-table-wrap">
+                      <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                       <table className="tt-table">
                         <thead>
                           <tr>

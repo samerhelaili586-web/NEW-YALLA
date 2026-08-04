@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./LoginHistory.css";
 
@@ -52,6 +53,7 @@ export default function AdminLoginHistory() {
 
       {!loading && !error && (
         <div className="tt-table-wrap">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <table className="tt-table">
             <thead>
               <tr>

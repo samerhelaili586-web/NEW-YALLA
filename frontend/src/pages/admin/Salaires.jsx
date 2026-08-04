@@ -4,6 +4,7 @@ import AppShell from "../../components/AppShell";
 import Avatar from "../../components/Avatar";
 import Modal from "../../components/Modal";
 import { ROLE_LABELS } from "../../constants";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./Salaires.css";
 
@@ -205,6 +206,7 @@ export default function Salaires() {
 
         {/* Table */}
         <div className="sal-table-wrap">
+          <GlowingEffect spread={50} glow={true} disabled={false} proximity={80} inactiveZone={0.01} />
           {loading ? (
             <div className="sal-loading">Chargement des salaires...</div>
           ) : (

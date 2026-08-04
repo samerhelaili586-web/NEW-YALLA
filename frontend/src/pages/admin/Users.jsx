@@ -3,6 +3,7 @@ import { api, ApiError } from "../../api/client";
 import { ROLE_LABELS } from "../../constants";
 import Avatar from "../../components/Avatar";
 import Modal from "../../components/Modal";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./Users.css";
 
@@ -272,6 +273,7 @@ export default function AdminUsers() {
 
       {!loading && (
         <div className="users-table-wrap">
+          <GlowingEffect spread={50} glow={true} disabled={false} proximity={80} inactiveZone={0.01} />
           <table className="users-table">
             <thead>
               <tr>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import Modal from "../../components/Modal";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 
 export default function AdminHolidays() {
@@ -69,6 +70,7 @@ export default function AdminHolidays() {
 
       {!loading && !error && (
         <div className="tt-table-wrap">
+          <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
           <table className="tt-table">
             <thead>
               <tr>

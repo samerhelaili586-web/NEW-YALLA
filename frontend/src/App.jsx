@@ -27,6 +27,7 @@ import WorkflowEditor from "./pages/workflows/WorkflowEditor";
 import Salaires from "./pages/admin/Salaires";
 import Announcements from "./pages/Announcements";
 import Guide from "./pages/Guide";
+import NotFound from "./pages/NotFound";
 
 export default function App() {
   return (
@@ -150,7 +151,7 @@ export default function App() {
         <Route
           path="/leave/approval"
           element={
-            <RoleRoute roles={["manager"]}>
+            <RoleRoute roles={["manager", "admin_sys"]}>
               <LeaveApproval />
             </RoleRoute>
           }
@@ -183,6 +184,7 @@ export default function App() {
           <Route path="monitoring" element={<AdminMonitoring />} />
           <Route path="parametres" element={<AdminParametres />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </AuthProvider>
   );

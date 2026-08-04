@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import TaskDetailModal from "../../components/TaskDetailModal";
 import { UrgentBadge } from "../../utils/taskUtils";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./TachesAssociees.css";
 
@@ -451,6 +452,7 @@ export default function TachesAssociees() {
                             const isPersonal = !t.project_id;
                             return (
                               <div key={t.id} className="ta-weekly-card" onClick={() => openTask(t)}>
+                                <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                                 <div className="ta-weekly-card-meta">
                                   <span className={`ta-weekly-card-badge ${isPersonal ? "ta-weekly-card-badge--personal" : ""}`}>
                                     {isPersonal ? "🙋 Perso" : t.task_type_name}

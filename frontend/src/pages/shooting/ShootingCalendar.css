@@ -284,3 +284,67 @@
   font-size: 0.85rem;
   color: var(--text);
 }
+
+/* ── Dark Mode ─────────────────────────────────────────────────────────────── */
+.dark .sc-day {
+  background: #1a1a2e;
+  border-color: #2a2a3a;
+}
+
+.dark .sc-day:hover {
+  background: #1e1e3a;
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.dark .sc-day.is-today {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 1px #6366f1, 0 4px 20px rgba(99, 102, 241, 0.25);
+}
+
+.dark .sc-day-num {
+  color: #a3a3a3;
+}
+
+.dark .sc-day.is-today .sc-day-num {
+  color: #818cf8;
+}
+
+.dark .sc-day.is-outside-month {
+  background: transparent;
+  opacity: 0.3;
+}
+
+.dark .sc-day-header {
+  border-bottom-color: #2a2a3a;
+}
+
+.dark .sc-week-day-name {
+  color: #71717a;
+  background: #1f1f1f;
+  border-bottom-color: #2a2a2a;
+}
+
+.dark .sc-shoot-card {
+  background: rgba(79, 70, 229, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #c7d2fe;
+}
+
+.dark .sc-shoot-card--clickable:hover {
+  background: rgba(79, 70, 229, 0.25);
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.dark .sc-grid-header-day {
+  color: #71717a;
+}
+
+.dark .sc-header h1 {
+  color: #f5f5f5;
+}
+
+.dark .sc-subtitle {
+  color: #71717a;
+}
+

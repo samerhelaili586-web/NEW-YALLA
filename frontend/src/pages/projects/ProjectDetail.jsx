@@ -7,6 +7,7 @@ import Modal from "../../components/Modal";
 import TaskDetailModal from "../../components/TaskDetailModal";
 import KanbanBoard from "../../components/KanbanBoard";
 import { UrgentBadge } from "../../utils/taskUtils";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./ProjectDetail.css";
 
@@ -458,12 +459,14 @@ export default function ProjectDetail() {
             {kpis && (
               <div className="pd-kpis-summary">
                 <div className="pd-stat-card">
+                  <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                   <div className="pd-stat-label">Total Objectifs Mensuels</div>
                   <div className="pd-stat-value">
                     {Object.values(kpis.targets).reduce((acc, t) => acc + t.count, 0)}
                   </div>
                 </div>
                 <div className="pd-stat-card">
+                  <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
                   <div className="pd-stat-label">Types de Tâches Configurés</div>
                   <div className="pd-stat-value">{Object.keys(kpis.targets).length}</div>
                 </div>

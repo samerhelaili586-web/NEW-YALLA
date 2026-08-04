@@ -784,4 +784,82 @@
   font-weight: 600;
 }
 
+/* ── Dark Mode ─────────────────────────────────────────────────────────────── */
+.dark .ta-weekly-card {
+  background: #1e1e2e;
+  border-color: #333;
+  position: relative;
+  overflow: hidden;
+}
+
+.dark .ta-weekly-card:hover {
+  border-color: #4f46e5;
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.25);
+}
+
+.dark .ta-weekly-card-title {
+  color: #f0f0f5;
+}
+
+.dark .ta-weekly-card-proj {
+  color: #71717a;
+}
+
+.dark .ta-weekly-col {
+  background: #171717;
+  border-color: #2a2a2a;
+}
+
+.dark .ta-weekly-col--today {
+  border-color: #4f46e5;
+}
+
+.dark .ta-weekly-col-header {
+  background: #1f1f1f;
+  border-bottom-color: #2a2a2a;
+}
+
+.dark .ta-weekly-day-name {
+  color: #a3a3a3;
+}
+
+.dark .ta-weekly-day-num {
+  color: #e5e5e5;
+}
+
+.dark .ta-weekly-cards {
+  background: #171717;
+}
+
+.dark .ta-weekly-empty {
+  color: #525252;
+}
+
+.dark .ta-list-row {
+  border-bottom-color: #1f1f1f;
+}
+
+.dark .ta-list-row:hover {
+  background: rgba(79, 70, 229, 0.06);
+}
+
+.dark .ta-list-title {
+  color: #e5e5e5;
+}
+
+.dark .ta-list-proj {
+  color: #71717a;
+}
+
+.dark .ta-card {
+  background: #1e1e2e;
+  border-color: #2a2a2a;
+}
+
+.dark .ta-card:hover {
+  border-color: #4f46e5;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.2);
+}
+
+
 

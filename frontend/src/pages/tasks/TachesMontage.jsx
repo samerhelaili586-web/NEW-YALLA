@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import AppShell from "../../components/AppShell";
 import TaskDetailModal from "../../components/TaskDetailModal";
 import { UrgentBadge } from "../../utils/taskUtils";
+import { GlowingEffect } from "../../components/GlowingEffect";
 import "../../styles/shared.css";
 import "./TachesMontage.css";
 
@@ -20,10 +21,11 @@ function StatusChip({ label, isLate }) {
   );
 }
 
-// ── Task Card ─────────────────────────────────────────────────────────────────
+// ── Task Card ───────────────────────────────────────────────────────────────────────
 function TaskCard({ task, onClick }) {
   return (
     <button type="button" className="tm-card" onClick={onClick} aria-label={`Ouvrir ${task.title}`}>
+      <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
       <div className="tm-card-header">
         <span className="tm-card-type">{task.task_type_name}</span>
         <UrgentBadge date={task.planned_publish_date} isCompleted={task.status_functional_type === "validation"} />

@@ -355,7 +355,7 @@ export default function Workflows() {
         {deleteError && <p className="tt-status tt-status--error" style={{ marginTop: "0.75rem" }}>{deleteError}</p>}
         <div className="modal-footer" style={{ marginTop: "1.25rem" }}>
           <button className="btn-ghost" onClick={() => setConfirmDelete(null)} disabled={deleting}>Annuler</button>
-          <button className="btn-danger" onClick={handleDelete} disabled={deleting}>{deleting ? "Suppression…" : "Supprimer"}</button>
+          <button className="btn-danger" onClick={handleDeleteConfirm} disabled={deleting}>{deleting ? "Suppression…" : "Supprimer"}</button>
         </div>
       </Modal>
     </AppShell>
