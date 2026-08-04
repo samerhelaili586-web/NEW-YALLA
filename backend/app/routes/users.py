@@ -15,6 +15,13 @@ def directory():
     return jsonify([u.to_dict(minimal=True) for u in users])
 
 
+def _is_valid_role(r):
+    if r in ROLES:
+        return True
+    from app.models.custom_role import CustomRole
+    return CustomRole.query.filter_by(key=r, is_archived=False).first() is not None
+
+
 # ---------- Admin Sys: full user management ----------
 @users_bp.get("")
 @require_menu("gestion_utilisateurs")
@@ -32,7 +39,7 @@ def create_user():
     if missing:
         return jsonify({"error": "missing_fields", "fields": missing}), 400
 
-    if data["role"] not in ROLES:
+    if not _is_valid_role(data["role"]):
         return jsonify({"error": "invalid_role"}), 400
 
     if User.query.filter_by(email=data["email"].strip().lower()).first():
@@ -74,7 +81,7 @@ def update_user(user_id):
         user.email = new_email
 
     if "role" in data:
-        if data["role"] not in ROLES:
+        if not _is_valid_role(data["role"]):
             return jsonify({"error": "invalid_role"}), 400
         user.role = data["role"]
         if user.role != "prod":

@@ -69,6 +69,34 @@ def login_required(fn):
     return wrapper
 
 
+def user_has_menu(user, menu_key):
+    if not user:
+        return False
+    if user.effective_role in ("admin_sys", "manager"):
+        return True
+    if user.effective_role in MENU_ACCESS.get(menu_key, set()):
+        return True
+    from app.models.custom_role import CustomRole
+    crole = CustomRole.query.filter_by(key=user.effective_role, is_archived=False).first()
+    if crole and menu_key in (crole.menu_permissions or []):
+        return True
+    return False
+
+
+def user_has_action(user, action_key):
+    if not user:
+        return False
+    if user.effective_role in ("admin_sys", "manager"):
+        return True
+    if user.effective_role in ACTION_ACCESS.get(action_key, set()):
+        return True
+    from app.models.custom_role import CustomRole
+    crole = CustomRole.query.filter_by(key=user.effective_role, is_archived=False).first()
+    if crole and action_key in (crole.action_permissions or []):
+        return True
+    return False
+
+
 def require_menu(menu_key):
     """Decorator: 403 unless the current user's effective_role can see this menu. Auto-registers menu_key."""
     REGISTERED_MENU_KEYS.add(menu_key)
@@ -77,7 +105,7 @@ def require_menu(menu_key):
         @login_required
         def wrapper(*args, **kwargs):
             user = current_user()
-            if user.effective_role not in MENU_ACCESS.get(menu_key, set()):
+            if not user_has_menu(user, menu_key):
                 return jsonify({"error": "forbidden"}), 403
             return fn(*args, **kwargs)
         return wrapper
@@ -92,7 +120,7 @@ def require_action(action_key):
         @login_required
         def wrapper(*args, **kwargs):
             user = current_user()
-            if user.effective_role not in ACTION_ACCESS.get(action_key, set()):
+            if not user_has_action(user, action_key):
                 return jsonify({"error": "forbidden"}), 403
             return fn(*args, **kwargs)
         return wrapper
@@ -106,6 +134,8 @@ def require_role(*roles):
         @login_required
         def wrapper(*args, **kwargs):
             user = current_user()
+            if user.effective_role in ("admin_sys", "manager"):
+                return fn(*args, **kwargs)
             if user.effective_role not in roles:
                 return jsonify({"error": "forbidden"}), 403
             return fn(*args, **kwargs)
