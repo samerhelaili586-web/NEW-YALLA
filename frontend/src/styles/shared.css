@@ -382,7 +382,7 @@ button:not(.no-anim):not(:disabled):active {
 /* ── Typography & Headings across all pages ── */
 .dark h1,
 .dark h2,
-.dark h3,
+.dark h3:not(.we-node-title),
 .dark h4,
 .dark h5,
 .dark h6,

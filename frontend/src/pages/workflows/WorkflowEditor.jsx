@@ -1613,7 +1613,7 @@ export default function WorkflowEditor() {
                         <span className="we-node-type-badge" style={{ color: meta.color, borderColor: meta.border + "33" }}>
                           {meta.label}
                         </span>
-                        <h3 className="we-node-title" style={{ color: meta.text || "#0f172a" }}>{node.title}</h3>
+                        <h3 className="we-node-title" style={{ color: meta.text || "#0f172a", "--node-title-color": meta.text || "#0f172a" }}>{node.title}</h3>
                       </div>
                     </div>
 

@@ -530,7 +530,8 @@
   margin-bottom: 0.2rem;
 }
 
-.we-node-title {
+.we-node-title,
+.dark .we-node-title {
   font-size: 1.08rem;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -539,6 +540,7 @@
   text-overflow: ellipsis;
   margin: 0;
   line-height: 1.25;
+  color: var(--node-title-color, #0f172a) !important;
 }
 
 .we-node-meta-row {
@@ -547,17 +549,17 @@
   justify-content: space-between;
   gap: 0.4rem;
   padding-top: 0.4rem;
-  border-top: 1px solid rgba(0,0,0,0.08);
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
 }
 
-
-.we-node-badge {
+.we-node-badge,
+.dark .we-node-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-weight: 650;
+  color: rgba(15, 23, 42, 0.75) !important;
 }
 
 .we-node-conn-label {
